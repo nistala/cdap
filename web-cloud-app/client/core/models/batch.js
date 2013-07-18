@@ -85,66 +85,6 @@ define(['lib/date'], function (Datejs) {
 
     },
 
-    getUpdateRequest: function (http) {
-
-      var self = this;
-
-      var app_id = this.get('app'),
-        batch_id = this.get('name'),
-        start = C.__timeRange * -1;
-
-      var metrics = [];
-      var metricNames = this.get('metricNames');
-      for (var name in metricNames) {
-        if (metricNames[name] === 1) {
-          metrics.push(name);
-        }
-      }
-      if (!metrics.length) {
-        this.set('__loadingData', false);
-        return;
-      }
-
-      http.rpc('runnable', 'status', [app_id, batch_id, -1],
-        function (response) {
-
-          if (response.result) {
-            self.set('currentState', response.result.status);
-          }
-
-      });
-
-      return ['monitor', {
-        method: 'getTimeSeries',
-        params: [app_id, batch_id, metrics, start, undefined, 'FLOW_LEVEL']
-      }, function (error, response) {
-
-        if (!response.params) {
-          return;
-        }
-
-        var data, points = response.params.points,
-          latest = response.params.latest;
-
-        for (var metric in points) {
-          data = points[metric];
-
-          var k = data.length;
-
-          while(k --) {
-            data[k] = data[k].value;
-          }
-
-          metric = metric.replace(/\./g, '');
-
-          self.get('metricData').set(metric, data);
-          self.set('__loadingData', false);
-        }
-
-      }];
-
-    },
-
     getMetricsRequest: function(http) {
 
       var appId = this.get('app');
