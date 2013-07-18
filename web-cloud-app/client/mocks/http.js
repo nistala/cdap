@@ -2,9 +2,10 @@
  * HTTP Mock
  */
 
-define(['mocks/results/elements', 'mocks/results/metrics/counters',
-	'mocks/results/rpc', 'mocks/results/metrics/timeseries', 'mocks/http-router'],
-	function (Elements, Counters, RPC, TimeSeries, HttpRouter) {
+define(['mocks/results/elements', 'mocks/results/metrics/timeseries',
+	'mocks/results/metrics/counters', 'mocks/results/metrics/samples',
+	'mocks/results/rpc', 'mocks/http-router'],
+	function (Elements, TimeSeries, Counters, Samples, RPC, HttpRouter) {
 
 	Em.debug('Loading HTTP Mock');
 
@@ -68,60 +69,51 @@ define(['mocks/results/elements', 'mocks/results/metrics/counters',
 			var path = findPath(arguments);
 			var object = findObject(arguments);
 			var callback = findCallback(arguments);
-			var response = {
-				result: [],
-				error: null
-			};
+			var response = [];
 
 			if (path === '/metrics') {
 
 				if (typeof object === 'object' && object.length) {
 					var path, query;
-					for (var i = 0; i < object.length; i ++) {
+					for (var i = 0; i < object.length; i ++) { 
 
 						path = object[i].split('?')[0];
 						query = C.Util.parseQueryString(object[i]);
 
 						if (query.count) {
-
 							TimeSeries(path, query, function (status, metricsResult) {
-								response.result.push({
-									path: object[i],
-									value: metricsResult
-								});
+								response.push(metricsResult);
 							});
-
 						} else if (query.aggregate) {
-
 							Counters(path, query, function (status, metricsResult) {
-								response.result.push({
-									path: object[i],
-									value: metricsResult
-								});
+								response.push(metricsResult);
 							});
-
 						} else if (query.summary) {
-
 							Summary(path, query, function (status, metricsResult) {
-								response.result.push({
-									path: object[i],
-									value: metricsResult
-								});
+								response.push(metricsResult);
 							});
-							
 						}
 
 					}
-					callback(response, 200);
+					callback({
+						error: null,
+						result: response
+					}, 200);
 
 				} else {
-					callback(null, 500);
+					callback({
+						error: 1,
+						result: null
+					}, 500);
 				}
 
 			} else {
 
-				var result = HttpRouter.getResult(path);
-				callback(result, 200);
+				var response = HttpRouter.getResult(path);
+				callback({
+					result: response,
+					error: null
+				}, 200);
 
 			}
 
@@ -133,9 +125,6 @@ define(['mocks/results/elements', 'mocks/results/metrics/counters',
 			args.unshift('rpc');
 
 			var object = args[args.length - 2];
-			if (typeof object === 'object' && object.length) {
-				args[args.length - 2] = { 'params[]': object };
-			}
 
 			this.post.apply(this, args);
 

@@ -7,13 +7,14 @@ define(['../../helpers/plumber'], function (Plumber) {
   var Controller = Em.Controller.extend({
     typesBinding: 'model.types',
 
+    elements: Em.Object.create(),
+
     load: function () {
 
       var self = this;
-      //self.updateAlerts();
-
       this.interval = setInterval(function () {
-        self.updateMetrics();
+        self.updateMetrics()
+        self.updateStats();
       }, C.POLLING_INTERVAL);
 
       /*
@@ -22,6 +23,7 @@ define(['../../helpers/plumber'], function (Plumber) {
        */
       setTimeout(function () {
         self.updateMetrics();
+        self.updateStats();
         self.connectEntities();
       }, C.EMBEDDABLE_DELAY);
     },
@@ -30,6 +32,11 @@ define(['../../helpers/plumber'], function (Plumber) {
       this.get('model').getMetricsRequest(this.HTTP);
     },
 
+    updateStats: function () {
+
+      this.get('model').updateState(this.HTTP)
+
+    },
     connectEntities: function() {
       Plumber.connect("batch-map", "batch-reduce");
     },
@@ -49,6 +56,8 @@ define(['../../helpers/plumber'], function (Plumber) {
       var self = this;
       var model = this.get('model');
       var app = this.get('model.application');
+
+      app = this.get('model.application');
 
       model.set('currentState', 'STARTING');
 

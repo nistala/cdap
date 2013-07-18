@@ -85,7 +85,7 @@ define(['lib/date'], function (Datejs) {
 
     },
 
-    getMetricsRequest: function(http) {
+    getMetricsRequest: function(http) { 
 
       var appId = this.get('app');
       var jobId = this.get('name');
@@ -96,7 +96,7 @@ define(['lib/date'], function (Datejs) {
       for (var path in METRICS_PATHS) {
         var url = S(path).template({'appId': appId, 'jobId': jobId}).s;
         paths.push(url);
-        pathMap[url] = METRICS_PATHS[path];
+        pathMap[url.split('?')[0]] = METRICS_PATHS[path];
       }
 
       var self = this;
@@ -113,23 +113,50 @@ define(['lib/date'], function (Datejs) {
         while (i--) {
 
           metric = pathMap[result[i]['path']];
+
           if (metric) {
 
-            if (result[i]['value'] instanceof Array) {
-              result[i]['value'] = result[i]['value'].map(function (entry) {
+            if (result[i]['result']['data'] instanceof Array) {
+
+              result[i]['result']['data'] = result[i]['result']['data'].map(function (entry) {
                 return entry.value;
               });
-              self.setMetricData(metric, result[i]['value']);
+
+              self.setMetricData(metric, result[i]['result']['data']);
+
+              self.set('__loadingData', false);
+
             }
             else if (metric in METRIC_TYPES && METRIC_TYPES[metric] == 'number') {
-              self.setMetricData(metric, C.Util.number(result[i]['value']));
+
+              self.setMetricData(metric, C.Util.numberArrayToString(result[i]['result']['data']));
+
             } else {
-              self.setMetricData(metric, result[i]['value']);
+
+              self.setMetricData(metric, result[i]['result']['data']);
+
             }
 
           }
           metric = null;
         }
+
+      });
+
+    },
+
+    updateState: function (http) {
+
+      var self = this;
+
+      var app_id = this.get('app'),
+        flow_id = this.get('name');
+
+      http.rpc('runnable', 'status', [app_id, flow_id, -1],
+        function (response) {
+          if (response.result) {
+            self.set('currentState', response.result.result.status);
+          }
 
       });
 
@@ -193,6 +220,8 @@ define(['lib/date'], function (Datejs) {
     }.property('currentState'),
 
     defaultAction: function () {
+      if (!this.currentState)
+        return '';
       return {
         'deployed': 'Start',
         'stopped': 'Start',
@@ -202,7 +231,7 @@ define(['lib/date'], function (Datejs) {
         'adjusting': '...',
         'draining': '...',
         'failed': 'Start'
-      }[this.currentState.toLowerCase()];
+      }[this.get('currentState').toLowerCase()];
     }.property('currentState')
   });
 
