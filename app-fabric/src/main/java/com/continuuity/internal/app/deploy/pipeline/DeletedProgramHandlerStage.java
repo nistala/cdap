@@ -16,11 +16,13 @@ import com.continuuity.weave.discovery.DiscoveryServiceClient;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.reflect.TypeToken;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.ning.http.client.SimpleAsyncHttpClient;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -99,6 +101,8 @@ public class DeletedProgramHandlerStage extends AbstractStage<ApplicationSpecLoc
         SimpleAsyncHttpClient client = new SimpleAsyncHttpClient.Builder()
           .setUrl(url)
           .setRequestTimeoutInMs((int) METRICS_SERVER_RESPONSE_TIMEOUT)
+          .setExecutorService(Executors.newCachedThreadPool(
+            new ThreadFactoryBuilder().setNameFormat("DeletedProgramHandlerStage-%d").build()))
           .build();
 
         try {

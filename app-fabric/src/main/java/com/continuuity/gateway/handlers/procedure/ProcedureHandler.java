@@ -22,6 +22,7 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.reflect.TypeToken;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.gson.Gson;
 import com.google.inject.Inject;
 import com.ning.http.client.AsyncCompletionHandler;
@@ -54,6 +55,7 @@ import java.lang.reflect.Type;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.jboss.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -99,6 +101,9 @@ public class ProcedureHandler extends AuthenticatedHttpHandler {
       new RandomEndpointStrategy(discoveryServiceClient.discover(Constants.Service.APP_FABRIC)),
       1000L, TimeUnit.MILLISECONDS);
     AsyncHttpClientConfig.Builder configBuilder = new AsyncHttpClientConfig.Builder();
+    configBuilder.setExecutorService(Executors.newCachedThreadPool(
+      new ThreadFactoryBuilder().setNameFormat("ProcedureHandler-%d").build()));
+
     this.asyncHttpClient = new AsyncHttpClient(new NettyAsyncHttpProvider(configBuilder.build()),
                                                configBuilder.build());
   }

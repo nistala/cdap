@@ -86,6 +86,7 @@ import com.google.common.io.OutputSupplier;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.Service;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.inject.Inject;
@@ -115,6 +116,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -1120,6 +1122,8 @@ public class DefaultAppFabricService implements AppFabricService.Iface {
         .setRequestTimeoutInMs((int) UPLOAD_TIMEOUT)
         .setHeader("X-Archive-Name", appArchive.getName())
         .setHeader("X-Continuuity-ApiKey", authToken.getToken())
+        .setExecutorService(Executors.newCachedThreadPool(
+          new ThreadFactoryBuilder().setNameFormat("DefaultAppFabricService-%d").build()))
         .build();
 
       try {
@@ -1486,6 +1490,8 @@ public class DefaultAppFabricService implements AppFabricService.Iface {
     SimpleAsyncHttpClient client = new SimpleAsyncHttpClient.Builder()
       .setUrl(url)
       .setRequestTimeoutInMs((int) METRICS_SERVER_RESPONSE_TIMEOUT)
+      .setExecutorService(Executors.newCachedThreadPool(
+        new ThreadFactoryBuilder().setNameFormat("DefaultAppFabricService2-%d").build()))
       .build();
 
     try {

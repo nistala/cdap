@@ -25,6 +25,8 @@ import org.jboss.netty.handler.codec.http.HttpRequestDecoder;
 import org.jboss.netty.handler.codec.http.HttpResponseEncoder;
 import org.jboss.netty.handler.execution.ExecutionHandler;
 import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
+import org.jboss.netty.util.ThreadNameDeterminer;
+import org.jboss.netty.util.ThreadRenamingRunnable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,6 +101,9 @@ public final class NettyHttpService extends AbstractIdleService {
     this.handlerHooks = ImmutableList.copyOf(handlerHooks);
     this.resourceHandler = new HttpResourceHandler(this.httpHandlers, this.handlerHooks, urlRewriter);
     this.handlerContext = new BasicHandlerContext(this.resourceHandler);
+
+    // Don't use default netty generated thread names, instead use the names set on thread.
+    ThreadRenamingRunnable.setThreadNameDeterminer(ThreadNameDeterminer.CURRENT);
   }
 
   /**

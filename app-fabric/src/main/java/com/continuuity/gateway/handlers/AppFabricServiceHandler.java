@@ -24,7 +24,6 @@ import com.continuuity.common.discovery.RandomEndpointStrategy;
 import com.continuuity.common.discovery.TimeLimitEndpointStrategy;
 import com.continuuity.common.http.core.HandlerContext;
 import com.continuuity.common.http.core.HttpResponder;
-import com.continuuity.common.metrics.MetricsScope;
 import com.continuuity.common.service.ServerException;
 import com.continuuity.data2.transaction.queue.QueueAdmin;
 import com.continuuity.gateway.auth.GatewayAuthenticator;
@@ -38,6 +37,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -72,6 +72,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -112,6 +113,11 @@ public class AppFabricServiceHandler extends AuthenticatedHttpHandler {
     this.endpointStrategy = new TimeLimitEndpointStrategy(
       new RandomEndpointStrategy(discoveryClient.discover(Constants.Service.APP_FABRIC)),
       1L, TimeUnit.SECONDS);
+  }
+
+  @Override
+  public void destroy(HandlerContext context) {
+    workflowClient.close();
   }
 
   /**
@@ -1107,6 +1113,8 @@ public class AppFabricServiceHandler extends AuthenticatedHttpHandler {
     SimpleAsyncHttpClient client = new SimpleAsyncHttpClient.Builder()
       .setUrl(url)
       .setRequestTimeoutInMs((int) timeout)
+      .setExecutorService(Executors.newCachedThreadPool(
+        new ThreadFactoryBuilder().setNameFormat("AppFabricServiceHandler-%d").build()))
       .build();
 
     try {

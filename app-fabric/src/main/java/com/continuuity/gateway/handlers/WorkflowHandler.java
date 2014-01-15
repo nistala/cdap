@@ -8,6 +8,7 @@ import com.continuuity.common.http.core.HandlerContext;
 import com.continuuity.common.http.core.HttpResponder;
 import com.continuuity.gateway.auth.GatewayAuthenticator;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.inject.Inject;
 import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.AsyncHttpClientConfig;
@@ -21,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import java.util.concurrent.Executors;
 
 
 /**
@@ -43,6 +45,9 @@ public final class WorkflowHandler extends AuthenticatedHttpHandler {
   public void init(HandlerContext context) {
     LOG.info("Starting WorkflowHandler.");
     AsyncHttpClientConfig.Builder configBuilder = new AsyncHttpClientConfig.Builder();
+    configBuilder.setExecutorService(Executors.newCachedThreadPool(
+      new ThreadFactoryBuilder().setNameFormat("WorkflowHandler-%d").build()));
+
     this.asyncHttpClient = new AsyncHttpClient(new NettyAsyncHttpProvider(configBuilder.build()),
                                                configBuilder.build());
   }
@@ -51,6 +56,7 @@ public final class WorkflowHandler extends AuthenticatedHttpHandler {
   public void destroy(HandlerContext context) {
     LOG.info("Stopping WorkflowHandler.");
     asyncHttpClient.close();
+    workflowClient.close();
   }
 
   @GET

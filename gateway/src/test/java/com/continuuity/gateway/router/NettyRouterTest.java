@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.net.InetAddresses;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.ning.http.client.AsyncCompletionHandler;
 import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.AsyncHttpClientConfig;
@@ -58,6 +59,7 @@ import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -180,6 +182,8 @@ public class NettyRouterTest {
   public void testRouterAsync() throws Exception {
     int NUM_ELEMENTS = 123;
     AsyncHttpClientConfig.Builder configBuilder = new AsyncHttpClientConfig.Builder();
+    configBuilder.setExecutorService(Executors.newCachedThreadPool(
+      new ThreadFactoryBuilder().setNameFormat("NettyRouterTest-%d").build()));
 
     final AsyncHttpClient asyncHttpClient = new AsyncHttpClient(
       new NettyAsyncHttpProvider(configBuilder.build()),
@@ -294,6 +298,9 @@ public class NettyRouterTest {
   @Test
   public void testUpload() throws Exception {
     AsyncHttpClientConfig.Builder configBuilder = new AsyncHttpClientConfig.Builder();
+    configBuilder.setExecutorService(Executors.newCachedThreadPool(
+      new ThreadFactoryBuilder().setNameFormat("NettyRouterTest2-%d").build()));
+
 
     final AsyncHttpClient asyncHttpClient = new AsyncHttpClient(
       new NettyAsyncHttpProvider(configBuilder.build()),

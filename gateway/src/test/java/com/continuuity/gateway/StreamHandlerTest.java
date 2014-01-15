@@ -10,6 +10,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.ning.http.client.AsyncCompletionHandler;
 import com.ning.http.client.AsyncHttpClient;
 import com.ning.http.client.AsyncHttpClientConfig;
@@ -448,6 +449,8 @@ public class StreamHandlerTest {
     public void run() {
       try {
         AsyncHttpClientConfig.Builder configBuilder = new AsyncHttpClientConfig.Builder();
+        configBuilder.setExecutorService(Executors.newCachedThreadPool(
+          new ThreadFactoryBuilder().setNameFormat("StreamHandlerTest-%d").build()));
 
         final AsyncHttpClient asyncHttpClient = new AsyncHttpClient(
           new NettyAsyncHttpProvider(configBuilder.build()),

@@ -4,6 +4,7 @@ import com.continuuity.common.discovery.RandomEndpointStrategy;
 import com.continuuity.weave.discovery.Discoverable;
 import com.continuuity.weave.discovery.DiscoveryServiceClient;
 import com.google.common.base.Charsets;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.inject.Inject;
 import com.ning.http.client.AsyncCompletionHandler;
 import com.ning.http.client.AsyncHttpClient;
@@ -15,14 +16,16 @@ import com.ning.http.client.providers.netty.NettyAsyncHttpProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 
 /**
  * Client to make calls to workflow http service and return the status.
  */
-public class WorkflowClient {
+public class WorkflowClient implements Closeable {
 
   private static Logger LOG = LoggerFactory.getLogger(WorkflowClient.class);
   private final AsyncHttpClient httpClient;
@@ -31,8 +34,16 @@ public class WorkflowClient {
   WorkflowClient(DiscoveryServiceClient discoveryServiceClient) {
     this.discoveryServiceClient = discoveryServiceClient;
     AsyncHttpClientConfig.Builder configBuilder = new AsyncHttpClientConfig.Builder();
+    configBuilder.setExecutorService(Executors.newCachedThreadPool(
+      new ThreadFactoryBuilder().setNameFormat("WorkflowClient-%d").build()));
+
     this.httpClient = new AsyncHttpClient(new NettyAsyncHttpProvider(configBuilder.build()),
                                                configBuilder.build());
+  }
+
+  @Override
+  public void close() {
+    httpClient.close();
   }
 
   public void getWorkflowStatus(String accountId, String appId, String workflowId, final Callback callback)
