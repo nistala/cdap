@@ -1,4 +1,4 @@
-  # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Reactor documentation build configuration file, created by
 # sphinx-quickstart on Thu Dec  5 11:56:37 2013.
@@ -29,7 +29,6 @@ import os
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinxcontrib.fulltoc',
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
@@ -107,7 +106,6 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 html_theme = 'nature'
-
 html_style = 'style.css'
 
 # Theme options are theme-specific and customize the look and feel of a theme
@@ -153,7 +151,7 @@ html_static_path = ['_static']
 #html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-#html_sidebars = {}
+html_sidebars = {'**': ['globaltoc.html', 'relations.html', 'searchbox.html'],}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
