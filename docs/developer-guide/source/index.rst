@@ -14,6 +14,7 @@ Continuuity Reactor Documentation
    Operations Guide </operations>
    HTTP REST API </rest>
    /javadocs/index
+   Dependencies </licenses>
    Release Notes </releasenotes>
    FAQ </faq>
 
@@ -34,3 +35,7 @@ Examples
    /examples/PageViewAnalytics/index
    /examples/ResponseCodeAnalytics/index
    /examples/TrafficAnalytics/index
+
+   /licenses/reactor-enterprise-dependencies
+   /licenses/reactor-level-1-dependencies
+   /licenses/reactor-singlenode-dependencies
