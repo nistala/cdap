@@ -90,8 +90,7 @@ Continuuity Reactor SingleNode Dependencies
    "javax.inject-1.jar",1,"\-","Apache License, Version 2.0","http://www.apache.org/licenses/LICENSE-2.0.html"
    "jaxb-api-2.2.2.jar","2.2.2","\-","Best of CDDL 1.1 and GPL 2.0",
    "jaxb-impl-2.2.3-1.jar","2.2.3",1,"Best of CDDL 1.1 and GPL 2.0",
-   "jcl-over-slf4j-1.7.5.jar","1.7.5","\-","The MIT License","http://slf4j.org/license.html
-   http://www.slf4j.org/faq.html#license"
+   "jcl-over-slf4j-1.7.5.jar","1.7.5","\-","The MIT License","http://slf4j.org/license.html, http://www.slf4j.org/faq.html#license"
    "jersey-core-1.8.jar",1.8,"\-","CCDL 1.1","https://glassfish.java.net/public/CDDL+GPL_1_1.html"
    "jersey-guice-1.8.jar",1.8,"\-","CCDL 1.1","https://glassfish.java.net/public/CDDL+GPL_1_1.html"
    "jersey-json-1.8.jar",1.8,"\-","CCDL 1.1","https://glassfish.java.net/public/CDDL+GPL_1_1.html"
