@@ -1,5 +1,5 @@
 .. :author: Continuuity, Inc.
-   :version: 2.2.1
+   :version: 2.2.2
    :description: HTTP Interface to the Continuuity Reactor
 
 =================================
@@ -12,6 +12,7 @@ Continuuity Reactor HTTP REST API
 .. rst2pdf: .. contents::
 .. rst2pdf: config _templates/pdf-config
 .. rst2pdf: stylesheets _templates/pdf-stylesheet
+.. rst2pdf: build ../build-pdf/
 
 Introduction
 ============
@@ -71,7 +72,7 @@ Status Codes
 
 
 .. list-table::
-   :widths: 5 24 71
+   :widths: 10 30 60
    :header-rows: 1
 
    * - Code
