@@ -10,7 +10,6 @@ import com.continuuity.common.metrics.MetricsCollectionService;
 import com.continuuity.common.metrics.NoOpMetricsCollectionService;
 import com.continuuity.data2.datafabric.dataset.InMemoryDefinitionRegistryFactory;
 import com.continuuity.data2.datafabric.dataset.RemoteDatasetFramework;
-import com.continuuity.data2.datafabric.dataset.client.DatasetServiceClient;
 import com.continuuity.data2.datafabric.dataset.instance.DatasetInstanceManager;
 import com.continuuity.data2.datafabric.dataset.service.executor.InMemoryDatasetOpExecutor;
 import com.continuuity.data2.datafabric.dataset.service.mds.MDSDatasetsRegistry;
@@ -20,8 +19,8 @@ import com.continuuity.data2.dataset2.InMemoryDatasetFramework;
 import com.continuuity.data2.dataset2.module.lib.inmemory.InMemoryOrderedTableModule;
 import com.continuuity.data2.transaction.inmemory.InMemoryTransactionManager;
 import com.continuuity.data2.transaction.inmemory.InMemoryTxSystemClient;
-import com.continuuity.explore.client.AsyncExploreClient;
 import com.continuuity.explore.client.DatasetExploreFacade;
+import com.continuuity.explore.client.DiscoveryExploreClient;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.reflect.TypeToken;
 import org.apache.twill.discovery.InMemoryDiscoveryService;
@@ -73,14 +72,15 @@ public abstract class DatasetServiceTestBase {
     InMemoryTxSystemClient txSystemClient = new InMemoryTxSystemClient(txManager);
 
     LocalLocationFactory locationFactory = new LocalLocationFactory();
-    dsFramework = new RemoteDatasetFramework(new DatasetServiceClient(discoveryService), cConf,
-                                             locationFactory, new InMemoryDefinitionRegistryFactory());
+    dsFramework = new RemoteDatasetFramework(discoveryService, locationFactory,
+                                             new InMemoryDefinitionRegistryFactory());
 
     ImmutableMap<String, ? extends DatasetModule> defaultModules =
       ImmutableMap.of("memoryTable", new InMemoryOrderedTableModule());
 
     MDSDatasetsRegistry mdsDatasetsRegistry =
-      new MDSDatasetsRegistry(txSystemClient, defaultModules, new InMemoryDatasetFramework(), cConf);
+      new MDSDatasetsRegistry(txSystemClient, defaultModules,
+                              new InMemoryDatasetFramework(new InMemoryDefinitionRegistryFactory()), cConf);
 
     service = new DatasetService(cConf,
                                  locationFactory,
@@ -92,7 +92,7 @@ public abstract class DatasetServiceTestBase {
                                  metricsCollectionService,
                                  new InMemoryDatasetOpExecutor(dsFramework),
                                  mdsDatasetsRegistry,
-                                 new DatasetExploreFacade(new AsyncExploreClient(discoveryService), cConf));
+                                 new DatasetExploreFacade(new DiscoveryExploreClient(discoveryService), cConf));
     service.startAndWait();
     port = discoveryService.discover(Constants.Service.DATASET_MANAGER).iterator().next().getSocketAddress().getPort();
   }
@@ -117,7 +117,7 @@ public abstract class DatasetServiceTestBase {
     try {
       return HttpRequests.doRequest("PUT", getUrl("/data/modules/" + moduleName),
                                     ImmutableMap.of("X-Continuuity-Class-Name", moduleClass.getName()),
-                                    null, is).getResponseCode();
+                                    (byte[]) null, is).getResponseCode();
     } finally {
       is.close();
     }

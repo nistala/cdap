@@ -5,6 +5,7 @@ package com.continuuity;
 
 import com.continuuity.app.guice.AppFabricServiceRuntimeModule;
 import com.continuuity.app.guice.ProgramRunnerRuntimeModule;
+import com.continuuity.app.guice.ServiceStoreModules;
 import com.continuuity.common.conf.CConfiguration;
 import com.continuuity.common.conf.Constants;
 import com.continuuity.common.guice.ConfigModule;
@@ -14,6 +15,7 @@ import com.continuuity.common.guice.LocationRuntimeModule;
 import com.continuuity.common.metrics.MetricsCollectionService;
 import com.continuuity.data.runtime.DataFabricModules;
 import com.continuuity.data.runtime.DataSetServiceModules;
+import com.continuuity.data.runtime.DataSetsModules;
 import com.continuuity.data.stream.service.StreamHttpService;
 import com.continuuity.data.stream.service.StreamServiceRuntimeModule;
 import com.continuuity.data2.datafabric.dataset.service.DatasetService;
@@ -44,6 +46,7 @@ import com.google.inject.Injector;
 import com.google.inject.Module;
 import com.google.inject.Provider;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.counters.Limits;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,8 +102,9 @@ public class SingleNodeMain {
     }
 
     boolean exploreEnabled = configuration.getBoolean(Constants.Explore.CFG_EXPLORE_ENABLED);
-    ExploreServiceUtils.checkHiveVersion(this.getClass().getClassLoader());
     if (exploreEnabled) {
+      Configuration hConf = injector.getInstance(Configuration.class);
+      ExploreServiceUtils.checkHiveSupport(hConf, this.getClass().getClassLoader());
       exploreExecutorService = injector.getInstance(ExploreExecutorService.class);
     }
 
@@ -245,6 +249,11 @@ public class SingleNodeMain {
     Configuration hConf = new Configuration();
     hConf.addResource("mapred-site-local.xml");
     hConf.reloadConfiguration();
+    // Due to incredibly stupid design of Limits class, once it is initialized, it keeps its settings. We
+    // want to make sure it uses our settings in this hConf, so we have to force it initialize here before
+    // someone else initializes it.
+    Limits.init(hConf);
+
     String localDataDir = configuration.get(Constants.CFG_LOCAL_DATA_DIR);
     hConf.set(Constants.CFG_LOCAL_DATA_DIR, localDataDir);
     hConf.set(Constants.AppFabric.OUTPUT_DIR, configuration.get(Constants.AppFabric.OUTPUT_DIR));
@@ -292,13 +301,15 @@ public class SingleNodeMain {
       new ProgramRunnerRuntimeModule().getInMemoryModules(),
       new GatewayModule().getInMemoryModules(),
       new DataFabricModules().getInMemoryModules(),
+      new DataSetsModules().getInMemoryModule(),
       new DataSetServiceModules().getInMemoryModule(),
       new MetricsClientRuntimeModule().getInMemoryModules(),
       new LoggingModules().getInMemoryModules(),
       new RouterModules().getInMemoryModules(),
       new SecurityModules().getInMemoryModules(),
       new StreamServiceRuntimeModule().getInMemoryModules(),
-      new ExploreRuntimeModule().getInMemoryModules()
+      new ExploreRuntimeModule().getInMemoryModules(),
+      new ServiceStoreModules().getInMemoryModule()
     );
   }
 
@@ -339,13 +350,15 @@ public class SingleNodeMain {
       new ProgramRunnerRuntimeModule().getSingleNodeModules(),
       new GatewayModule().getSingleNodeModules(),
       new DataFabricModules().getSingleNodeModules(),
+      new DataSetsModules().getLocalModule(),
       new DataSetServiceModules().getLocalModule(),
       new MetricsClientRuntimeModule().getSingleNodeModules(),
       new LoggingModules().getSingleNodeModules(),
       new RouterModules().getSingleNodeModules(),
       new SecurityModules().getSingleNodeModules(),
       new StreamServiceRuntimeModule().getSingleNodeModules(),
-      new ExploreRuntimeModule().getSingleNodeModules()
+      new ExploreRuntimeModule().getSingleNodeModules(),
+      new ServiceStoreModules().getSingleNodeModule()
     );
   }
 }

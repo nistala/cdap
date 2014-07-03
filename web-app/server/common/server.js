@@ -204,7 +204,7 @@ WebAppServer.prototype.getServerInstance = function(app) {
 
 WebAppServer.prototype.checkAuth = function(req, res, next) {
   if (!('token' in req.cookies)) {
-    req.cookies.token = 'DUMMY';
+    req.cookies.token = '';
   }
   next();
 };
@@ -344,9 +344,10 @@ WebAppServer.prototype.bindRoutes = function() {
       } else {
         self.logger.error('Could not DELETE', path, body, error,  response.statusCode);
         if (error && error.code === 'ECONNREFUSED') {
-          res.send(500, 'Unable to connect to the Reactor Gateway. Please check your configuration.');
+          res.send(response.statusCode,
+            'Unable to connect to the Reactor Gateway. Please check your configuration.');
         } else {
-          res.send(500, body || error || response.statusCode);
+          res.send(response.statusCode, body || error || response.statusCode);
         }
       }
     });
@@ -702,8 +703,10 @@ WebAppServer.prototype.bindRoutes = function() {
 
   // Security endpoints.
   this.app.get('/getsession', function (req, res) {
+    var headerOpts = {};
     var token = '';
-    if ('token' in req.cookies && req.cookies.token !== 'DUMMY') {
+    if ('token' in req.cookies && req.cookies.token !== '') {
+      headerOpts['Authorization'] = "Bearer " + req.cookies.token;
       token = req.cookies.token;
     }
 
@@ -712,10 +715,7 @@ WebAppServer.prototype.bindRoutes = function() {
       port: self.config['gateway.server.port'],
       path: '/' + self.API_VERSION + '/deploy/status',
       method: 'GET',
-      headers: {
-        'X-Continuuity-ApiKey': '',
-        'Authorization': 'Bearer ' + token
-      }
+      headers: headerOpts
     };
 
     var request = self.lib.request(options, function (response) {

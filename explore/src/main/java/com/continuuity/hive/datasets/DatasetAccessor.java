@@ -23,7 +23,7 @@ import java.util.Map;
 public class DatasetAccessor {
 
   // TODO: this will go away when dataset manager does not return datasets having classloader conflict - REACTOR-276
-  private static final Map<String, ClassLoader> DATASET_CLASSLOADERS = Maps.newHashMap();
+  private static final Map<String, ClassLoader> DATASET_CLASSLOADERS = Maps.newConcurrentMap();
 
   /**
    * Returns a RecordScannable. The returned object will have to be closed by the caller.
@@ -65,17 +65,18 @@ public class DatasetAccessor {
       throw new IOException(String.format("Dataset name property %s not defined.", Constants.Explore.DATASET_NAME));
     }
 
-    DatasetFramework framework = ContextManager.getDatasetManager(conf);
+    ContextManager.Context context = ContextManager.getContext(conf);
 
     try {
+      DatasetFramework framework = context.getDatasetFramework();
+
       ClassLoader classLoader = DATASET_CLASSLOADERS.get(datasetName);
+      Dataset dataset;
       if (classLoader == null) {
         classLoader = conf.getClassLoader();
-      }
-
-      Dataset dataset = framework.getDataset(datasetName, classLoader);
-      if (dataset != null && !DATASET_CLASSLOADERS.containsKey(datasetName)) {
-        DATASET_CLASSLOADERS.put(datasetName, dataset.getClass().getClassLoader());
+        dataset = firstLoad(framework, datasetName, classLoader);
+      } else {
+        dataset = framework.getDataset(datasetName, classLoader);
       }
 
       if (!(dataset instanceof RecordScannable)) {
@@ -87,6 +88,24 @@ public class DatasetAccessor {
       return (RecordScannable) dataset;
     } catch (DatasetManagementException e) {
       throw new IOException(e);
+    } finally {
+      context.close();
     }
+  }
+
+  private static synchronized Dataset firstLoad(DatasetFramework framework, String datasetName, ClassLoader classLoader)
+    throws DatasetManagementException, IOException {
+    ClassLoader datasetClassLoader = DATASET_CLASSLOADERS.get(datasetName);
+    if (datasetClassLoader != null) {
+      // Some other call in parallel may have already loaded it, so use the same classlaoder
+      return framework.getDataset(datasetName, datasetClassLoader);
+    }
+
+    // No classloader for dataset exists, load the dataset and save the classloader.
+    Dataset dataset = framework.getDataset(datasetName, classLoader);
+    if (dataset != null) {
+      DATASET_CLASSLOADERS.put(datasetName, dataset.getClass().getClassLoader());
+    }
+    return dataset;
   }
 }

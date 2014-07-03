@@ -5,7 +5,6 @@ import com.continuuity.common.conf.CConfiguration;
 import com.continuuity.common.conf.Constants;
 import com.continuuity.common.metrics.MetricsCollectionService;
 import com.continuuity.common.metrics.NoOpMetricsCollectionService;
-import com.continuuity.data2.datafabric.dataset.client.DatasetServiceClient;
 import com.continuuity.data2.datafabric.dataset.instance.DatasetInstanceManager;
 import com.continuuity.data2.datafabric.dataset.service.DatasetService;
 import com.continuuity.data2.datafabric.dataset.service.executor.InMemoryDatasetOpExecutor;
@@ -17,8 +16,9 @@ import com.continuuity.data2.dataset2.InMemoryDatasetFramework;
 import com.continuuity.data2.dataset2.module.lib.inmemory.InMemoryOrderedTableModule;
 import com.continuuity.data2.transaction.inmemory.InMemoryTransactionManager;
 import com.continuuity.data2.transaction.inmemory.InMemoryTxSystemClient;
-import com.continuuity.explore.client.AsyncExploreClient;
 import com.continuuity.explore.client.DatasetExploreFacade;
+import com.continuuity.explore.client.DiscoveryExploreClient;
+
 import com.google.common.collect.ImmutableMap;
 import org.apache.twill.discovery.InMemoryDiscoveryService;
 import org.apache.twill.filesystem.LocalLocationFactory;
@@ -47,6 +47,7 @@ public class RemoteDatasetFrameworkTest extends AbstractDatasetFrameworkTest {
     datasetDir.mkdirs();
     cConf.set(Constants.Dataset.Manager.OUTPUT_DIR, datasetDir.getAbsolutePath());
     cConf.set(Constants.Dataset.Manager.ADDRESS, "localhost");
+    cConf.setBoolean(Constants.Dangerous.UNRECOVERABLE_RESET, true);
 
     // Starting DatasetService service
     InMemoryDiscoveryService discoveryService = new InMemoryDiscoveryService();
@@ -58,13 +59,12 @@ public class RemoteDatasetFrameworkTest extends AbstractDatasetFrameworkTest {
     InMemoryTxSystemClient txSystemClient = new InMemoryTxSystemClient(txManager);
 
     LocalLocationFactory locationFactory = new LocalLocationFactory();
-    framework = new RemoteDatasetFramework(new DatasetServiceClient(discoveryService), cConf,
-                                             locationFactory, new InMemoryDefinitionRegistryFactory());
+    framework = new RemoteDatasetFramework(discoveryService, locationFactory, new InMemoryDefinitionRegistryFactory());
 
     MDSDatasetsRegistry mdsDatasetsRegistry =
       new MDSDatasetsRegistry(txSystemClient,
                               ImmutableMap.of("memoryTable", new InMemoryOrderedTableModule()),
-                              new InMemoryDatasetFramework(), cConf);
+                              new InMemoryDatasetFramework(new InMemoryDefinitionRegistryFactory()), cConf);
 
     service = new DatasetService(cConf,
                                  locationFactory,
@@ -76,7 +76,7 @@ public class RemoteDatasetFrameworkTest extends AbstractDatasetFrameworkTest {
                                  metricsCollectionService,
                                  new InMemoryDatasetOpExecutor(framework),
                                  mdsDatasetsRegistry,
-                                 new DatasetExploreFacade(new AsyncExploreClient(discoveryService), cConf));
+                                 new DatasetExploreFacade(new DiscoveryExploreClient(discoveryService), cConf));
     service.startAndWait();
   }
 
