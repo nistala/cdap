@@ -33,8 +33,6 @@ DEFAULT_VERSION = "2.3.0-SNAPSHOT"
 
 TEST_SINGLENODE = "singlenode"
 SINGLENODE_RST = "reactor-singlenode-dependencies.rst"
-LICENSE_MASTERS = "license_masters"
-SINGLENODE_MASTER = "reactor-singlenode-dependencies.csv"
 
 DEFAULT_TEST = TEST_SINGLENODE
 
@@ -152,127 +150,199 @@ def process_singlenode(input_file, options):
     # Create and print to standard out the list of the references
     # Make a list of the references for which links are missing, that aren't in the master
 
-    # Get the current singlenode dependencies master file
+    # Get the current singlenode dependencies file
     #  "Package","Version","Classifier","License","License URL"
-    csv_path = os.path.join(SCRIPT_DIR_PATH, LICENSE_MASTERS, SINGLENODE_MASTER)
-    f = open(csv_path,'r')
-    libs_dict = {}
+    rst_path = "../../developer-guide/source/licenses/%s" % SINGLENODE_RST
+    rst_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), rst_path)
+    f = open(rst_path,'r')
+    old_libs = []
+    old_libs_full = []
+    old_libs_dict = {}
+    rst_copy = False
     for line in f:
-        l = line.strip('\n').strip()
-        l = [subs.strip('"') for subs in l.split(',')]
-        jar = l[0]
-        try:
-            lib = Library(l[0], l[3], l[4])
-            print lib
-            
-            # Place lib reference in dictionary
-            if not libs_dict.has_key(lib.id):
-                libs_dict[lib.id] = lib
-            else:
+        if text_starts_with(line, RST_WIDTHS):
+            rst_copy = True
+        elif not rst_copy:
+            continue
+        elif line.strip() == '':
+            continue
+        elif rst_copy:
+            l = line.strip('\n').strip()
+            l = [subs.strip('"') for subs in l.split(',')]
+            try:
+                lib = Library(l[0])
+            except:
+                print "old_libs %s" % l
+                raise
+            if old_libs_dict.has_key(lib.id):
                 print "Duplicate key: %s" %lib.id
-                print "Current library: %s" % libs_dict[lib.id]
-                print "New library: %s" % lib            
-        except:
-            print "   error with %s" % jar
-            
-            
-    # Print out the results
-    for lib in libs_dict.values():
-        lib.pretty_print()
-    
-    
-#     lib.set_max_sizes()
-#     print "lib.MAX_SIZES: %s" % lib.MAX_SIZES
-        
-#         try:
-#             lib = Library(l[0])
-#             lib.package = l[1]
-#             lib.license = l[3]
-#             lib.license_url = l[4]
-#             if lib.version != l[1]:
-#                 try:
-#                      if str(int(float(lib.version))) != l[1]:
-#                         raise
-#                 except:
-#                     print "Version mis-match for %s\n  version: '%s', lib.version: '%s'" % (lib, l[1], lib.version)
-#             if lib.classifier != l[2]:
-#                 print "Classifier mis-match for %s\n  classifier: '%s', lib.classifier: '%s'" % (lib, l[2], lib.classifier)
-#         except:
-#             print "Lib %s" % l
-#             raise
-        
-        # Place lib reference in dictionary
-#         if not old_libs_dict.has_key(lib.id):
-#             old_libs_dict[lib.id] = lib
-#         else:
-#             print "Duplicate key: %s" %lib.id
-#             print "Current library: %s" % old_libs_dict[lib.id]
-#             print "New library: %s" % lib
+                print "Current library: %s" % old_libs_dict[lib.id]
+                print "New library: %ss" % lib
+                
+            else:
+                old_libs_dict[lib.id] = lib
 
+#             old_libs.append(lib)
+#             old_libs_full.append(l) # "Package","Version","Classifier","License","License URL"
+    
 #     print "\nOld libs count: %s\n%s" % (len(old_libs), DIVIDER)
 #     for l in old_libs:
 #         print l
 
-#     print "\nOld libs Dict count: %s\n%s" % (len(old_libs_dict), DIVIDER)
-#     for l in old_libs_dict.keys():
-#         print "%s: %s" % (l, old_libs_dict[l])
+    print "\nOld libs Dict count: %s\n%s" % (len(old_libs_dict), DIVIDER)
+    for l in old_libs_dict.keys():
+        print "%s: %s" % (l, old_libs_dict[l])
 
+
+
+
+
+#     print "\nOld libs complete\n====================="
+#     for l in old_libs_full:
+#         print l
+
+def process_singlenode_old(input_file, options):
+    print "%s generation..." % TEST_SINGLENODE
+# Read the singlenode lib directory
+#     
+#     rel_lib_path = "../../../singlenode/target/sdk/continuuity-sdk-%s/lib" % options.build_version
+#     lib_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), rel_lib_path)
+#     if not os.path.isdir(lib_path):
+#         raise Exception('process_singlenode', 'lib_path not a valid path: %s' % lib_path)
+#     libs = os.listdir(lib_path)
+#     new_libs = []
+#     new_libs_full = []
+#     for file in libs:
+#         if file.startswith(".") or not text_ends_with(file, ".jar"):
+#             continue
+#         try:
+#             lib = convert_package(file)
+#         except:
+#             print "new_libs %s" % file
+#             raise
+#         new_libs.append(lib[0]) # just the base
+#         new_libs_full.append(lib) # base, version, classifier
+#     
+# Get the current singlenode dependencies file
+#  "Package","Version","Classifier","License","License URL"
+#     rst_path = "../../developer-guide/source/licenses/%s" % SINGLENODE_RST
+#     rst_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), rst_path)
+#     f = open(rst_path,'r')
+#     old_libs = []
+#     old_libs_full = []
+#     old_libs_dict = {}
+#     rst_copy = False
+#     for line in f:
+#         if text_starts_with(line, RST_WIDTHS):
+#             rst_copy = True
+#         elif not rst_copy:
+#             continue
+#         elif line.strip() == '':
+#             continue
+#         elif rst_copy:
+#             l = line.strip('\n').strip()
+#             l = [subs.strip('"') for subs in l.split(',')]
+#             try:
+#                 lib = convert_package(l[0])
+#             except:
+#                 print "old_libs %s" % l
+#                 raise
+# #             old_libs.append(lib[0]) # just the base
+#             old_libs.append(lib[0]) # just the base
+#             old_libs_full.append(l) # "Package","Version","Classifier","License","License URL"
+    
+    
+#     print "\nNew libs... %d\n" % len(new_libs)
+#     for lib in new_libs:
+#         print lib
+#     
+#     brand_new = []
+#     print "\nChecking new libs... %d\n" % len(new_libs)
+#     for lib in new_libs:
+#         if not lib in old_libs:
+#             print "%s not in old libs" % lib
+#             brand_new.append(lib)
+#             
+#     print "\n%d brand new libs" % len(brand_new)
+    
+    # Build new list
+#     brand_new = []
+#     for lib in new_libs:
+#         i_n = new_libs.index(lib)
+#         row = new_libs_full[i_n] #[0:2]
+#         print row
+#         if lib in old_libs:
+#             i_o = old_libs.index(lib)
+#             row += old_libs_full[i_o][3:4]             
+#         brand_new.append(row)
+#     for row in brand_new:
+#         print row
+
+            
+#     print "\nOld libs... %d\n" % len(old_libs)
+#     for lib in old_libs:
+#         print lib
+# 
+#     print "\nChecking old libs... %d\n" % len(old_libs)
+#     for lib in old_libs:
+#         if not lib in new_libs:
+#             print "%s not in new libs" % lib
+
+    print "\nFinished process_singlenode"
 
 
 class Library:
-    MAX_SIZES={}
 
-    def __init__(self, jar, license, license_url):
-        self.jar = jar # aka "package"
+    def __init__(self, jar):
+        self.jar = jar
         self.id = ""
         self.base = ""
         self.version =  ""
         self.classifier = ""
-        self.license = license
-        self.license_url = license_url
+        self.url = ""
         self.convert_jar()
-        self.set_max_sizes()
-        
-    def __str__(self):
-        return "%s : %s" % (self.id, self.jar)
+
+    def __str__( self ):
+        return "%s:%s" % (self.id, self.jar)
 
     def convert_jar(self):
-        import re
-#         s = r'(?P<base>.*)-(?P<version>\d+[0-9.]*\d*)([.-]*(?P<classifier>.*?))\.jar$'
-        s = r'(?P<base>.*?)-(?P<version>\d*[0-9.]*\d+)([.-]*(?P<classifier>.*?))\.jar$'
-        try:
-            m = re.match( s, self.jar)
-            if m.group('classifier'):
-                c = m.group('classifier')
-            else:
-                c = "<none>"
-#             print "%s: %s %s %s" % (jar, m.group('base'), m.group('version'), c )
-            self.base = m.group('base')
-            self.version =  m.group('version')
-            self.classifier = m.group('classifier')
-            if self.classifier:
-                self.id = "%s-%s" % (self.base, self.classifier)
-            else:
-                self.id = self.base
-        except:
-            raise
-
-    def set_max_sizes(self):
-        for element in self.__dict__.keys():
-            if element[0] != "_":
-                length = len(self.__dict__[element])
-                if self.MAX_SIZES.has_key(element):
-                    length = max(self.MAX_SIZES[element], length)
-                self.MAX_SIZES[element] = length
-
-    def pretty_print(self):
-        SPACE = 2
-        line = ""
-        for element in self.__dict__.keys():
-            if element[0] != "_":
-                length = self.MAX_SIZES[element]
-                line += self.__dict__[element].ljust(self.MAX_SIZES[element]+ SPACE)
-        print line
+        # Converts a package into a list of base, version, classifier
+        INC_SNAPSHOT = "-incubating-SNAPSHOT.jar" # "twill-api-0.3.0-incubating-SNAPSHOT.jar"
+        SNAPSHOT     = "-SNAPSHOT.jar" # app-fabric-2.3.0-SNAPSHOT.jar
+        BETA_TEST    = "-beta-tests.jar" # "hadoop-common-2.1.0-beta-tests.jar"
+        BETA         = "-beta.jar" # "hadoop-common-2.1.0-beta.jar"
+        FINAL        = ".Final.jar" # async-http-servlet-3.0-3.0.8.Final.jar
+        JAR          = ".jar" # "guice-servlet-3.0.jar"
+        DASH         = "-"
+        
+        if text_ends_with(self.jar, INC_SNAPSHOT): # "twill-api-0.3.0-incubating-SNAPSHOT.jar"
+            split = INC_SNAPSHOT
+            self.classifier = "SNAP"
+        elif text_ends_with(self.jar, SNAPSHOT): # "app-fabric-2.3.0-SNAPSHOT.jar"
+            split = SNAPSHOT
+            self.classifier = "SNAP"
+        elif text_ends_with(self.jar, BETA_TEST): # "hadoop-common-2.1.0-beta-tests.jar"
+            split = BETA_TEST
+            self.classifier = "test"
+        elif text_ends_with(self.jar, BETA): # "hadoop-common-2.1.0-beta.jar"
+            split = BETA
+            self.classifier = "beta"
+        elif text_ends_with(self.jar, FINAL): # "async-http-servlet-3.0-3.0.8.Final.jar"
+            split = FINAL
+            self.classifier = "Final"
+        elif text_ends_with(self.jar, JAR): # "guice-servlet-3.0.jar"
+            split = JAR
+            self.classifier = DASH
+        else:
+            raise Exception('convert_jar', 'Unknown jar pattern: %s' % self.jar)
+    
+        self.base, self.version = jar_split(self.jar, split)
+        if self.classifier == DASH:
+            self.id = self.base
+        else:
+            self.id = "%s-%s" % (self.base, self.classifier)
+    
+    
 
 def convert_package(jar):
     # Converts a package into a list of base, version, classifier
