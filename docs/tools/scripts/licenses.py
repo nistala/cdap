@@ -214,7 +214,7 @@ def process_level_1(input_file, options):
             master_artifact_ids[lib.base] = lib
             print "Master: %s" % lib.base
         
-    # Read dependencies
+    # Read dependencies: assumes first row is a header
     level_1_dict = {}
     missing_libs_dict = {}
     csv_path = os.path.join(SCRIPT_DIR_PATH, LICENSES_SOURCE, LEVEL_1 + ".csv")
@@ -352,130 +352,41 @@ def process_dependencies(dependency):
 
 
 def print_rst_level_1(input_file, options):
-    RST_HEADER=""".. :author: Continuuity, Inc.
-   :version: %s
-============================================
-Continuuity Reactor %s\
-============================================
-
-Continuuity Reactor Level 1 Dependencies
---------------------------------------------
-
-.. rst2pdf: PageBreak
-.. rst2pdf: .. contents::
-
-.. rst2pdf: build ../../../developer-guide/licenses-pdf/
-.. rst2pdf: config ../../../developer-guide/source/_templates/pdf-config
-.. rst2pdf: stylesheets ../../../developer-guide/source/_templates/pdf-stylesheet
-
-.. csv-table:: **Continuuity Reactor Level 1 Dependencies**
-   :header: "Package","Artifact","License","License URL"
-   :widths: 20, 20, 20, 40
-
-"""
-
-    sdk_version = get_sdk_version()        
-    rst_path = os.path.join(SCRIPT_DIR_PATH, LICENSE_MASTERS, LEVEL_1 + ".rst")
+    title = "Level 1"
+    file_base = LEVEL_1
+    header = '"Package","Artifact","License","License URL"'
+    widths = "20, 20, 20, 40"
     data_list = process_level_1(input_file, options)
-    try:
-        with open(rst_path,'w') as f:
-            f.write(RST_HEADER % (sdk_version, sdk_version))
-            for row in data_list:
-#                 s = SPACE
-#                 for r in row:
-#                     s = '%s"%s",' % (s, r)
-#                 f.write("%s\n" % s)
-                f.write(SPACE + '"' + '","'.join(row) + '"\n')
-    except:
-        raise
-    print "Wrote rst file:\n%s" % rst_path
+    print_dependencies(title, file_base, header, widths, data_list)
 
 
 def print_rst_enterprise(input_file, options):
-    RST_HEADER=""".. :author: Continuuity, Inc.
-   :version: %s
-============================================
-Continuuity Reactor %s\
-============================================
-
-Continuuity Reactor Distributed Dependencies
---------------------------------------------
-
-.. rst2pdf: PageBreak
-.. rst2pdf: .. contents::
-
-.. rst2pdf: build ../../../developer-guide/licenses-pdf/
-.. rst2pdf: config ../../../developer-guide/source/_templates/pdf-config
-.. rst2pdf: stylesheets ../../../developer-guide/source/_templates/pdf-stylesheet
-
-.. csv-table:: **Continuuity Reactor Distributed Dependencies**
-   :header: "Package","Version","Classifier","License","License URL"
-   :widths: 20, 10, 10, 20, 35
-
-"""
-
-    sdk_version = get_sdk_version()        
-    rst_path = os.path.join(SCRIPT_DIR_PATH, LICENSE_MASTERS, ENTERPRISE + ".rst")
+    title = "Distributed"
+    file_base = ENTERPRISE
+    header = '"Package","Version","Classifier","License","License URL"'
+    widths = "20, 10, 10, 20, 35"
     data_list = process_enterprise(input_file, options)
-    try:
-        with open(rst_path,'w') as f:
-            f.write(RST_HEADER % (sdk_version, sdk_version))
-            for row in data_list:
-#                 s = SPACE
-#                 for r in row:
-#                     s = '%s"%s",' % (s, r)
-                f.write(SPACE + '"' + '","'.join(row) + '"\n')
-    except:
-        raise
-    print "Wrote rst file:\n%s" % rst_path
+    print_dependencies(title, file_base, header, widths, data_list)
+
 
 def print_rst_singlenode(input_file, options):
-    RST_HEADER=""".. :author: Continuuity, Inc.
-   :version: %s
-============================================
-Continuuity Reactor %s\
-============================================
-
-Continuuity Reactor SingleNode Dependencies
---------------------------------------------
-
-.. rst2pdf: PageBreak
-.. rst2pdf: .. contents::
-
-.. rst2pdf: build ../../../developer-guide/licenses-pdf/
-.. rst2pdf: config ../../../developer-guide/source/_templates/pdf-config
-.. rst2pdf: stylesheets ../../../developer-guide/source/_templates/pdf-stylesheet
-
-.. csv-table:: **Continuuity Reactor SingleNode Dependencies**
-   :header: "Package","Version","Classifier","License","License URL"
-   :widths: 20, 10, 10, 20, 30
-
-"""
-
-    sdk_version = get_sdk_version()        
-    rst_path = os.path.join(SCRIPT_DIR_PATH, LICENSE_MASTERS, SINGLENODE + ".rst")
+    title = "SingleNode"
+    file_base = SINGLENODE
+    header = '"Package","Version","Classifier","License","License URL"'
+    widths = "20, 10, 10, 20, 30"
     data_list = process_singlenode(input_file, options)
-    try:
-        with open(rst_path,'w') as f:
-            f.write(RST_HEADER % (sdk_version, sdk_version))
-            for row in data_list:
-#                 s = SPACE
-#                 for r in row:
-#                     s = '%s"%s",' % (s, r)
-                f.write(SPACE + '"' + '","'.join(row) + '"\n')
-    except:
-        raise
-    print "Wrote rst file:\n%s" % rst_path
+    print_dependencies(title, file_base, header, widths, data_list)
+
    
-def print_dependencies(variety, header, widths, type, data):
-# Example: "Level 1",
+def print_dependencies(title, file_base, header, widths, data_list):
+# Example: "Level 1", LEVEL_1, ...
     RST_HEADER=""".. :author: Continuuity, Inc.
-   :version: %s
+   :version: %(version)s
 ============================================
-Continuuity Reactor %s
+Continuuity Reactor %(version)s\
 ============================================
 
-Continuuity Reactor %s Dependencies
+Continuuity Reactor %(title)s Dependencies
 --------------------------------------------
 
 .. rst2pdf: PageBreak
@@ -485,21 +396,22 @@ Continuuity Reactor %s Dependencies
 .. rst2pdf: config ../../../developer-guide/source/_templates/pdf-config
 .. rst2pdf: stylesheets ../../../developer-guide/source/_templates/pdf-stylesheet
 
-.. csv-table:: **Continuuity Reactor %s Dependencies**
-   :header: %s
-   :widths: %s
+.. csv-table:: **Continuuity Reactor %(title)s Dependencies**
+   :header: %(header)s
+   :widths: %(widths)s
 
 """
     sdk_version = get_sdk_version()        
-    rst_path = os.path.join(SCRIPT_DIR_PATH, LICENSE_MASTERS, SINGLENODE + ".rst")
-    data_list = process_singlenode(input_file, options)
+    RST_HEADER = RST_HEADER % {'version': sdk_version, 'title': title, 'header': header, 'widths': widths}
+    
+    rst_path = os.path.join(SCRIPT_DIR_PATH, LICENSE_MASTERS, file_base + ".rst")
+#     data_list = process_singlenode(input_file, options)
     try:
         with open(rst_path,'w') as f:
-            f.write(RST_HEADER % (sdk_version, sdk_version))
+            f.write(RST_HEADER)
             for row in data_list:
-#                 s = SPACE
-#                 for r in row:
-#                     s = '%s"%s",' % (s, r)
+                # Need to substitute quotes for double quotes in reST's csv table format
+                row = map(lambda x: x.replace("\"", "\"\""), row)
                 f.write(SPACE + '"' + '","'.join(row) + '"\n')
     except:
         raise
@@ -525,19 +437,27 @@ class Library:
         return "%s : %s" % (self.id, self.jar)
 
     def _convert_jar(self):
-        # If this not given a string of the format "base-version[-classifier].jar", croaks
+        # Looking for a string of the format "base-version[-classifier].jar"
+        # If that fails, tries without the .jar
+        # If still no match, uses jar as base instead.
         import re
-        s = r'(?P<base>.*?)-(?P<version>\d*[0-9.]*\d+)([.-]*(?P<classifier>.*?))\.jar$'
+        s_jar = r'(?P<base>.*?)-(?P<version>\d*[0-9.]*\d+)([.-]*(?P<classifier>.*?))\.jar$'
+        s_no_jar = r'(?P<base>.*?)-(?P<version>\d*[0-9.]*\d+)([.-]*(?P<classifier>.*?))'
         try:
-            m = re.match( s, self.jar)
-            if m.group('classifier'):
-                c = m.group('classifier')
+            m = re.match( s_jar, self.jar)
+            if not m:
+                m = re.match( s_no_jar, self.jar)
+            if m:
+                if m.group('classifier'):
+                    c = m.group('classifier')
+                else:
+                    c = "<none>"
+    #             print "%s: %s %s %s" % (jar, m.group('base'), m.group('version'), c )
+                self.base = m.group('base')
+                self.version =  m.group('version')
+                self.classifier = m.group('classifier')
             else:
-                c = "<none>"
-#             print "%s: %s %s %s" % (jar, m.group('base'), m.group('version'), c )
-            self.base = m.group('base')
-            self.version =  m.group('version')
-            self.classifier = m.group('classifier')
+                self.base = self.jar
             if self.classifier:
                 self.id = "%s-%s" % (self.base, self.classifier)
             else:
