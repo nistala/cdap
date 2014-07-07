@@ -22,6 +22,7 @@
 
 
 from optparse import OptionParser
+import csv
 import os
 import subprocess
 import sys
@@ -31,52 +32,36 @@ VERSION = "0.0.2"
 
 DEFAULT_VERSION = "2.3.0-SNAPSHOT"
 
-TEST_SINGLENODE = "singlenode"
-SINGLENODE_RST = "reactor-singlenode-dependencies.rst"
 LICENSE_MASTERS = "license_masters"
-SINGLENODE_MASTER = "reactor-singlenode-dependencies.csv"
+MASTER_CSV = "reactor-dependencies-master.csv"
 
-DEFAULT_TEST = TEST_SINGLENODE
+ENTERPRISE = "reactor-enterprise-dependencies"
+LEVEL_1 = "reactor-level-1-dependencies"
+SINGLENODE = "reactor-singlenode-dependencies"
+
+LICENSES_SOURCE = "../../developer-guide/source/licenses"
 
 REACTOR_VERSION_FILE = "../../../version.txt"
 
-# DEFAULT_OUTPUT_PDF_FILE = "output.pdf"
-# TEMP_FILE_SUFFIX = "_temp"
-
-REST_EDITOR             = ".. reST Editor: "
-RST2PDF                 = ".. rst2pdf: "
-RST2PDF_BUILD           = ".. rst2pdf: build "
-RST2PDF_CONFIG          = ".. rst2pdf: config "
-RST2PDF_STYLESHEETS     = ".. rst2pdf: stylesheets "
-RST2PDF_CUT_START       = ".. rst2pdf: CutStart"
-RST2PDF_CUT_STOP        = ".. rst2pdf: CutStop"
-RST2PDF_PAGE_BREAK      = ".. rst2pdf: PageBreak"
-RST2PDF_PAGE_BREAK_TEXT = """.. raw:: pdf
-
-	PageBreak"""
-RST_WIDTHS = "   :widths:"
+SPACE = " "*3
 BACK_DASH = "\-"
-DIVIDER = "======================================="
 
 SCRIPT_DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 
-def set_version():
+def get_sdk_version():
     # Sets the Reactor Build Version from the version.txt file
     ver_path = os.path.join(SCRIPT_DIR_PATH, REACTOR_VERSION_FILE)
     try:
         with open(ver_path,'r') as f:
-            DEFAULT_VERSION = f.read()
-            # print "DEFAULT_VERSION: %s" % DEFAULT_VERSION
+            sdk_version = f.read()
     except:
         print "Couldn't read DEFAULT_VERSION from path: %s" % ver_path
-        print "Using DEFAULT_VERSION: %s" % DEFAULT_VERSION
-
+        sys.exit(1)
+    return sdk_version
 
 def parse_options():
     """ Parses args options.
     """
-
-    set_version()
 
     parser = OptionParser(
         usage="%prog [options]",
@@ -89,32 +74,61 @@ def parse_options():
         help="Version of software",
         default=False)
 
+    sdk_version = get_sdk_version()
     parser.add_option(
-        "-b", "--buildversion",
+        "-w", "--build_version",
         dest="build_version",
         help="The built version of the Continuuity SDK "
-             "(default: %s)" % DEFAULT_VERSION,
-        default=DEFAULT_VERSION)
+             "(default: %s)" % sdk_version,
+        default=sdk_version)
 
     parser.add_option(
-        "-t", "--test",
-        dest="test",
-        help="One of singlenode, other "
-             "(default %s)" % DEFAULT_TEST,
-        default=DEFAULT_TEST)
+        "-e", "--enterprise",
+        action="store_true",
+        dest="enterprise",
+        help="Process enterprise dependencies",
+        default=False)
+
+    parser.add_option(
+        "-l", "--level_1",
+        action="store_true",
+        dest="level_1",
+        help="Process level 1 dependencies",
+        default=False)
 
     parser.add_option(
         "-s", "--singlenode",
         action="store_true",
         dest="singlenode",
-        help="Test singlenode",
+        help="Process singlenode dependencies",
         default=False)
 
     parser.add_option(
-        "-r", "--read",
+        "-a", "--rst_enterprise",
         action="store_true",
-        dest="read",
-        help="Reads in the master license files",
+        dest="rst_enterprise",
+        help="Print enterprise dependencies to an rst file",
+        default=False)
+
+    parser.add_option(
+        "-b", "--rst_level_1",
+        action="store_true",
+        dest="rst_level_1",
+        help="Print level1 dependencies to an rst file",
+        default=False)
+
+    parser.add_option(
+        "-c", "--rst_singlenode",
+        action="store_true",
+        dest="rst_singlenode",
+        help="Print singlenode dependencies to an rst file",
+        default=False)
+
+    parser.add_option(
+        "-m", "--master_print",
+        action="store_true",
+        dest="master_print",
+        help="Prints out the master dependency file",
         default=False)
 
     (options, args) = parser.parse_args()
@@ -124,14 +138,9 @@ def parse_options():
         sys.exit(1)
 
     if len(sys.argv) == 1:
-#         print "sys.argv: %s" % len(sys.argv)
-#         print "args: %s" % args
-#         print "options: %s" % options
-#         print "options.read: %s" % options.read
         parser.print_help()
         sys.exit(1)
 
-#     return options, args[0]
     return options, args
 
 
@@ -139,89 +148,367 @@ def log(message, type):
     """Basic logger, print output directly to stdout and errors to stderr.
     """
     (sys.stdout if type == 'notice' else sys.stderr).write(message + "\n")
-    
-    
-def process_masters():
-    # Read in the master csv files and create some structures with them
-    print "Reading master files"
-    
-    
-def process_singlenode(input_file, options):
-    # Read in the current rst file and create a structure with it
-    # Read in the new singlenode csv file
-    # Create and print to standard out the list of the references
-    # Make a list of the references for which links are missing, that aren't in the master
 
-    # Get the current singlenode dependencies master file
-    #  "Package","Version","Classifier","License","License URL"
-    csv_path = os.path.join(SCRIPT_DIR_PATH, LICENSE_MASTERS, SINGLENODE_MASTER)
-    f = open(csv_path,'r')
-    libs_dict = {}
-    for line in f:
-        l = line.strip('\n').strip()
-        l = [subs.strip('"') for subs in l.split(',')]
-        jar = l[0]
-        try:
-            lib = Library(l[0], l[3], l[4])
-            print lib
-            
+
+def process_master():
+    # Read in the master csv files and create a dictionary of it
+    # Keys are the jars, Values are the Library instances
+    # Get the current dependencies master csv file
+    # "jar","Version","Classifier","License","License URL"
+    master_libs_dict = {}
+    print "Reading master file"
+    csv_path = os.path.join(SCRIPT_DIR_PATH, LICENSE_MASTERS, MASTER_CSV)
+    with open(csv_path, 'rb') as csvfile:
+        row_count = 0
+        csv_reader = csv.reader(csvfile)
+        for row in csv_reader:
+            row_count += 1
+            jar = row[0]
+            if len(row)==5:
+                lib = Library(row[0], row[3], row[4])
+                # Place lib reference in dictionary
+                if not master_libs_dict.has_key(lib.id):
+                    master_libs_dict[lib.id] = lib
+                else:
+                    print "Duplicate key: %s" %lib.id
+                    print "%sCurrent library: %s" % (SPACE, master_libs_dict[lib.id])
+                    print "%sNew library: %s" % (SPACE, lib)
+            else:
+                print "%sError with %s\n%srow: %s" % (SPACE, jar, SPACE, row)
+    # Print out the results
+    keys = master_libs_dict.keys()
+#     keys.sort()
+#     for k in keys:
+#         master_libs_dict[k].pretty_print()    
+    print "Master CSV: Rows read: %s; Unique Keys created: %s" % (row_count, len(keys))
+    return master_libs_dict
+
+    
+def master_print():
+    master_libs_dict = process_master()
+    # Print out the results
+    keys = master_libs_dict.keys()
+    keys.sort()
+    for k in keys:
+        master_libs_dict[k].pretty_print()    
+
+
+def process_enterprise(input_file, options):
+    return process_dependencies(ENTERPRISE)
+
+
+def process_singlenode(input_file, options):
+    return process_dependencies(SINGLENODE)
+
+    
+def process_level_1(input_file, options):
+    master_libs_dict = process_master()
+    # Build a lookup table for the artifacts
+    # A dictionary relating an artifact to a Library instance
+    master_artifact_ids= {}
+    keys = master_libs_dict.keys()
+    keys.sort()
+    for k in keys:
+        lib = master_libs_dict[k]
+        if not master_artifact_ids.has_key(lib.base):
+            master_artifact_ids[lib.base] = lib
+            print "Master: %s" % lib.base
+        
+    # Read dependencies
+    level_1_dict = {}
+    missing_libs_dict = {}
+    csv_path = os.path.join(SCRIPT_DIR_PATH, LICENSES_SOURCE, LEVEL_1 + ".csv")
+    print "Reading dependencies file:\n%s" % csv_path
+    import csv
+    with open(csv_path, 'rb') as csvfile:
+        row_count = 0
+        unique_row_count = 0
+        csv_reader = csv.reader(csvfile)
+        for row in csv_reader:
+            row_count += 1
+            if row_count == 1:
+                continue # Ignore header row
+            group_id, artifact_id = row
+            key = (group_id, artifact_id)
+            if not level_1_dict.has_key(key):
+                unique_row_count += 1
+                artifact_has_hyphen = artifact_id.rfind("-")
+                if master_artifact_ids.has_key(artifact_id):
+                    # Look up lib reference in dictionary
+                    lib = master_artifact_ids[artifact_id]
+                    level_1_dict[key] = (group_id, artifact_id, lib.license, lib.license_url)
+                    continue
+                if artifact_has_hyphen != -1:
+                    # Try looking up just the first part
+                    sub_artifact_id = artifact_id[:artifact_has_hyphen]
+                    if master_artifact_ids.has_key(sub_artifact_id):
+                        lib = master_artifact_ids[sub_artifact_id]
+                        level_1_dict[key] = (group_id, artifact_id, lib.license, lib.license_url)
+                        continue
+                if not missing_libs_dict.has_key(artifact_id):
+                    missing_libs_dict[artifact_id] = group_id
+
+    # Drop header row from count
+    row_count -= 1 
+    print "Level 1: Row count: %s" % row_count
+    print "Level 1: Unique Row count: %s" % unique_row_count
+    print "Level 1: Missing Artifacts: %s" % len(missing_libs_dict.keys())
+    
+    for key in missing_libs_dict.keys():
+        print "Missing artifact_id: %s (for %s)" % (key, missing_libs_dict[key])
+
+    # Return the "Package","Artifact","License","License URL"
+    rst_data = []
+    keys = level_1_dict.keys()
+    keys.sort()
+    for k in keys:
+        row = level_1_dict[k]
+        rst_data.append(row)
+    return rst_data
+
+
+def process_dependencies(dependency):
+    # Read in the current master csv file and create a structure with it
+    # Read in the new dependencies csv file
+    # Create and print to standard out the list of the references
+    # Make a list of the references for which links are missing and need to be added to the master
+    # Make a new master list
+    # Return "Package","Version","Classifier","License","License URL"
+    
+    master_libs_dict = process_master()
+    
+    # Read dependencies
+    new_libs_dict = {}
+    missing_libs_dict = {}
+    csv_path = os.path.join(SCRIPT_DIR_PATH, LICENSES_SOURCE, dependency + ".csv")
+    print "Reading dependencies file:\n%s" % csv_path
+    import csv
+    with open(csv_path, 'rb') as csvfile:
+        row_count = 0
+        csv_reader = csv.reader(csvfile)
+        for row in csv_reader:
+            row_count += 1
+            jar = row[0]
+            lib = Library(row[0], "", "")
+            # Look up lib reference in dictionary
+            if not master_libs_dict.has_key(lib.id):
+                master_libs_dict[lib.id] = lib
+                missing_libs_dict[lib.id] = lib
             # Place lib reference in dictionary
-            if not libs_dict.has_key(lib.id):
-                libs_dict[lib.id] = lib
+            if not new_libs_dict.has_key(lib.id):
+                new_libs_dict[lib.id] = lib
             else:
                 print "Duplicate key: %s" %lib.id
-                print "Current library: %s" % libs_dict[lib.id]
-                print "New library: %s" % lib            
-        except:
-            print "   error with %s" % jar
-            
-            
-    # Print out the results
-    for lib in libs_dict.values():
-        lib.pretty_print()
+                print "%sCurrent library: %s" % (SPACE, new_libs_dict[lib.id])
+                print "%sNew library: %s" % (SPACE, lib)
+
+    missing_entries = len(missing_libs_dict.keys())
+    for lib_dict in [master_libs_dict]:
+        keys = lib_dict.keys()
+        keys.sort()
+        missing_licenses = 0
+        for k in keys:
+            if lib_dict[k].license == "":
+                missing_licenses += 1
+#             Print out the results
+#             lib_dict[k].pretty_print()
+#         print "Records: %s" % len(keys)
+
+    print "New CSV: Rows: %s" % len(new_libs_dict.keys())
+    print "New Master CSV: Rows: %s" % len(lib_dict.keys())
+    print "New Master CSV: Missing Entry Rows: %s" % missing_entries
+    print "New Master CSV: Missing License Rows: %s" % missing_licenses
+
+    # Write out a new master cvs file, only if not already exists 
+    if missing_entries or missing_licenses:
+        import csv
     
-    
-#     lib.set_max_sizes()
-#     print "lib.MAX_SIZES: %s" % lib.MAX_SIZES
-        
-#         try:
-#             lib = Library(l[0])
-#             lib.package = l[1]
-#             lib.license = l[3]
-#             lib.license_url = l[4]
-#             if lib.version != l[1]:
-#                 try:
-#                      if str(int(float(lib.version))) != l[1]:
-#                         raise
-#                 except:
-#                     print "Version mis-match for %s\n  version: '%s', lib.version: '%s'" % (lib, l[1], lib.version)
-#             if lib.classifier != l[2]:
-#                 print "Classifier mis-match for %s\n  classifier: '%s', lib.classifier: '%s'" % (lib, l[2], lib.classifier)
-#         except:
-#             print "Lib %s" % l
-#             raise
-        
-        # Place lib reference in dictionary
-#         if not old_libs_dict.has_key(lib.id):
-#             old_libs_dict[lib.id] = lib
-#         else:
-#             print "Duplicate key: %s" %lib.id
-#             print "Current library: %s" % old_libs_dict[lib.id]
-#             print "New library: %s" % lib
+        csv_path = os.path.join(SCRIPT_DIR_PATH, LICENSE_MASTERS, MASTER_CSV + ".new.csv")
+        if os.path.isfile(csv_path):
+            print "New master CSV: Master file already exists: %s" % csv_path
+        else:
+            with open(csv_path, 'w') as csv_file:
+                csv_writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
+                keys = master_libs_dict.keys()
+                keys.sort()
+                for k in keys:
+#                     l = lib_dict[k]
+#                     r = l.get_row()
+                    csv_writer.writerow(lib_dict[k].get_row())
+            print "New master CSV: wrote %s records to:\n%s" % (len(keys), csv_path)
 
-#     print "\nOld libs count: %s\n%s" % (len(old_libs), DIVIDER)
-#     for l in old_libs:
-#         print l
+    # Return the "Package","Version","Classifier","License","License URL"
+    rst_data = []
+    keys = master_libs_dict.keys()
+    keys.sort()
+    for k in keys:
+        l = lib_dict[k]
+        row = list(l.get_row())
+        if row[2] == "":
+            row[2] = BACK_DASH
+#         print row
+        rst_data.append(row)
+    return rst_data
 
-#     print "\nOld libs Dict count: %s\n%s" % (len(old_libs_dict), DIVIDER)
-#     for l in old_libs_dict.keys():
-#         print "%s: %s" % (l, old_libs_dict[l])
 
+def print_rst_level_1(input_file, options):
+    RST_HEADER=""".. :author: Continuuity, Inc.
+   :version: %s
+============================================
+Continuuity Reactor %s
+============================================
+
+Continuuity Reactor Level 1 Dependencies
+--------------------------------------------
+
+.. rst2pdf: PageBreak
+.. rst2pdf: .. contents::
+
+.. rst2pdf: build ../../../developer-guide/licenses-pdf/
+.. rst2pdf: config ../../../developer-guide/source/_templates/pdf-config
+.. rst2pdf: stylesheets ../../../developer-guide/source/_templates/pdf-stylesheet
+
+.. csv-table:: **Continuuity Reactor Level 1 Dependencies**
+   :header: "Package","Artifact","License","License URL"
+   :widths: 20, 20, 20, 40
+
+"""
+
+    sdk_version = get_sdk_version()        
+    rst_path = os.path.join(SCRIPT_DIR_PATH, LICENSE_MASTERS, LEVEL_1 + ".rst")
+    data_list = process_level_1(input_file, options)
+    try:
+        with open(rst_path,'w') as f:
+            f.write(RST_HEADER % (sdk_version, sdk_version))
+            for row in data_list:
+                s = SPACE
+                for r in row:
+                    s = '%s"%s",' % (s, r)
+                f.write("%s\n" % s)
+    except:
+        raise
+    print "Wrote rst file:\n%s" % rst_path
+
+
+def print_rst_enterprise(input_file, options):
+    RST_HEADER=""".. :author: Continuuity, Inc.
+   :version: %s
+============================================
+Continuuity Reactor %s
+============================================
+
+Continuuity Reactor Distributed Dependencies
+--------------------------------------------
+
+.. rst2pdf: PageBreak
+.. rst2pdf: .. contents::
+
+.. rst2pdf: build ../../../developer-guide/licenses-pdf/
+.. rst2pdf: config ../../../developer-guide/source/_templates/pdf-config
+.. rst2pdf: stylesheets ../../../developer-guide/source/_templates/pdf-stylesheet
+
+.. csv-table:: **Continuuity Reactor Distributed Dependencies**
+   :header: "Package","Version","Classifier","License","License URL"
+   :widths: 20, 10, 10, 20, 35
+
+"""
+
+    sdk_version = get_sdk_version()        
+    rst_path = os.path.join(SCRIPT_DIR_PATH, LICENSE_MASTERS, ENTERPRISE + ".rst")
+    data_list = process_enterprise(input_file, options)
+    try:
+        with open(rst_path,'w') as f:
+            f.write(RST_HEADER % (sdk_version, sdk_version))
+            for row in data_list:
+                s = SPACE
+                for r in row:
+                    s = '%s"%s",' % (s, r)
+                f.write("%s\n" % s)
+    except:
+        raise
+    print "Wrote rst file:\n%s" % rst_path
+
+def print_rst_singlenode(input_file, options):
+    RST_HEADER=""".. :author: Continuuity, Inc.
+   :version: %s
+============================================
+Continuuity Reactor %s
+============================================
+
+Continuuity Reactor SingleNode Dependencies
+--------------------------------------------
+
+.. rst2pdf: PageBreak
+.. rst2pdf: .. contents::
+
+.. rst2pdf: build ../../../developer-guide/licenses-pdf/
+.. rst2pdf: config ../../../developer-guide/source/_templates/pdf-config
+.. rst2pdf: stylesheets ../../../developer-guide/source/_templates/pdf-stylesheet
+
+.. csv-table:: **Continuuity Reactor SingleNode Dependencies**
+   :header: "Package","Version","Classifier","License","License URL"
+   :widths: 20, 10, 10, 20, 30
+
+"""
+
+    sdk_version = get_sdk_version()        
+    rst_path = os.path.join(SCRIPT_DIR_PATH, LICENSE_MASTERS, SINGLENODE + ".rst")
+    data_list = process_singlenode(input_file, options)
+    try:
+        with open(rst_path,'w') as f:
+            f.write(RST_HEADER % (sdk_version, sdk_version))
+            for row in data_list:
+                s = SPACE
+                for r in row:
+                    s = '%s"%s",' % (s, r)
+                f.write("%s\n" % s)
+    except:
+        raise
+    print "Wrote rst file:\n%s" % rst_path
+   
+def print_dependencies(variety, header, widths, type, data):
+# Example: "Level 1",
+    RST_HEADER=""".. :author: Continuuity, Inc.
+   :version: %s
+============================================
+Continuuity Reactor %s
+============================================
+
+Continuuity Reactor %s Dependencies
+--------------------------------------------
+
+.. rst2pdf: PageBreak
+.. rst2pdf: .. contents::
+
+.. rst2pdf: build ../../../developer-guide/licenses-pdf/
+.. rst2pdf: config ../../../developer-guide/source/_templates/pdf-config
+.. rst2pdf: stylesheets ../../../developer-guide/source/_templates/pdf-stylesheet
+
+.. csv-table:: **Continuuity Reactor %s Dependencies**
+   :header: %s
+   :widths: %s
+
+"""
+    sdk_version = get_sdk_version()        
+    rst_path = os.path.join(SCRIPT_DIR_PATH, LICENSE_MASTERS, SINGLENODE + ".rst")
+    data_list = process_singlenode(input_file, options)
+    try:
+        with open(rst_path,'w') as f:
+            f.write(RST_HEADER % (sdk_version, sdk_version))
+            for row in data_list:
+                s = SPACE
+                for r in row:
+                    s = '%s"%s",' % (s, r)
+                f.write("%s\n" % s)
+    except:
+        raise
+    print "Wrote rst file:\n%s" % rst_path
 
 
 class Library:
     MAX_SIZES={}
-
+    PRINT_ORDER = ['id','jar','base','version','classifier','license','license_url']
+    
     def __init__(self, jar, license, license_url):
         self.jar = jar # aka "package"
         self.id = ""
@@ -230,15 +517,15 @@ class Library:
         self.classifier = ""
         self.license = license
         self.license_url = license_url
-        self.convert_jar()
-        self.set_max_sizes()
+        self._convert_jar()
+        self._set_max_sizes()
         
     def __str__(self):
         return "%s : %s" % (self.id, self.jar)
 
-    def convert_jar(self):
+    def _convert_jar(self):
+        # If this not given a string of the format "base-version[-classifier].jar", croaks
         import re
-#         s = r'(?P<base>.*)-(?P<version>\d+[0-9.]*\d*)([.-]*(?P<classifier>.*?))\.jar$'
         s = r'(?P<base>.*?)-(?P<version>\d*[0-9.]*\d+)([.-]*(?P<classifier>.*?))\.jar$'
         try:
             m = re.match( s, self.jar)
@@ -257,7 +544,8 @@ class Library:
         except:
             raise
 
-    def set_max_sizes(self):
+    def _set_max_sizes(self):
+        # Used for pretty-printing
         for element in self.__dict__.keys():
             if element[0] != "_":
                 length = len(self.__dict__[element])
@@ -266,151 +554,16 @@ class Library:
                 self.MAX_SIZES[element] = length
 
     def pretty_print(self):
-        SPACE = 2
+        SPACER = 2
         line = ""
-        for element in self.__dict__.keys():
+        for element in self.PRINT_ORDER:
             if element[0] != "_":
                 length = self.MAX_SIZES[element]
-                line += self.__dict__[element].ljust(self.MAX_SIZES[element]+ SPACE)
+                line += self.__dict__[element].ljust(self.MAX_SIZES[element]+ SPACER)
         print line
 
-def convert_package(jar):
-    # Converts a package into a list of base, version, classifier
-    INC_SNAPSHOT = "-incubating-SNAPSHOT.jar" # "twill-api-0.3.0-incubating-SNAPSHOT.jar"
-    SNAPSHOT     = "-SNAPSHOT.jar" # app-fabric-2.3.0-SNAPSHOT.jar
-    BETA_TEST    = "-beta-tests.jar" # "hadoop-common-2.1.0-beta-tests.jar"
-    BETA         = "-beta.jar" # "hadoop-common-2.1.0-beta.jar"
-    FINAL        = ".Final.jar" # async-http-servlet-3.0-3.0.8.Final.jar
-    JAR          = ".jar" # "guice-servlet-3.0.jar"
-
-    if text_ends_with(jar, INC_SNAPSHOT): # "twill-api-0.3.0-incubating-SNAPSHOT.jar"
-        split = INC_SNAPSHOT
-        classifier = "SNAP"
-    elif text_ends_with(jar, SNAPSHOT): # "app-fabric-2.3.0-SNAPSHOT.jar"
-        split = SNAPSHOT
-        classifier = "SNAP"
-    elif text_ends_with(jar, BETA_TEST): # "hadoop-common-2.1.0-beta-tests.jar"
-        split = BETA_TEST
-        classifier = "test"
-    elif text_ends_with(jar, BETA): # "hadoop-common-2.1.0-beta.jar"
-        split = BETA
-        classifier = "beta"
-    elif text_ends_with(jar, FINAL): # "async-http-servlet-3.0-3.0.8.Final.jar"
-        split = FINAL
-        classifier = "Final"
-    elif text_ends_with(jar, JAR): # "guice-servlet-3.0.jar"
-        split = JAR
-        classifier = BACK_DASH
-    else:
-        raise Exception('convert_package', 'Unknown jar pattern: %s' % jar)
-    
-    base, version = jar_split(jar, split)
-    if classifier == BACK_DASH:
-        id = base
-    else:
-        id = "%s-%s" % (base, classifier)
-    return id, [ base, version, classifier ]
-
-def jar_split(jar, split):
-    b = jar[:-len(split)] # "hadoop-common-2.1.0
-    base = b[:b.rindex('-')] # "hadoop-common
-    version = b[b.rindex('-')+1:] # 2.1.0
-    return  base, version
-   
-
-# def process_pdf(input_file, options):
-#     output = ""
-#     config = ""
-#     stylesheets = ""
-#     print "input_file: %s" % input_file
-#     f = open(input_file,'r')
-#     lines = []
-#     rst_copy = False
-#     for line in f:
-#         if line_starts_with(line, RST_WIDTHS):
-#             rst_copy = True
-#         elif not rst_copy or line.strip():
-#             continue
-#         else:
-#             l = line.strip('\n')
-#             l = l.strip()
-#             l
-#             lines.append(line.strip('\n'))
-#             
-#     # Set paths
-#     source_path = os.path.dirname(os.path.abspath(__file__))
-#     
-#     # def get_absolute_path() Factor out duplicate code in this section
-#     
-#     if not os.path.isabs(input_file):
-#         input_file = os.path.join(source_path, input_file)
-#         if not os.path.isfile(input_file):
-#             raise Exception('process_pdf', 'input_file not a valid path: %s' % input_file)
-#             
-#     if options.output_file:
-#         output = options.output_file       
-#     if not os.path.isabs(output):
-#         output = os.path.join(os.path.dirname(input_file), output)
-#         if not os.path.isdir(os.path.dirname(output)):
-#             raise Exception('process_pdf', 'output not a valid path: %s' % output)
-#             
-#     if not os.path.isabs(config):
-#         config = os.path.join(os.path.dirname(input_file), config)
-#         if not os.path.isfile(config):
-#             raise Exception('process_pdf', 'config not a valid path: %s' % config)
-#             
-#     if not os.path.isabs(stylesheets):
-#         stylesheets = os.path.join(os.path.dirname(input_file), stylesheets)
-#         if not os.path.isfile(stylesheets):
-#             raise Exception('process_pdf', 'stylesheets not a valid path: %s' % stylesheets)
-#             
-#     # Write output to temp file
-#     temp_file = input_file+TEMP_FILE_SUFFIX
-#     if not os.path.isabs(temp_file):
-#         raise Exception('process_pdf', 'temp_file not a valid path: %s' % temp_file)    
-#     temp = open(temp_file,'w')    
-#     for line in lines:
-#         temp.write(line+'\n')
-#     temp.close()
-#     print "Completed parsing input file"
-# 
-#     # Generate PDF
-# #     /usr/local/bin/rst2pdf 
-# #     --config="/Users/john/Source/reactor_2.3.0_docs/docs/developer-guide/source/_templates/pdf-config" 
-# #     --stylesheets="/Users/john/Source/reactor_2.3.0_docs/docs/developer-guide/source/_templates/pdf-stylesheet" 
-# #     -o "/Users/john/Source/reactor_2.3.0_docs/docs/developer-guide/build-pdf/rest2.pdf" 
-# #     "/Users/john/Source/reactor_2.3.0_docs/docs/developer-guide/source/rest.rst_temp”
-#     command = '/usr/local/bin/rst2pdf --config="%s" --stylesheets="%s" -o "%s" %s' % (config, stylesheets, output, temp_file)
-#     print "command: %s" % command
-#     try:
-#         output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT,)
-#     except:
-#         raise Exception('process_pdf', 'output: %s' % output)
-#         
-#     if len(output)==0:
-#         os.remove(temp_file)
-#     else:
-#         print output
-#         
-#     print "Completed process_pdf"
-
-#
-# Utility functions
-#
-def quit():
-    sys.exit(1)
-
-def text_starts_with(text, left):
-    return bool(text[:len(left)] == left)
-
-def text_ends_with(text, right):
-    return bool(text[-len(right):] == right)
-
-def text_right_end(text, left):
-    # Given a line of text (that may end with a carriage return) and a snip at the start,
-    # return everything from the end of the snip onwards, except for the trailing return
-    t = text[len(left):]
-    return t.strip('\n')
+    def get_row(self):
+        return (self.jar, self.version, self.classifier, self.license, self.license_url)
 
 
 #
@@ -424,16 +577,27 @@ def main():
 
     try:
         options.logger = log
-#         if options.test == TEST_SINGLENODE:
-#             process_singlenode(input_file, options)
-        if options.singlenode:
+        if options.enterprise:
+            process_enterprise(input_file, options)
+            
+        elif options.level_1:
+            process_level_1(input_file, options)
+            
+        elif options.singlenode:
             process_singlenode(input_file, options)
-        elif options.read:
-            process_masters()
-#         elif options.test == "html":
-#             print "HTML generation not implemented"
-#         elif options.test == "slides":
-#             print "Slides generation not implemented"
+            
+        elif options.rst_enterprise:
+            print_rst_enterprise(input_file, options)
+            
+        elif options.rst_level_1:
+            print_rst_level_1(input_file, options)
+            
+        elif options.rst_singlenode:
+            print_rst_singlenode(input_file, options)
+            
+        elif options.master_print:
+            master_print()
+            
         else:
             print "Unknown test type: %s" % options.test
             sys.exit(1)
