@@ -1,10 +1,8 @@
 package com.continuuity.data2.transaction.queue.hbase;
 
-import com.continuuity.common.queue.QueueName;
 import com.continuuity.data2.queue.ConsumerConfig;
 import com.continuuity.data2.queue.DequeueStrategy;
 import com.continuuity.data2.transaction.Transaction;
-import com.continuuity.data2.transaction.queue.QueueEntryRow;
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
@@ -22,11 +20,13 @@ import javax.annotation.Nullable;
 public class DequeueScanAttributes {
   private static final String ATTR_CONSUMER_CONFIG = "continuuity.queue.dequeue.consumerConfig";
   private static final String ATTR_TX = "continuuity.queue.dequeue.transaction";
-  private static final String ATTR_QUEUE_ROW_PREFIX = "continuuity.queue.dequeue.queueRowPrefix";
 
-  public static void setQueueRowPrefix(Scan scan, QueueName queueName) {
-    scan.setAttribute(ATTR_QUEUE_ROW_PREFIX, QueueEntryRow.getQueueRowPrefix(queueName));
-  }
+  /**
+   * Deprecated for old consumer only. Maintained for reactor upgrade for running flows only.
+   * TODO: Should be removed in next major release.
+   */
+  @Deprecated
+  private static final String ATTR_QUEUE_ROW_PREFIX = "continuuity.queue.dequeue.queueRowPrefix";
 
   public static void set(Scan scan, ConsumerConfig consumerConfig) {
     try {
@@ -68,9 +68,12 @@ public class DequeueScanAttributes {
     }
   }
 
-  @Nullable
-  public static byte[] getQueueRowPrefix(Scan scan) {
-    return scan.getAttribute(ATTR_QUEUE_ROW_PREFIX);
+  /**
+   * TODO: Remove when {@link #ATTR_QUEUE_ROW_PREFIX} is removed.
+   */
+  @Deprecated
+  public static void setQueueRowPrefix(Scan scan, byte[] queueNamePrefix) {
+    scan.setAttribute(ATTR_QUEUE_ROW_PREFIX, queueNamePrefix);
   }
 
   private static byte[] toBytes(ConsumerConfig consumerConfig) throws IOException {

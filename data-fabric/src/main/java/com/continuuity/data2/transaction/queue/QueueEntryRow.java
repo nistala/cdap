@@ -6,7 +6,6 @@ import com.continuuity.data2.queue.ConsumerConfig;
 import com.continuuity.data2.queue.DequeueStrategy;
 import com.continuuity.data2.queue.QueueEntry;
 import com.continuuity.data2.transaction.Transaction;
-import com.continuuity.data2.transaction.queue.hbase.HBaseQueueAdmin;
 import com.google.common.base.Charsets;
 import com.google.common.base.Objects;
 import com.google.common.hash.Hashing;
@@ -28,7 +27,7 @@ public class QueueEntryRow {
   public static final byte[] STATE_COLUMN_PREFIX = new byte[] {'s'};
 
   /**
-   * Returns a byte array representing prefix of a queue. The prefix is formed by first two bytes of
+   * Returns a byte array representing prefix of a queue. The prefix is formed by first byte of
    * MD5 of the queue name followed by the queue name.
    */
   public static byte[] getQueueRowPrefix(QueueName queueName) {
@@ -89,21 +88,14 @@ public class QueueEntryRow {
   /**
    * Extracts the queue name from the KeyValue row, which the row must be a queue entry.
    */
-  public static QueueName getQueueName(String appName, String flowName, KeyValue keyValue) {
-    return getQueueName(appName, flowName, keyValue.getBuffer(), keyValue.getRowOffset(), keyValue.getRowLength());
-  }
-
-  /**
-   * Extracts the queue name from the KeyValue row, which the row must be a queue entry.
-   */
-  public static QueueName getQueueName(String appName, String flowName,
+  public static QueueName getQueueName(String appName, String flowName, int prefixBytes,
                                        byte[] rowBuffer, int rowOffset, int rowLength) {
-    // Entry key is always (salt bytes + 1 MD5 byte + queueName + longWritePointer + intCounter)
+    // Entry key is always (prefix bytes + 1 MD5 byte + queueName + longWritePointer + intCounter)
     int queueNameEnd = rowOffset + rowLength - Bytes.SIZEOF_LONG - Bytes.SIZEOF_INT;
 
     // <flowlet><source>
     byte[] idWithinFlow = Arrays.copyOfRange(rowBuffer,
-                                             rowOffset + HBaseQueueAdmin.SALT_BYTES + 1,
+                                             rowOffset + prefixBytes + 1,
                                              queueNameEnd);
     String idWithinFlowAsString = new String(idWithinFlow, Charsets.US_ASCII);
     // <flowlet><source>
@@ -113,19 +105,14 @@ public class QueueEntryRow {
   }
 
   /**
-   * Returns true if the given KeyValue row is a queue entry of the given queue based on queue row prefix
+   * Returns true if the given row is a queue entry of the given queue based on queue row prefix
    */
-  public static boolean isQueueEntry(byte[] queueRowPrefix, KeyValue keyValue) {
-    return isQueueEntry(queueRowPrefix, keyValue.getBuffer(), keyValue.getRowOffset(), keyValue.getRowLength());
-  }
-
-  /**
-   * Returns true if the given KeyValue row is a queue entry of the given queue based on queue row prefix
-   */
-  public static boolean isQueueEntry(byte[] queueRowPrefix, byte[] rowBuffer, int rowOffset, int rowLength) {
+  public static boolean isQueueEntry(byte[] queueRowPrefix, int prefixBytes,
+                                     byte[] rowBuffer, int rowOffset, int rowLength) {
+    // Entry key is always (prefix bytes + 1 MD5 byte + queueName + longWritePointer + intCounter)
     return isPrefix(rowBuffer,
-                    rowOffset + 1 + HBaseQueueAdmin.SALT_BYTES,
-                    rowLength - 1 - HBaseQueueAdmin.SALT_BYTES,
+                    rowOffset + prefixBytes + 1,
+                    rowLength - prefixBytes - 1,
                     queueRowPrefix);
   }
 

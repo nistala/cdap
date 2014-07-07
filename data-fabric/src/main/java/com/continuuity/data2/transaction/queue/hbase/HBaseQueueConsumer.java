@@ -48,6 +48,7 @@ abstract class HBaseQueueConsumer extends AbstractQueueConsumer {
 
   private final HTable hTable;
   private final HBaseConsumerStateStore stateStore;
+  private final byte[] queueRowPrefix;
   private boolean closed;
 
   // Executes distributed scans
@@ -66,6 +67,8 @@ abstract class HBaseQueueConsumer extends AbstractQueueConsumer {
     // For HBase, eviction is done at table flush time, hence no QueueEvictor is needed.
     super(consumerConfig, queueName);
     this.hTable = hTable;
+    this.stateStore = stateStore;
+    this.queueRowPrefix = QueueEntryRow.getQueueRowPrefix(queueName);
 
     // Using the "direct handoff" approach, new threads will only be created
     // if it is necessary and will grow unbounded. This could be bad but in DistributedScanner
@@ -77,7 +80,6 @@ abstract class HBaseQueueConsumer extends AbstractQueueConsumer {
                                        Threads.newDaemonThreadFactory("queue-consumer-scan"));
     ((ThreadPoolExecutor) this.scansExecutor).allowCoreThreadTimeOut(true);
 
-    this.stateStore = stateStore;
     byte[] startRow = consumerState.getStartRow();
 
     if (startRow != null && startRow.length > 0) {
@@ -131,7 +133,8 @@ abstract class HBaseQueueConsumer extends AbstractQueueConsumer {
     // Scan the table for queue entries.
     Scan scan = createScan(startRow, stopRow, numRows);
 
-    DequeueScanAttributes.setQueueRowPrefix(scan, getQueueName());
+    /** TODO: Remove when {@link DequeueScanAttributes#ATTR_QUEUE_ROW_PREFIX} is removed. It is for transition. **/
+    DequeueScanAttributes.setQueueRowPrefix(scan, queueRowPrefix);
     DequeueScanAttributes.set(scan, getConfig());
     DequeueScanAttributes.set(scan, transaction);
 

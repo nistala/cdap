@@ -15,6 +15,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
@@ -43,14 +44,27 @@ public final class HBaseQueueRegionObserver extends BaseRegionObserver {
 
   private ConsumerConfigCache configCache;
 
+  private int prefixBytes;
   private String appName;
   private String flowName;
 
   @Override
   public void start(CoprocessorEnvironment env) {
     if (env instanceof RegionCoprocessorEnvironment) {
-      String tableName = ((RegionCoprocessorEnvironment) env).getRegion().getTableDesc().getNameAsString();
+      HTableDescriptor tableDesc = ((RegionCoprocessorEnvironment) env).getRegion().getTableDesc();
+      String tableName = tableDesc.getNameAsString();
       String configTableName = QueueUtils.determineQueueConfigTableName(tableName);
+
+      String prefixBytes = tableDesc.getValue(HBaseQueueAdmin.PROPERTY_PREFIX_BYTES);
+      try {
+        // Default to SALT_BYTES for the older salted queue implementation.
+        this.prefixBytes = prefixBytes == null ? HBaseQueueAdmin.SALT_BYTES : Integer.parseInt(prefixBytes);
+      } catch (NumberFormatException e) {
+        // Shouldn't happen for table created by reactor.
+        LOG.error("Unable to parse value of '" + HBaseQueueAdmin.PROPERTY_PREFIX_BYTES + "' property. " +
+                    "Default to " + HBaseQueueAdmin.SALT_BYTES, e);
+        this.prefixBytes = HBaseQueueAdmin.SALT_BYTES;
+      }
 
       appName = HBaseQueueAdmin.getApplicationName(tableName);
       flowName = HBaseQueueAdmin.getFlowName(tableName);
@@ -129,7 +143,7 @@ public final class HBaseQueueRegionObserver extends BaseRegionObserver {
         // If current queue is unknown or the row is not a queue entry of current queue,
         // it either because it scans into next queue entry or simply current queue is not known.
         // Hence needs to find the currentQueue
-        if (currentQueue == null || !QueueEntryRow.isQueueEntry(currentQueueRowPrefix, cell.getRowArray(),
+        if (currentQueue == null || !QueueEntryRow.isQueueEntry(currentQueueRowPrefix, prefixBytes, cell.getRowArray(),
                                                                 cell.getRowOffset(), cell.getRowLength())) {
           // If not eligible, it either because it scans into next queue entry or simply current queue is not known.
           currentQueue = null;
@@ -138,7 +152,7 @@ public final class HBaseQueueRegionObserver extends BaseRegionObserver {
         // This row is a queue entry. If currentQueue is null, meaning it's a new queue encountered during scan.
         if (currentQueue == null) {
           QueueName queueName = QueueEntryRow.getQueueName(
-              appName, flowName, cell.getRowArray(), cell.getRowOffset(), cell.getRowLength());
+              appName, flowName, prefixBytes, cell.getRowArray(), cell.getRowOffset(), cell.getRowLength());
           currentQueue = queueName.toBytes();
           currentQueueRowPrefix = QueueEntryRow.getQueueRowPrefix(queueName);
           consumerConfig = configCache.getConsumerConfig(currentQueue);
@@ -242,8 +256,8 @@ public final class HBaseQueueRegionObserver extends BaseRegionObserver {
     }
 
     private int compareRowKey(Cell cell, byte[] row) {
-      return Bytes.compareTo(cell.getRowArray(), cell.getRowOffset() + HBaseQueueAdmin.SALT_BYTES,
-                             cell.getRowLength() - HBaseQueueAdmin.SALT_BYTES, row, 0, row.length);
+      return Bytes.compareTo(cell.getRowArray(), cell.getRowOffset() + prefixBytes,
+                             cell.getRowLength() - prefixBytes, row, 0, row.length);
     }
 
     /**
