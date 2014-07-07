@@ -355,7 +355,7 @@ def print_rst_level_1(input_file, options):
     RST_HEADER=""".. :author: Continuuity, Inc.
    :version: %s
 ============================================
-Continuuity Reactor %s
+Continuuity Reactor %s\
 ============================================
 
 Continuuity Reactor Level 1 Dependencies
@@ -381,10 +381,11 @@ Continuuity Reactor Level 1 Dependencies
         with open(rst_path,'w') as f:
             f.write(RST_HEADER % (sdk_version, sdk_version))
             for row in data_list:
-                s = SPACE
-                for r in row:
-                    s = '%s"%s",' % (s, r)
-                f.write("%s\n" % s)
+#                 s = SPACE
+#                 for r in row:
+#                     s = '%s"%s",' % (s, r)
+#                 f.write("%s\n" % s)
+                f.write(SPACE + '"' + '","'.join(row) + '"\n')
     except:
         raise
     print "Wrote rst file:\n%s" % rst_path
@@ -394,7 +395,7 @@ def print_rst_enterprise(input_file, options):
     RST_HEADER=""".. :author: Continuuity, Inc.
    :version: %s
 ============================================
-Continuuity Reactor %s
+Continuuity Reactor %s\
 ============================================
 
 Continuuity Reactor Distributed Dependencies
@@ -420,10 +421,10 @@ Continuuity Reactor Distributed Dependencies
         with open(rst_path,'w') as f:
             f.write(RST_HEADER % (sdk_version, sdk_version))
             for row in data_list:
-                s = SPACE
-                for r in row:
-                    s = '%s"%s",' % (s, r)
-                f.write("%s\n" % s)
+#                 s = SPACE
+#                 for r in row:
+#                     s = '%s"%s",' % (s, r)
+                f.write(SPACE + '"' + '","'.join(row) + '"\n')
     except:
         raise
     print "Wrote rst file:\n%s" % rst_path
@@ -432,7 +433,7 @@ def print_rst_singlenode(input_file, options):
     RST_HEADER=""".. :author: Continuuity, Inc.
    :version: %s
 ============================================
-Continuuity Reactor %s
+Continuuity Reactor %s\
 ============================================
 
 Continuuity Reactor SingleNode Dependencies
@@ -458,10 +459,10 @@ Continuuity Reactor SingleNode Dependencies
         with open(rst_path,'w') as f:
             f.write(RST_HEADER % (sdk_version, sdk_version))
             for row in data_list:
-                s = SPACE
-                for r in row:
-                    s = '%s"%s",' % (s, r)
-                f.write("%s\n" % s)
+#                 s = SPACE
+#                 for r in row:
+#                     s = '%s"%s",' % (s, r)
+                f.write(SPACE + '"' + '","'.join(row) + '"\n')
     except:
         raise
     print "Wrote rst file:\n%s" % rst_path
@@ -496,10 +497,10 @@ Continuuity Reactor %s Dependencies
         with open(rst_path,'w') as f:
             f.write(RST_HEADER % (sdk_version, sdk_version))
             for row in data_list:
-                s = SPACE
-                for r in row:
-                    s = '%s"%s",' % (s, r)
-                f.write("%s\n" % s)
+#                 s = SPACE
+#                 for r in row:
+#                     s = '%s"%s",' % (s, r)
+                f.write(SPACE + '"' + '","'.join(row) + '"\n')
     except:
         raise
     print "Wrote rst file:\n%s" % rst_path
@@ -565,7 +566,7 @@ class Library:
     def get_row(self):
         return (self.jar, self.version, self.classifier, self.license, self.license_url)
 
-
+    
 #
 # Main function
 #
