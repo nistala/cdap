@@ -10,7 +10,8 @@ import org.apache.hadoop.hbase.client.HTable;
 public class HBase94QueueUtil extends HBaseQueueUtil {
   @Override
   public HBaseQueueConsumer getQueueConsumer(ConsumerConfig consumerConfig, HTable hTable, QueueName queueName,
-                                              HBaseConsumerState consumerState, HBaseConsumerStateStore stateStore) {
-    return new HBase94QueueConsumer(consumerConfig, hTable, queueName, consumerState, stateStore);
+                                             HBaseConsumerState consumerState, HBaseConsumerStateStore stateStore,
+                                             HBaseQueueStrategy queueStrategy) {
+    return new HBase94QueueConsumer(consumerConfig, hTable, queueName, consumerState, stateStore, queueStrategy);
   }
 }

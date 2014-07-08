@@ -541,15 +541,17 @@ public class HBaseQueueAdmin extends AbstractHBaseDataSetManager implements Queu
   @Override
   public void upgrade() throws Exception {
     // For each table managed by this admin, performs an upgrade
-    Properties properties = new Properties();
-
-    // Always add the queue row prefix bytes. Default to HBaseAdmin.SALT_BYTES for now.
-    properties.setProperty(HBaseQueueAdmin.PROPERTY_PREFIX_BYTES, Integer.toString(HBaseQueueAdmin.SALT_BYTES));
-
     for (HTableDescriptor desc : getHBaseAdmin().listTables()) {
       String tableName = Bytes.toString(desc.getName());
-      // It's important to skip config table enabled.
+      // It's important to keep config table enabled.
       if (tableName.startsWith(tableNamePrefix) && !tableName.equals(configTableName)) {
+        Properties properties = new Properties();
+
+        if (desc.getValue(HBaseQueueAdmin.PROPERTY_PREFIX_BYTES) == null) {
+          // It's the old queue table. Set the property prefix bytes to SALT_BYTES
+          properties.setProperty(HBaseQueueAdmin.PROPERTY_PREFIX_BYTES, Integer.toString(HBaseQueueAdmin.SALT_BYTES));
+        }
+
         upgradeTable(tableName, properties);
       }
     }

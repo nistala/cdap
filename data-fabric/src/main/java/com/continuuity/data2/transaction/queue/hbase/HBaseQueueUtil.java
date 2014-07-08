@@ -9,5 +9,7 @@ import org.apache.hadoop.hbase.client.HTable;
  */
 public abstract class HBaseQueueUtil {
   public abstract HBaseQueueConsumer getQueueConsumer(ConsumerConfig consumerConfig, HTable hTable,
-      QueueName queueName, HBaseConsumerState consumerState, HBaseConsumerStateStore stateStore);
+                                                      QueueName queueName, HBaseConsumerState consumerState,
+                                                      HBaseConsumerStateStore stateStore,
+                                                      HBaseQueueStrategy queueStrategy);
 }

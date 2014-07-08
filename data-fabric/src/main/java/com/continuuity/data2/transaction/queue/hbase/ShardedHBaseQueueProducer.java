@@ -24,9 +24,9 @@ import java.util.Set;
  * {@code
  *
  * row_key = <shard> <queue_prefix> <write_pointer> <counter>
- * shard = <consumer_instance_id> <consumer_group_id>
- * consumer_instance_id = 4 bytes int value of target consumer instance id or -1 if FIFO.
+ * shard = <consumer_group_id> <consumer_instance_id>
  * consumer_group_id = 8 bytes long value of the target consumer group or 0 if it is FIFO
+ * consumer_instance_id = 4 bytes int value of target consumer instance id or -1 if FIFO
  * queue_prefix = <name_hash> <queue_name>
  * name_hash = First byte of MD5 of <queue_name>
  * queue_name = flowlet_name + "/" + output_name
@@ -88,10 +88,10 @@ public class ShardedHBaseQueueProducer extends HBaseQueueProducer {
           throw new IllegalArgumentException("Unsupported consumer strategy: " + dequeueStrategy);
         }
 
-        byte[] rowKey = new byte[Bytes.SIZEOF_INT + Bytes.SIZEOF_LONG + rowKeyBase.length];
+        byte[] rowKey = new byte[Bytes.SIZEOF_LONG + Bytes.SIZEOF_INT + rowKeyBase.length];
 
-        Bytes.putInt(rowKey, 0, instanceId);
-        Bytes.putLong(rowKey, Bytes.SIZEOF_INT, config.getGroupId());
+        Bytes.putLong(rowKey, 0, config.getGroupId());
+        Bytes.putInt(rowKey, Bytes.SIZEOF_LONG, instanceId);
         Bytes.putBytes(rowKey, rowKey.length - rowKeyBase.length, rowKeyBase, 0, rowKeyBase.length);
         rowKeys.add(rowKey);
       }

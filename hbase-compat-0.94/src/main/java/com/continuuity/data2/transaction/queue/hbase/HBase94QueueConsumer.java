@@ -22,9 +22,10 @@ final class HBase94QueueConsumer extends HBaseQueueConsumer {
   private final Filter processedStateFilter;
 
   HBase94QueueConsumer(ConsumerConfig consumerConfig, HTable hTable, QueueName queueName,
-                       HBaseConsumerState consumerState, HBaseConsumerStateStore stateStore) {
-    super(consumerConfig, hTable, queueName, consumerState, stateStore);
-    processedStateFilter = createStateFilter();
+                       HBaseConsumerState consumerState, HBaseConsumerStateStore stateStore,
+                       HBaseQueueStrategy queueStrategy) {
+    super(consumerConfig, hTable, queueName, consumerState, stateStore, queueStrategy);
+    this.processedStateFilter = createStateFilter();
   }
 
   @Override
