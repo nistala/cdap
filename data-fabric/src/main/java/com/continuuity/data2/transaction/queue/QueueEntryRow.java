@@ -8,6 +8,7 @@ import com.continuuity.data2.queue.QueueEntry;
 import com.continuuity.data2.transaction.Transaction;
 import com.google.common.base.Charsets;
 import com.google.common.base.Objects;
+import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
@@ -214,6 +215,7 @@ public class QueueEntryRow {
   public static CanConsume canConsume(ConsumerConfig consumerConfig, Transaction transaction,
                                       long enqueueWritePointer, int counter,
                                       byte[] metaValue, byte[] stateValue) {
+    DequeueStrategy dequeueStrategy = consumerConfig.getDequeueStrategy();
     if (stateValue != null) {
       // If the state is written by the current transaction, ignore it, as it's processing
       long stateWritePointer = QueueEntryRow.getStateWritePointer(stateValue);
@@ -226,7 +228,7 @@ public class QueueEntryRow {
       // or going to process it (due to rollback/restart).
       // This only applies to FIFO, as for hash and rr, repartition needs to happen if group size change.
       int stateInstanceId = QueueEntryRow.getStateInstanceId(stateValue);
-      if (consumerConfig.getDequeueStrategy() == DequeueStrategy.FIFO
+      if (dequeueStrategy == DequeueStrategy.FIFO
         && stateInstanceId < consumerConfig.getGroupSize()
         && stateInstanceId != consumerConfig.getInstanceId()) {
         return CanConsume.NO;
@@ -246,36 +248,34 @@ public class QueueEntryRow {
       }
     }
 
-    switch (consumerConfig.getDequeueStrategy()) {
-      case FIFO:
-        // Always try to process (claim) if using FIFO. The resolution will be done by atomically setting state
-        // to CLAIMED
-        return CanConsume.YES;
-      case ROUND_ROBIN: {
-        int hashValue = Objects.hashCode(enqueueWritePointer, counter);
-        return consumerConfig.getInstanceId() == Math.abs(hashValue % consumerConfig.getGroupSize()) ?
-                                                 CanConsume.YES : CanConsume.NO;
+    // Always try to process (claim) if using FIFO. The resolution will be done by atomically setting state to CLAIMED
+    int instanceId = consumerConfig.getInstanceId();
+
+    if (dequeueStrategy == DequeueStrategy.ROUND_ROBIN) {
+      instanceId = getRoundRobinConsumerInstance(enqueueWritePointer, counter, consumerConfig.getGroupSize());
+    } else if (dequeueStrategy == DequeueStrategy.HASH) {
+      try {
+        Map<String, Integer> hashKeys = QueueEntry.deserializeHashKeys(metaValue);
+        instanceId = getHashConsumerInstance(hashKeys, consumerConfig.getHashKey(), consumerConfig.getGroupSize());
+      } catch (IOException e) {
+        // SHOULD NEVER happen
+        throw new RuntimeException(e);
       }
-      case HASH: {
-        Map<String, Integer> hashKeys = null;
-        try {
-          hashKeys = QueueEntry.deserializeHashKeys(metaValue);
-        } catch (IOException e) {
-          // SHOULD NEVER happen
-          throw new RuntimeException(e);
-        }
-        Integer hashValue = hashKeys.get(consumerConfig.getHashKey());
-        if (hashValue == null) {
-          // If no such hash key, default it to instance 0.
-          return consumerConfig.getInstanceId() == 0 ? CanConsume.YES : CanConsume.NO;
-        }
-        // Assign to instance based on modulus on the abs(hashValue).  abs used since the hash value can be negative.
-        return consumerConfig.getInstanceId() ==
-          (Math.abs(hashValue) % consumerConfig.getGroupSize()) ? CanConsume.YES : CanConsume.NO;
-      }
-      default:
-        throw new UnsupportedOperationException("Strategy " + consumerConfig.getDequeueStrategy() + " not supported.");
     }
+
+    return consumerConfig.getInstanceId() == instanceId ? CanConsume.YES : CanConsume.NO;
+  }
+
+  /**
+   * Returns the consumer instance id for consuming an entry enqueued with the given write pointer and counter.
+   */
+  public static int getRoundRobinConsumerInstance(long writePointer, int counter, int groupSize) {
+    return Math.abs(Objects.hashCode(writePointer, counter) % groupSize);
+  }
+
+  public static int getHashConsumerInstance(Map<String, Integer> hashes, String key, int groupSize) {
+    Integer value = hashes.get(key);
+    return value == null ? 0 : (Math.abs(value) % groupSize);
   }
 
   /**
