@@ -36,7 +36,8 @@ public final class HBaseStreamConsumerStateStoreFactory implements StreamConsume
   HBaseStreamConsumerStateStoreFactory(Configuration hConf, DataSetAccessor dataSetAccessor, HBaseTableUtil tableUtil) {
     this.hConf = hConf;
     this.storeTableName = HBaseTableUtil.getHBaseTableName(
-      dataSetAccessor.namespace(QueueConstants.STREAM_TABLE_PREFIX, DataSetAccessor.Namespace.SYSTEM) + ".state.store");
+      dataSetAccessor.namespace(QueueConstants.QueueType.STREAM.toString(),
+                                DataSetAccessor.Namespace.SYSTEM) + ".state.store");
     this.tableUtil = tableUtil;
   }
 

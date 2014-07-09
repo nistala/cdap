@@ -54,7 +54,8 @@ public abstract class AbstractStreamFileConsumerFactory implements StreamConsume
                                               QueueClientFactory queueClientFactory, StreamAdmin oldStreamAdmin) {
     this.streamAdmin = streamAdmin;
     this.stateStoreFactory = stateStoreFactory;
-    this.tablePrefix = dataSetAccessor.namespace(QueueConstants.STREAM_TABLE_PREFIX, DataSetAccessor.Namespace.SYSTEM);
+    this.tablePrefix = dataSetAccessor.namespace(QueueConstants.QueueType.STREAM.toString(),
+                                                 DataSetAccessor.Namespace.SYSTEM);
     this.queueClientFactory = queueClientFactory;
     this.oldStreamAdmin = oldStreamAdmin;
   }

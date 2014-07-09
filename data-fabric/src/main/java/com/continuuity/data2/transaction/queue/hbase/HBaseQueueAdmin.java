@@ -86,20 +86,19 @@ public class HBaseQueueAdmin extends AbstractHBaseDataSetManager implements Queu
                          DataSetAccessor dataSetAccessor,
                          LocationFactory locationFactory,
                          HBaseTableUtil tableUtil) throws IOException {
-    this(hConf, cConf, QUEUE, dataSetAccessor, locationFactory, tableUtil);
+    this(hConf, cConf, dataSetAccessor, locationFactory, tableUtil, QUEUE);
   }
 
   protected HBaseQueueAdmin(Configuration hConf,
                             CConfiguration cConf,
-                            QueueConstants.QueueType type,
                             DataSetAccessor dataSetAccessor,
                             LocationFactory locationFactory,
-                            HBaseTableUtil tableUtil) throws IOException {
+                            HBaseTableUtil tableUtil,
+                            QueueConstants.QueueType type) throws IOException {
     super(hConf, tableUtil);
     this.cConf = cConf;
     // todo: we have to do that because queues do not follow dataset semantic fully (yet)
-    String unqualifiedTableNamePrefix =
-      type == QUEUE ? QueueConstants.QUEUE_TABLE_PREFIX : QueueConstants.STREAM_TABLE_PREFIX;
+    String unqualifiedTableNamePrefix = type.toString();
     this.type = type;
     this.tableNamePrefix = HBaseTableUtil.getHBaseTableName(
       dataSetAccessor.namespace(unqualifiedTableNamePrefix, DataSetAccessor.Namespace.SYSTEM));
@@ -325,7 +324,7 @@ public class HBaseQueueAdmin extends AbstractHBaseDataSetManager implements Queu
 
     Location jarDir = locationFactory.create(cConf.get(QueueConstants.ConfigKeys.QUEUE_TABLE_COPROCESSOR_DIR,
                                                        QueueConstants.DEFAULT_QUEUE_TABLE_COPROCESSOR_DIR));
-    Location jarFile = HBaseTableUtil.createCoProcessorJar(type.name().toLowerCase(), jarDir, coprocessors);
+    Location jarFile = HBaseTableUtil.createCoProcessorJar(type.toString(), jarDir, coprocessors);
     return new CoprocessorJar(coprocessors, jarFile);
   }
 
@@ -370,15 +369,11 @@ public class HBaseQueueAdmin extends AbstractHBaseDataSetManager implements Queu
     // Create the config table first so that in case the queue table coprocessor runs, it can access the config table.
     createConfigTable();
 
-    // Always add the queue row prefix bytes. Default to HBaseAdmin.SALT_BYTES for now.
-    Properties tableProp = new Properties(properties);
-    tableProp.setProperty(HBaseQueueAdmin.PROPERTY_PREFIX_BYTES, Integer.toString(HBaseQueueAdmin.SALT_BYTES));
-
     // Create the queue table
     byte[] tableName = Bytes.toBytes(getActualTableName(queueName));
     HTableDescriptor htd = new HTableDescriptor(tableName);
-    for (String key : tableProp.stringPropertyNames()) {
-      htd.setValue(key, tableProp.getProperty(key));
+    for (String key : properties.stringPropertyNames()) {
+      htd.setValue(key, properties.getProperty(key));
     }
 
     HColumnDescriptor hcd = new HColumnDescriptor(QueueEntryRow.COLUMN_FAMILY);
@@ -397,6 +392,13 @@ public class HBaseQueueAdmin extends AbstractHBaseDataSetManager implements Queu
     byte[][] splitKeys = HBaseTableUtil.getSplitKeys(splits);
 
     tableUtil.createTableIfNotExists(getHBaseAdmin(), tableName, htd, splitKeys);
+  }
+
+  protected void createQueueTable(HTableDescriptor htd, byte[][] splitKeys) throws IOException {
+    if (htd.getValue(HBaseQueueAdmin.PROPERTY_PREFIX_BYTES) == null) {
+      htd.setValue(HBaseQueueAdmin.PROPERTY_PREFIX_BYTES, Integer.toString(HBaseQueueAdmin.SALT_BYTES));
+    }
+    tableUtil.createTableIfNotExists(getHBaseAdmin(), htd.getName(), htd, splitKeys);
   }
 
   private void createConfigTable() throws IOException {

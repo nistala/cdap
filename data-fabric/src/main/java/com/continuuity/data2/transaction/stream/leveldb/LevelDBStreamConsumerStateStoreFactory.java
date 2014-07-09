@@ -26,7 +26,7 @@ public final class LevelDBStreamConsumerStateStoreFactory implements StreamConsu
   @Inject
   LevelDBStreamConsumerStateStoreFactory(DataSetAccessor dataSetAccessor, LevelDBOcTableService tableService) {
     this.tableService = tableService;
-    this.tableName = dataSetAccessor.namespace(QueueConstants.STREAM_TABLE_PREFIX,
+    this.tableName = dataSetAccessor.namespace(QueueConstants.QueueType.STREAM.toString(),
                                                DataSetAccessor.Namespace.SYSTEM) + ".state.store";
 
   }

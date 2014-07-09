@@ -22,8 +22,9 @@ public final class QueueUtils {
       throw new IllegalArgumentException(
         "Unable to determine config table name from queue table name '" + queueTableName + "'");
     }
-    int qpos = queueTableName.indexOf(QueueConstants.QUEUE_TABLE_PREFIX, secondDot + 1);
-    int spos = queueTableName.indexOf(QueueConstants.STREAM_TABLE_PREFIX, secondDot + 1);
+    // Both queue and sharded queue use the same config table as they are compatible.
+    int qpos = queueTableName.indexOf(QueueConstants.QueueType.QUEUE.toString(), secondDot + 1);
+    int spos = queueTableName.indexOf(QueueConstants.QueueType.STREAM.toString(), secondDot + 1);
     int pos;
     if (qpos < 0) {
       pos = spos;

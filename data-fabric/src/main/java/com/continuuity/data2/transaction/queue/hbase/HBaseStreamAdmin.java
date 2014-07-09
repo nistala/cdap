@@ -29,7 +29,7 @@ public class HBaseStreamAdmin extends HBaseQueueAdmin implements StreamAdmin {
                           DataSetAccessor dataSetAccessor,
                           LocationFactory locationFactory,
                           HBaseTableUtil tableUtil) throws IOException {
-    super(hConf, cConf, QueueConstants.QueueType.STREAM, dataSetAccessor, locationFactory, tableUtil);
+    super(hConf, cConf, dataSetAccessor, locationFactory, tableUtil, QueueConstants.QueueType.STREAM);
   }
 
   @Override
