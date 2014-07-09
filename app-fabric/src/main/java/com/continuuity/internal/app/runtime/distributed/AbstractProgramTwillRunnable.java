@@ -155,7 +155,7 @@ public abstract class AbstractProgramTwillRunnable<T extends ProgramRunner> impl
       cConf.clear();
       cConf.addResource(new File(configs.get("cConf")).toURI().toURL());
 
-      injector = Guice.createInjector(createModule(context));
+      injector = Guice.createInjector(createModule(context, cConf, hConf));
 
       zkClientService = injector.getInstance(ZKClientService.class);
       kafkaClientService = injector.getInstance(KafkaClientService.class);
@@ -289,7 +289,7 @@ public abstract class AbstractProgramTwillRunnable<T extends ProgramRunner> impl
   }
 
   // TODO(terence) make this works for different mode
-  protected Module createModule(final TwillContext context) {
+  protected Module createModule(final TwillContext context, CConfiguration cConf, Configuration hConf) {
     return Modules.combine(
       new ConfigModule(cConf, hConf),
       new IOModule(),

@@ -5,8 +5,8 @@ import com.continuuity.data2.queue.ConsumerConfig;
 import com.continuuity.data2.queue.QueueClientFactory;
 import com.continuuity.data2.queue.QueueConsumer;
 import com.continuuity.data2.queue.QueueProducer;
+import com.continuuity.data2.transaction.queue.QueueAdmin;
 import com.continuuity.data2.transaction.queue.QueueMetrics;
-import com.google.common.base.Function;
 import com.google.inject.Inject;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.HTable;
@@ -23,17 +23,14 @@ public final class ShardedHBaseQueueClientFactory implements QueueClientFactory 
   private final Configuration hConf;
   private final ShardedHBaseQueueAdmin queueAdmin;
   private final HBaseQueueUtil queueUtil;
-  private final Function<QueueName, Iterable<ConsumerConfig>> consumerConfigs;
 
   @Inject
   public ShardedHBaseQueueClientFactory(Configuration hConf,
-                                        ShardedHBaseQueueAdmin queueAdmin,
-                                        HBaseQueueUtil queueUtil,
-                                        Function<QueueName, Iterable<ConsumerConfig>> consumerConfigs) {
+                                        QueueAdmin queueAdmin,
+                                        HBaseQueueUtil queueUtil) {
     this.hConf = hConf;
-    this.queueAdmin = queueAdmin;
+    this.queueAdmin = (ShardedHBaseQueueAdmin) queueAdmin;
     this.queueUtil = queueUtil;
-    this.consumerConfigs = consumerConfigs;
   }
 
   @Override
@@ -43,9 +40,16 @@ public final class ShardedHBaseQueueClientFactory implements QueueClientFactory 
 
   @Override
   public QueueProducer createProducer(QueueName queueName, QueueMetrics queueMetrics) throws IOException {
+    throw new UnsupportedOperationException("Non-sharded producer not support. Use " +
+                                            "createProducer(QueueName, QueueMetrics, Iterable<ConsumerConfig>) " +
+                                            "instead.");
+  }
+
+  public QueueProducer createProducer(QueueName queueName, QueueMetrics queueMetrics,
+                                      Iterable<ConsumerConfig> consumerConfigs) throws IOException {
     ensureTableExists(queueName);
     return new ShardedHBaseQueueProducer(createHTable(queueAdmin.getActualTableName(queueName)),
-                                         queueName, queueMetrics, consumerConfigs.apply(queueName));
+                                         queueName, queueMetrics, consumerConfigs);
   }
 
   @Override

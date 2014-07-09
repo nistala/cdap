@@ -3,6 +3,7 @@
  */
 package com.continuuity.internal.app.runtime.distributed;
 
+import com.continuuity.common.conf.CConfiguration;
 import com.continuuity.internal.app.runtime.webapp.ExplodeJarHttpHandler;
 import com.continuuity.internal.app.runtime.webapp.JarHttpHandler;
 import com.continuuity.internal.app.runtime.webapp.WebappHttpHandlerFactory;
@@ -11,6 +12,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Module;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import com.google.inject.util.Modules;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.twill.api.TwillContext;
 
 /**
@@ -28,8 +30,8 @@ final class WebappTwillRunnable extends AbstractProgramTwillRunnable<WebappProgr
   }
 
   @Override
-  protected Module createModule(TwillContext context) {
-    return Modules.combine(super.createModule(context),
+  protected Module createModule(TwillContext context, CConfiguration cConf, Configuration hConf) {
+    return Modules.combine(super.createModule(context, cConf, hConf),
                            new AbstractModule() {
                              @Override
                              protected void configure() {
