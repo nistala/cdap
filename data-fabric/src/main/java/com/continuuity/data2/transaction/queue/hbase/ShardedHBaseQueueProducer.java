@@ -11,7 +11,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import org.apache.hadoop.hbase.client.HTable;
@@ -95,19 +94,12 @@ public class ShardedHBaseQueueProducer extends HBaseQueueProducer {
         }
       }
 
-      byte[] rowKey = new byte[ShardedHBaseQueueAdmin.PREFIX_BYTES + rowKeyBase.length];
-      HashCode hash = HASH_FUNCTION.newHasher()
-        .putLong(config.getGroupId())
-        .putInt(instanceId)
-        .putString(queueName.toString())
-        .hash();
+      byte[] rowKey = new byte[ShardedHBaseQueueAdmin.PREFIX_BYTES - HBaseQueueAdmin.SALT_BYTES + rowKeyBase.length];
 
-      hash.writeBytesTo(rowKey, 0, 1);
-
-      Bytes.putLong(rowKey, 1, config.getGroupId());
-      Bytes.putInt(rowKey, 1 + Bytes.SIZEOF_LONG, instanceId);
+      Bytes.putLong(rowKey, 0, config.getGroupId());
+      Bytes.putInt(rowKey, Bytes.SIZEOF_LONG, instanceId);
       Bytes.putBytes(rowKey, rowKey.length - rowKeyBase.length, rowKeyBase, 0, rowKeyBase.length);
-      rowKeys.add(rowKey);
+      rowKeys.add(HBaseQueueAdmin.ROW_KEY_DISTRIBUTOR.getDistributedKey(rowKey));
     }
   }
 }

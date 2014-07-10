@@ -20,7 +20,7 @@ import java.io.IOException;
 public final class ShardedHBaseQueueAdmin extends HBaseQueueAdmin {
 
   // Number of bytes as the row key prefix. See ShardedHbaseQueueProducer for the schema.
-  public static final int PREFIX_BYTES = 1 + Bytes.SIZEOF_LONG + Bytes.SIZEOF_INT;
+  public static final int PREFIX_BYTES = HBaseQueueAdmin.SALT_BYTES + Bytes.SIZEOF_LONG + Bytes.SIZEOF_INT;
 
   private static final Logger LOG = LoggerFactory.getLogger(ShardedHBaseQueueAdmin.class);
 
