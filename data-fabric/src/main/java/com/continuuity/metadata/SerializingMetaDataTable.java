@@ -1,11 +1,11 @@
 package com.continuuity.metadata;
 
 import com.continuuity.api.common.Bytes;
-import com.continuuity.common.utils.ImmutablePair;
+import com.continuuity.api.dataset.table.Row;
+import com.continuuity.api.dataset.table.Scanner;
 import com.continuuity.data.DataSetAccessor;
 import com.continuuity.data.operation.OperationContext;
 import com.continuuity.data.operation.StatusCode;
-import com.continuuity.data.table.Scanner;
 import com.continuuity.data2.OperationException;
 import com.continuuity.data2.dataset.api.DataSetManager;
 import com.continuuity.data2.dataset.lib.table.OrderedColumnarTable;
@@ -332,13 +332,15 @@ public class SerializingMetaDataTable implements MetaDataTable {
 
     // throw exception if not existing
     if (result.isEmpty()) {
-      throw new OperationException(StatusCode.ENTRY_NOT_FOUND, "Meta data entry does not exist.");
+      throw new OperationException(StatusCode.ENTRY_NOT_FOUND, "Meta data entry for row=" + Bytes.toStringBinary(row) +
+        ", column=" + Bytes.toStringBinary(column) + " does not exist.");
     }
 
     // get the raw (serialized) bytes of the entry
     byte[] bytes = result.get(column);
     if (bytes == null) {
-      throw new OperationException(StatusCode.INTERNAL_ERROR, "Meta data entry is null.");
+      throw new OperationException(StatusCode.INTERNAL_ERROR, "Meta data entry for row=" + Bytes.toStringBinary(row) +
+        ", column=" + Bytes.toStringBinary(column) + " is null.");
     }
 
     // de-serialize the entry
@@ -694,11 +696,11 @@ public class SerializingMetaDataTable implements MetaDataTable {
     List<String> accounts = Lists.newArrayList();
     try {
       while (true) {
-        ImmutablePair<byte[], Map<byte[], byte[]>> row = scanner.next();
+        Row row = scanner.next();
         if (row == null) {
           break;
         }
-        accounts.add(extractAccountFromRowKey(row.getFirst()));
+        accounts.add(extractAccountFromRowKey(row.getRow()));
       }
     } finally {
       scanner.close();

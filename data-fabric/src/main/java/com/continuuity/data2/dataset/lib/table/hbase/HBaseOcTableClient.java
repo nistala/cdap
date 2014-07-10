@@ -1,10 +1,14 @@
 package com.continuuity.data2.dataset.lib.table.hbase;
 
-import com.continuuity.data.table.Scanner;
+import com.continuuity.api.common.Bytes;
+import com.continuuity.api.dataset.table.Scanner;
 import com.continuuity.data2.dataset.lib.table.BackedByVersionedStoreOcTableClient;
 import com.continuuity.data2.dataset.lib.table.ConflictDetection;
+import com.continuuity.data2.dataset.lib.table.IncrementValue;
+import com.continuuity.data2.dataset.lib.table.PutValue;
+import com.continuuity.data2.dataset.lib.table.Update;
 import com.continuuity.data2.transaction.Transaction;
-import com.continuuity.data2.transaction.TxConstants;
+import com.continuuity.data2.transaction.TransactionCodec;
 import com.continuuity.data2.util.hbase.HBaseTableUtil;
 import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
@@ -16,6 +20,8 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
@@ -30,13 +36,16 @@ import javax.annotation.Nullable;
 // todo: extract separate "no delete inside tx" table?
 // todo: consider writing & reading using HTable to do in multi-threaded way
 public class HBaseOcTableClient extends BackedByVersionedStoreOcTableClient {
+  private static final Logger LOG = LoggerFactory.getLogger(HBaseOcTableClient.class);
+
+  public static final String DELTA_WRITE = "d";
   private final HTable hTable;
   private final String hTableName;
   private final int ttl;
 
   private Transaction tx;
-  /** oldest visible based on ttl */
-  private long oldestVisible;
+
+  private final TransactionCodec txCodec;
 
   public HBaseOcTableClient(String name, Configuration hConf) throws IOException {
     this(name, ConflictDetection.ROW, hConf);
@@ -55,6 +64,7 @@ public class HBaseOcTableClient extends BackedByVersionedStoreOcTableClient {
     hTable.setWriteBufferSize(HBaseTableUtil.DEFAULT_WRITE_BUFFER_SIZE);
     hTable.setAutoFlush(false);
     this.hTable = hTable;
+    this.txCodec = new TransactionCodec();
   }
 
   // for testing only
@@ -74,38 +84,72 @@ public class HBaseOcTableClient extends BackedByVersionedStoreOcTableClient {
   public void startTx(Transaction tx) {
     super.startTx(tx);
     this.tx = tx;
-    // we know that data will not be cleaned up while this tx is running up to this point as janitor uses it
-    this.oldestVisible = ttl <= 0 ? 0 : tx.getVisibilityUpperBound() - ttl * TxConstants.MAX_TX_PER_MS;
   }
 
   @Override
-  protected void persist(NavigableMap<byte[], NavigableMap<byte[], byte[]>> buff) throws Exception {
+  protected void persist(NavigableMap<byte[], NavigableMap<byte[], Update>> buff) throws Exception {
     List<Put> puts = Lists.newArrayList();
-    for (Map.Entry<byte[], NavigableMap<byte[], byte[]>> row : buff.entrySet()) {
+    for (Map.Entry<byte[], NavigableMap<byte[], Update>> row : buff.entrySet()) {
       Put put = new Put(row.getKey());
-      for (Map.Entry<byte[], byte[]> column : row.getValue().entrySet()) {
+      Put incrementPut = null;
+      for (Map.Entry<byte[], Update> column : row.getValue().entrySet()) {
         // we want support tx and non-tx modes
         if (tx != null) {
           // TODO: hijacking timestamp... bad
-          put.add(HBaseOcTableManager.DATA_COLUMN_FAMILY, column.getKey(), tx.getWritePointer(),
-                  wrapDeleteIfNeeded(column.getValue()));
+          Update val = column.getValue();
+          if (val instanceof IncrementValue) {
+            // TODO: handle increments
+            incrementPut = getIncrementalPut(incrementPut, row.getKey());
+            incrementPut.add(HBaseOcTableManager.DATA_COLUMN_FAMILY, column.getKey(), tx.getWritePointer(),
+                             Bytes.toBytes(((IncrementValue) val).getValue()));
+          } else if (val instanceof PutValue) {
+            put.add(HBaseOcTableManager.DATA_COLUMN_FAMILY, column.getKey(), tx.getWritePointer(),
+                    wrapDeleteIfNeeded(((PutValue) val).getValue()));
+          }
+          // TODO: handle increments
         } else {
-          put.add(HBaseOcTableManager.DATA_COLUMN_FAMILY, column.getKey(), column.getValue());
+          Update val = column.getValue();
+          if (val instanceof IncrementValue) {
+            // TODO: handle increments
+            incrementPut = getIncrementalPut(incrementPut, row.getKey());
+            incrementPut.add(HBaseOcTableManager.DATA_COLUMN_FAMILY, column.getKey(),
+                             Bytes.toBytes(((IncrementValue) val).getValue()));
+          } else if (val instanceof PutValue) {
+            put.add(HBaseOcTableManager.DATA_COLUMN_FAMILY, column.getKey(), ((PutValue) val).getValue());
+          }
         }
       }
-      puts.add(put);
+      if (incrementPut != null) {
+        puts.add(incrementPut);
+      }
+      if (!put.isEmpty()) {
+        puts.add(put);
+      }
     }
-    hTable.put(puts);
-    hTable.flushCommits();
+    if (!puts.isEmpty()) {
+      hTable.put(puts);
+      hTable.flushCommits();
+    } else {
+      LOG.info("No writes to persist!");
+    }
+  }
+
+  private Put getIncrementalPut(Put existing, byte[] row) {
+    if (existing != null) {
+      return existing;
+    }
+    Put put = new Put(row);
+    put.setAttribute(DELTA_WRITE, Bytes.toBytes(true));
+    return put;
   }
 
   @Override
-  protected void undo(NavigableMap<byte[], NavigableMap<byte[], byte[]>> persisted) throws Exception {
+  protected void undo(NavigableMap<byte[], NavigableMap<byte[], Update>> persisted) throws Exception {
     // NOTE: we use Delete with the write pointer as the specific version to delete.
     List<Delete> deletes = Lists.newArrayList();
-    for (Map.Entry<byte[], NavigableMap<byte[], byte[]>> row : persisted.entrySet()) {
+    for (Map.Entry<byte[], NavigableMap<byte[], Update>> row : persisted.entrySet()) {
       Delete delete = new Delete(row.getKey());
-      for (Map.Entry<byte[], byte[]> column : row.getValue().entrySet()) {
+      for (Map.Entry<byte[], Update> column : row.getValue().entrySet()) {
         // we want support tx and non-tx modes
         if (tx != null) {
           // TODO: hijacking timestamp... bad
@@ -149,9 +193,7 @@ public class HBaseOcTableClient extends BackedByVersionedStoreOcTableClient {
       scan.setStopRow(stopRow);
     }
 
-    scan.setTimeRange(oldestVisible, getMaxStamp(tx));
-    // todo: optimise for no excluded list separately
-    scan.setMaxVersions(tx.excludesSize() + 1);
+    txCodec.addToOperation(scan, tx);
 
     ResultScanner resultScanner = hTable.getScanner(scan);
     return new HBaseScanner(resultScanner, tx);
@@ -175,26 +217,7 @@ public class HBaseOcTableClient extends BackedByVersionedStoreOcTableClient {
       return result.isEmpty() ? EMPTY_ROW_MAP : result.getFamilyMap(HBaseOcTableManager.DATA_COLUMN_FAMILY);
     }
 
-    // todo: actually we want to read up to write pointer... when we start flushing periodically
-    get.setTimeRange(oldestVisible, getMaxStamp(tx));
-
-    // if exclusion list is empty, do simple "read last" value call todo: explain
-    if (!tx.hasExcludes()) {
-      get.setMaxVersions(1);
-      Result result = hTable.get(get);
-      if (result.isEmpty()) {
-        return EMPTY_ROW_MAP;
-      }
-      NavigableMap<byte[], byte[]> rowMap = result.getFamilyMap(HBaseOcTableManager.DATA_COLUMN_FAMILY);
-      return unwrapDeletes(rowMap);
-    }
-
-    // todo: provide max known not excluded version, so that we can figure out how to fetch even fewer versions
-    //       on the other hand, looks like the above suggestion WILL NOT WORK
-    get.setMaxVersions(tx.excludesSize() + 1);
-
-    // todo: push filtering logic to server
-    // todo: cache fetched from server locally
+    txCodec.addToOperation(get, tx);
 
     Result result = hTable.get(get);
     return getRowMap(result, tx);
@@ -208,10 +231,5 @@ public class HBaseOcTableClient extends BackedByVersionedStoreOcTableClient {
     NavigableMap<byte[], byte[]> rowMap =
       getLatestNotExcluded(result.getMap().get(HBaseOcTableManager.DATA_COLUMN_FAMILY), tx);
     return unwrapDeletes(rowMap);
-  }
-
-  private static long getMaxStamp(Transaction tx) {
-    // NOTE: +1 here because we want read up to readpointer inclusive, but timerange's end is exclusive
-    return tx.getReadPointer() + 1;
   }
 }
