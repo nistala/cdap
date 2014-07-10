@@ -69,7 +69,7 @@ public class HBaseQueueAdmin extends AbstractHBaseDataSetManager implements Queu
   public static final String PROPERTY_PREFIX_BYTES = "continuuity.prefix.bytes";
 
   public static final int SALT_BYTES = 1;
-  public static final int ROW_KEY_DISTRIBUTION_BUCKETS = 8;
+  public static final int ROW_KEY_DISTRIBUTION_BUCKETS = 16;
   public static final AbstractRowKeyDistributor ROW_KEY_DISTRIBUTOR =
     new RowKeyDistributorByHashPrefix(
       new RowKeyDistributorByHashPrefix.OneByteSimpleHash(ROW_KEY_DISTRIBUTION_BUCKETS));

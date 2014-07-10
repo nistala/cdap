@@ -23,15 +23,20 @@ public final class QueueUtils {
         "Unable to determine config table name from queue table name '" + queueTableName + "'");
     }
     // Both queue and sharded queue use the same config table as they are compatible.
+    int sqpos = queueTableName.indexOf(QueueConstants.QueueType.SHARDED_QUEUE.toString(), secondDot + 1);
     int qpos = queueTableName.indexOf(QueueConstants.QueueType.QUEUE.toString(), secondDot + 1);
     int spos = queueTableName.indexOf(QueueConstants.QueueType.STREAM.toString(), secondDot + 1);
     int pos;
-    if (qpos < 0) {
-      pos = spos;
-    } else if (spos < 0) {
-      pos = qpos;
+    if (sqpos >= 0) {
+      pos = sqpos;
     } else {
-      pos = Math.min(qpos, spos);
+      if (qpos < 0) {
+        pos = spos;
+      } else if (spos < 0) {
+        pos = qpos;
+      } else {
+        pos = Math.min(qpos, spos);
+      }
     }
     if (pos < 0) {
       throw new IllegalArgumentException(
