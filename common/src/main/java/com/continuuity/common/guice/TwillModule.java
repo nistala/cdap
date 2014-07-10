@@ -56,6 +56,7 @@ public class TwillModule extends AbstractModule {
     // Copy the yarn config and set the max heap ratio.
     YarnConfiguration yarnConfig = new YarnConfiguration(yarnConfiguration);
     yarnConfig.set(Constants.CFG_TWILL_RESERVED_MEMORY_MB, configuration.get(Constants.CFG_TWILL_RESERVED_MEMORY_MB));
+    yarnConfig.setBoolean("twill.bundle.cache.enable", true);
     YarnTwillRunnerService runner = new YarnTwillRunnerService(yarnConfig,
                                                                zkConnectStr,
                                                                LocationFactories.namespace(locationFactory, "weave"));
