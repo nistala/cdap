@@ -16,7 +16,7 @@ import java.io.IOException;
 /**
  * A {@link QueueClientFactory} that creates {@link QueueProducer} and {@link QueueConsumer} with sharded queue logic.
  */
-public final class ShardedHBaseQueueClientFactory implements QueueClientFactory {
+public final class ShardedHBaseQueueClientFactory implements QueueClientFactory, ShardedQueueProducerFactory {
 
   private static final int DEFAULT_WRITE_BUFFER_SIZE = 4 * 1024 * 1024;
 
@@ -25,12 +25,10 @@ public final class ShardedHBaseQueueClientFactory implements QueueClientFactory 
   private final HBaseQueueUtil queueUtil;
 
   @Inject
-  public ShardedHBaseQueueClientFactory(Configuration hConf,
-                                        QueueAdmin queueAdmin,
-                                        HBaseQueueUtil queueUtil) {
+  public ShardedHBaseQueueClientFactory(Configuration hConf, QueueAdmin queueAdmin) {
     this.hConf = hConf;
     this.queueAdmin = (ShardedHBaseQueueAdmin) queueAdmin;
-    this.queueUtil = queueUtil;
+    this.queueUtil = new HBaseQueueUtilFactory().get();
   }
 
   @Override
@@ -45,6 +43,7 @@ public final class ShardedHBaseQueueClientFactory implements QueueClientFactory 
                                             "instead.");
   }
 
+  @Override
   public QueueProducer createProducer(QueueName queueName, QueueMetrics queueMetrics,
                                       Iterable<ConsumerConfig> consumerConfigs) throws IOException {
     ensureTableExists(queueName);
@@ -60,7 +59,7 @@ public final class ShardedHBaseQueueClientFactory implements QueueClientFactory 
                                                                      createHTable(queueAdmin.getConfigTableName()));
     return queueUtil.getQueueConsumer(consumerConfig, createHTable(queueAdmin.getActualTableName(queueName)),
                                       queueName, stateStore.getState(), stateStore,
-                                      new ShardedHBaseQueueStrategy(consumerConfig));
+                                      new ShardedHBaseQueueStrategy(queueName, consumerConfig));
   }
 
   private void ensureTableExists(QueueName queueName) throws IOException {

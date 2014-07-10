@@ -391,13 +391,14 @@ public class HBaseQueueAdmin extends AbstractHBaseDataSetManager implements Queu
                               QueueConstants.DEFAULT_QUEUE_TABLE_PRESPLITS);
     byte[][] splitKeys = HBaseTableUtil.getSplitKeys(splits);
 
-    tableUtil.createTableIfNotExists(getHBaseAdmin(), tableName, htd, splitKeys);
+    createQueueTable(htd, splitKeys);
   }
 
   protected void createQueueTable(HTableDescriptor htd, byte[][] splitKeys) throws IOException {
     if (htd.getValue(HBaseQueueAdmin.PROPERTY_PREFIX_BYTES) == null) {
       htd.setValue(HBaseQueueAdmin.PROPERTY_PREFIX_BYTES, Integer.toString(HBaseQueueAdmin.SALT_BYTES));
     }
+    LOG.info("Create queue table with prefix bytes {}", htd.getValue(HBaseQueueAdmin.PROPERTY_PREFIX_BYTES));
     tableUtil.createTableIfNotExists(getHBaseAdmin(), htd.getName(), htd, splitKeys);
   }
 

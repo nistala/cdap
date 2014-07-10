@@ -11,6 +11,9 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hashing;
 import org.apache.hadoop.hbase.client.HTable;
 
 import java.util.Collection;
@@ -24,7 +27,8 @@ import java.util.Set;
  * {@code
  *
  * row_key = <shard> <queue_prefix> <write_pointer> <counter>
- * shard = <consumer_group_id> <consumer_instance_id>
+ * shard = <salt> <consumer_group_id> <consumer_instance_id>
+ * salt = First byte of MD5 of <consumer_group_id>, <consumer_instance_id> and <queue_name>
  * consumer_group_id = 8 bytes long value of the target consumer group or 0 if it is FIFO
  * consumer_instance_id = 4 bytes int value of target consumer instance id or -1 if FIFO
  * queue_prefix = <name_hash> <queue_name>
@@ -37,8 +41,9 @@ import java.util.Set;
  */
 public class ShardedHBaseQueueProducer extends HBaseQueueProducer {
 
-  private static final byte[] FIFO_PREFIX = Bytes.add(Bytes.toBytes(-1), Bytes.toBytes(0L));
+  private static final HashFunction HASH_FUNCTION = Hashing.murmur3_32();
 
+  private final QueueName queueName;
   private final List<ConsumerConfig> consumerConfigs;
 
   /**
@@ -52,6 +57,8 @@ public class ShardedHBaseQueueProducer extends HBaseQueueProducer {
   public ShardedHBaseQueueProducer(HTable hTable, QueueName queueName,
                                    QueueMetrics queueMetrics, Iterable<ConsumerConfig> consumerConfigs) {
     super(hTable, queueName, queueMetrics);
+
+    this.queueName = queueName;
 
     // Only interested in groups, size, strategy and hash key.
     this.consumerConfigs = ImmutableList.copyOf(Iterables.filter(consumerConfigs, new Predicate<ConsumerConfig>() {
@@ -73,12 +80,11 @@ public class ShardedHBaseQueueProducer extends HBaseQueueProducer {
     for (ConsumerConfig config : consumerConfigs) {
       DequeueStrategy dequeueStrategy = config.getDequeueStrategy();
 
-      // For FIFO, the prefix is fixed.
-      if (dequeueStrategy == DequeueStrategy.FIFO) {
-        rowKeys.add(Bytes.add(FIFO_PREFIX, rowKeyBase));
-      } else {
+      // Default for FIFO
+      int instanceId = -1;
+
+      if (dequeueStrategy != DequeueStrategy.FIFO) {
         // TODO: Add metrics
-        int instanceId;
         if (dequeueStrategy == DequeueStrategy.ROUND_ROBIN) {
           instanceId = QueueEntryRow.getRoundRobinConsumerInstance(writePointer, counter, config.getGroupSize());
         } else if (dequeueStrategy == DequeueStrategy.HASH) {
@@ -87,14 +93,21 @@ public class ShardedHBaseQueueProducer extends HBaseQueueProducer {
         } else {
           throw new IllegalArgumentException("Unsupported consumer strategy: " + dequeueStrategy);
         }
-
-        byte[] rowKey = new byte[Bytes.SIZEOF_LONG + Bytes.SIZEOF_INT + rowKeyBase.length];
-
-        Bytes.putLong(rowKey, 0, config.getGroupId());
-        Bytes.putInt(rowKey, Bytes.SIZEOF_LONG, instanceId);
-        Bytes.putBytes(rowKey, rowKey.length - rowKeyBase.length, rowKeyBase, 0, rowKeyBase.length);
-        rowKeys.add(rowKey);
       }
+
+      byte[] rowKey = new byte[ShardedHBaseQueueAdmin.PREFIX_BYTES + rowKeyBase.length];
+      HashCode hash = HASH_FUNCTION.newHasher()
+        .putLong(config.getGroupId())
+        .putInt(instanceId)
+        .putString(queueName.toString())
+        .hash();
+
+      hash.writeBytesTo(rowKey, 0, 1);
+
+      Bytes.putLong(rowKey, 1, config.getGroupId());
+      Bytes.putInt(rowKey, 1 + Bytes.SIZEOF_LONG, instanceId);
+      Bytes.putBytes(rowKey, rowKey.length - rowKeyBase.length, rowKeyBase, 0, rowKeyBase.length);
+      rowKeys.add(rowKey);
     }
   }
 }

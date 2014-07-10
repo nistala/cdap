@@ -12,8 +12,11 @@ import com.continuuity.data2.transaction.distributed.PooledClientProvider;
 import com.continuuity.data2.transaction.distributed.ThreadLocalClientProvider;
 import com.continuuity.data2.transaction.distributed.ThriftClientProvider;
 import com.continuuity.data2.transaction.queue.QueueAdmin;
+import com.continuuity.data2.transaction.queue.QueueConstants;
 import com.continuuity.data2.transaction.queue.hbase.HBaseQueueAdmin;
 import com.continuuity.data2.transaction.queue.hbase.HBaseQueueClientFactory;
+import com.continuuity.data2.transaction.queue.hbase.ShardedHBaseQueueAdmin;
+import com.continuuity.data2.transaction.queue.hbase.ShardedHBaseQueueClientFactory;
 import com.continuuity.data2.transaction.runtime.TransactionModules;
 import com.continuuity.data2.transaction.stream.StreamAdmin;
 import com.continuuity.data2.transaction.stream.StreamConsumerFactory;
@@ -27,6 +30,7 @@ import com.continuuity.metadata.MetaDataTable;
 import com.continuuity.metadata.SerializingMetaDataTable;
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
+import com.google.inject.Injector;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
 import org.apache.twill.discovery.DiscoveryServiceClient;
@@ -51,8 +55,8 @@ public class DataFabricDistributedModule extends AbstractModule {
 
     bind(ThriftClientProvider.class).toProvider(ThriftClientProviderSupplier.class);
     bind(DataSetAccessor.class).to(DistributedDataSetAccessor.class).in(Singleton.class);
-    bind(QueueClientFactory.class).to(HBaseQueueClientFactory.class).in(Singleton.class);
-    bind(QueueAdmin.class).to(HBaseQueueAdmin.class).in(Singleton.class);
+    bind(QueueClientFactory.class).toProvider(QueueClientFactoryProvider.class);
+    bind(QueueAdmin.class).toProvider(QueueAdminProvider.class);
     bind(HBaseTableUtil.class).toProvider(HBaseTableUtilFactory.class);
 
     // Stream bindings
@@ -66,6 +70,50 @@ public class DataFabricDistributedModule extends AbstractModule {
     // bind transactions
     install(new TransactionModules().getDistributedModules());
 
+  }
+
+  @Singleton
+  private static final class QueueClientFactoryProvider implements Provider<QueueClientFactory> {
+
+    private final Injector injector;
+    private final CConfiguration cConf;
+
+    @Inject
+    private QueueClientFactoryProvider(Injector injector, CConfiguration cConf) {
+      this.injector = injector;
+      this.cConf = cConf;
+    }
+
+    @Override
+    public QueueClientFactory get() {
+      if (cConf.getBoolean(QueueConstants.ConfigKeys.SHARDED_QUEUE, false)) {
+        return injector.getInstance(ShardedHBaseQueueClientFactory.class);
+      } else {
+        return injector.getInstance(HBaseQueueClientFactory.class);
+      }
+    }
+  }
+
+  @Singleton
+  private static final class QueueAdminProvider implements Provider<QueueAdmin> {
+
+    private final Injector injector;
+    private final CConfiguration cConf;
+
+    @Inject
+    private QueueAdminProvider(Injector injector, CConfiguration cConf) {
+      this.injector = injector;
+      this.cConf = cConf;
+    }
+
+    @Override
+    public QueueAdmin get() {
+      if (cConf.getBoolean(QueueConstants.ConfigKeys.SHARDED_QUEUE, false)) {
+        return injector.getInstance(ShardedHBaseQueueAdmin.class);
+      } else {
+        return injector.getInstance(HBaseQueueAdmin.class);
+      }
+    }
   }
 
   /**

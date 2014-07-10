@@ -20,28 +20,26 @@ import com.continuuity.data2.transaction.TransactionExecutor;
 import com.continuuity.data2.transaction.TransactionExecutorFactory;
 import com.continuuity.data2.transaction.TransactionSystemClient;
 import com.continuuity.data2.transaction.queue.QueueMetrics;
-import com.continuuity.data2.transaction.queue.hbase.ShardedHBaseQueueClientFactory;
+import com.continuuity.data2.transaction.queue.hbase.ShardedQueueProducerFactory;
 import com.continuuity.data2.transaction.stream.ForwardingStreamConsumer;
 import com.continuuity.data2.transaction.stream.StreamConsumer;
 import com.continuuity.data2.transaction.stream.StreamConsumerFactory;
-import com.continuuity.internal.app.runtime.flow.FlowUtils;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import org.apache.twill.filesystem.LocationFactory;
 
 import java.io.IOException;
-import java.util.Set;
 
 /**
  * Abstract base class for implementing DataFabricFacade.
  */
-public abstract class AbstractDataFabricFacade implements DataFabricFacade {
+public abstract class AbstractDataFabricFacade implements DataFabricFacade, ShardedQueueProducerFactory {
 
   private final DataSetInstantiator dataSetContext;
   private final QueueClientFactory queueClientFactory;
   private final StreamConsumerFactory streamConsumerFactory;
   private final TransactionExecutorFactory txExecutorFactory;
   private final TransactionSystemClient txSystemClient;
-  private final Program program;
   private final Id.Program programId;
 
   public AbstractDataFabricFacade(TransactionSystemClient txSystemClient, TransactionExecutorFactory txExecutorFactory,
@@ -55,7 +53,6 @@ public abstract class AbstractDataFabricFacade implements DataFabricFacade {
     this.txExecutorFactory = txExecutorFactory;
     this.dataSetContext = createDataSetContext(program, locationFactory, dataSetAccessor,
                                                datasetFramework, configuration);
-    this.program = program;
     this.programId = program.getId();
   }
 
@@ -92,18 +89,23 @@ public abstract class AbstractDataFabricFacade implements DataFabricFacade {
 
   @Override
   public QueueProducer createProducer(QueueName queueName, QueueMetrics queueMetrics) throws IOException {
-    QueueProducer producer;
-
-    // TODO: Quick hack for sharded queue
-    if (queueClientFactory instanceof ShardedHBaseQueueClientFactory) {
-      Set<String> consumerFlowlets = FlowUtils.getConsumerFlowlets(program, queueName);
-
-
-
-    } else {
-      producer = queueClientFactory.createProducer(queueName, queueMetrics);
+    QueueProducer producer = queueClientFactory.createProducer(queueName, queueMetrics);
+    if (producer instanceof TransactionAware) {
+      dataSetContext.addTransactionAware((TransactionAware) producer);
     }
+    return producer;
+  }
 
+  @Override
+  public QueueProducer createProducer(QueueName queueName, QueueMetrics queueMetrics,
+                                      Iterable<ConsumerConfig> consumerConfigs) throws IOException {
+    // The underlying queue client factory has to be sharded one.
+    Preconditions.checkState(queueClientFactory instanceof ShardedQueueProducerFactory,
+                             "Sharded queue not supported");
+
+    QueueProducer producer = ((ShardedQueueProducerFactory) queueClientFactory).createProducer(queueName,
+                                                                                               queueMetrics,
+                                                                                               consumerConfigs);
     if (producer instanceof TransactionAware) {
       dataSetContext.addTransactionAware((TransactionAware) producer);
     }
