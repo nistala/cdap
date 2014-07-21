@@ -278,4 +278,4 @@ Either:
 
 Downloading the Example
 =======================
-Download the example: :download:`continuuity-TrafficAnalytics-2.2.1.zip </examples/TrafficAnalytics/continuuity-TrafficAnalytics-2.2.1.zip>`
+Download the example: :download:`continuuity-TrafficAnalytics-2.2.2.zip </examples/TrafficAnalytics/continuuity-TrafficAnalytics-2.2.2.zip>`

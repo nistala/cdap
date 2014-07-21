@@ -233,4 +233,4 @@ Either:
 
 Downloading the Example
 =======================
-Download the example: :download:`continuuity-ResponseCodeAnalytics-2.2.1.zip </examples/ResponseCodeAnalytics/continuuity-ResponseCodeAnalytics-2.2.1.zip>`
+Download the example: :download:`continuuity-ResponseCodeAnalytics-2.2.2.zip </examples/ResponseCodeAnalytics/continuuity-ResponseCodeAnalytics-2.2.2.zip>`
