@@ -15,10 +15,9 @@ Release Notes
 Release 2.2.2
 =============
 
-New Features
-^^^^^^^^^^^^^
-- **Kerberos support for Reactor startup scripts:**
-  Added support for running Reactor on a Kerberos-enabled Hadoop cluster.
+Bug Fixes
+^^^^^^^^^^^^^^^
+- Fixed the init script to start Reactor on Kerebos-enabled Hadoop clusters
   
 
 Release 2.2.1

@@ -111,10 +111,16 @@ function build_example_zips() {
 }
 
 function copy_javadocs() {
+  version
   cd $BUILD_PATH
   rm -rf $JAVADOCS
-  cp -r $REACTOR_JAVADOCS .
-  mv -f $APIDOCS $JAVADOCS
+# I don't have Java 6 and can't use the built javadocs: 
+#   cp -r $REACTOR_JAVADOCS .
+#   mv -f $APIDOCS $JAVADOCS
+# Instead: copy from downloaded SDK:
+  DOWNLOAD_SDK_JAVADOCS="${HOME}/Downloads/continuuity-sdk-$REACTOR_VERSION/javadocs"
+  echo "Using DOWNLOAD_SDK_JAVADOCS: $DOWNLOAD_SDK_JAVADOCS"
+  cp -r $DOWNLOAD_SDK_JAVADOCS .
 }
 
 function copy_license_pdfs() {
