@@ -63,6 +63,7 @@ public class ReactorTwillApplication implements TwillApplication {
       LOG.info("Explore module disabled - will not launch explore runnable.");
     }
     return runnableSetter
+        .withPlacementPolicy().add(TwillSpecification.PlacementPolicy.Type.DISTRIBUTED, Constants.Service.STREAMS)
         .anyOrder()
         .withEventHandler(new AbortOnTimeoutEventHandler(noContainerTimeout))
         .build();

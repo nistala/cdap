@@ -49,6 +49,11 @@ public class DefaultServiceSpecification implements ServiceSpecification {
   }
 
   @Override
+  public List<PlacementPolicy> getPlacementPolicies() {
+    return specification.getPlacementPolicies();
+  }
+
+  @Override
   public String getDescription() {
     return "";
   }

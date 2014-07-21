@@ -629,6 +629,11 @@ public class MDTBasedStore implements Store {
     return new DefaultServiceSpecification(spec.getName(),
                                            new ForwardingTwillSpecification(spec) {
                                              @Override
+                                             public List<PlacementPolicy> getPlacementPolicies() {
+                                               return spec.getPlacementPolicies();
+                                             }
+
+                                             @Override
                                              public Map<String, RuntimeSpecification> getRunnables() {
                                                Map<String, RuntimeSpecification> specs = Maps.newHashMap(
                                                                                           super.getRunnables());

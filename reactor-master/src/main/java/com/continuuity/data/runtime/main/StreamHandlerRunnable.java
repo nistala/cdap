@@ -53,8 +53,6 @@ public class StreamHandlerRunnable extends AbstractReactorTwillRunnable {
 
       // Set the host name to the one provided by Twill
       cConf.set(Constants.Stream.ADDRESS, context.getHost().getHostName());
-      // Set the worker threads to number of cores * 2 available
-      cConf.setInt(Constants.Stream.WORKER_THREADS, Runtime.getRuntime().availableProcessors() * 2);
       // Set the instance id
       cConf.setInt(Constants.Stream.CONTAINER_INSTANCE_ID, context.getInstanceId());
 

@@ -2,8 +2,6 @@ package com.continuuity.internal.app;
 
 import org.apache.twill.api.ResourceSpecification;
 
-import java.util.List;
-
 /**
  * Forwarding ResourceSpecification implementation.
  */
@@ -43,15 +41,5 @@ public abstract class ForwardingResourceSpecification implements ResourceSpecifi
   @Override
   public int getInstances() {
     return delegate.getInstances();
-  }
-
-  @Override
-  public List<String> getHosts() {
-    return delegate.getHosts();
-  }
-
-  @Override
-  public List<String> getRacks() {
-    return delegate.getRacks();
   }
 }
