@@ -116,7 +116,8 @@ stage: _stage
 login:
 	@echo "Logging in to $(USER)@$(STAGE_SERVER)"
 	@echo ""
-	@echo "cd $(STAGE_DIR); ls; sudo rm -rf *"
+	@echo "cd $(STAGE_DIR); ls"
+	@echo "sudo rm -rf *"
 	@echo "sudo mv ~/$(HTML_DIR).zip .; sudo unzip $(HTML_DIR).zip"
 	@echo "sudo mv ~/$(PDF_DIR).zip .; sudo mv ~/$(EXAMPLE_DIR).zip .; ls"
 	@echo ""
