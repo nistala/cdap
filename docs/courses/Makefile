@@ -7,6 +7,7 @@ PDF_DIR        = pdf
 EXAMPLE_DIR    = example
 SOURCE_DIR     = source
 STAGE_SERVER   = stg-web101.sw.joyent.continuuity.net
+STAGE_DIR      = /var/www/website-docs/course
 SPHINXBUILD    = sphinx-build
 LANDSLIDE      = landslide
 RST2PDF        = rst2pdf
@@ -36,8 +37,11 @@ USER             := $(shell whoami)
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
-	@echo "  clean      delete all build results"
 	@echo "  dist       to make HTML files, copy index file and package them into a zip"
+	@echo "  stage      stages the zips to $(USER)@$(STAGE_SERVER)"
+	@echo "  login      logins into @$(STAGE_SERVER)"
+	@echo "or"
+	@echo "  clean      delete all build results"
 	@echo "  html       to make HTML files (not completed, merely stages in build dir)"
 	@echo "  pdf        to make PDF files (not completed, merely stages in build dir)"
 	@echo "  upload     upload zips to $(USER)@$(STAGE_SERVER)"
@@ -57,7 +61,7 @@ _makedirs:
 _pdf: _makedirs
 	cp -R $(PDF_DIR) $(BUILD_DIR)
 
-_upload:
+_stage:
 	rsync -vz $(BUILD_HTML_DIR).zip $(USER)@$(STAGE_SERVER):$(HTML_DIR).zip
 	rsync -vz $(BUILD_PDF_DIR).zip $(USER)@$(STAGE_SERVER):$(PDF_DIR).zip
 	rsync -vz $(BUILD_EXAMPLE_DIR).zip $(USER)@$(STAGE_SERVER):$(EXAMPLE_DIR).zip
@@ -104,7 +108,17 @@ zip: _zip_html _zip_pdf _zip_example
 	@echo "The files are archived in $(BUILD_DIR)."
 	@echo
 
-upload: _upload
+stage: _stage
 	@echo
-	@echo "Upload complete."
+	@echo "Upload to staging server complete."
 	@echo
+
+login:
+	@echo "Logging in to $(USER)@$(STAGE_SERVER)"
+	@echo ""
+	@echo "cd $(STAGE_DIR); ls; sudo rm -rf *"
+	@echo "sudo mv ~/$(HTML_DIR).zip .; sudo unzip $(HTML_DIR).zip"
+	@echo "sudo mv ~/$(PDF_DIR).zip .; sudo mv ~/$(EXAMPLE_DIR).zip .; ls"
+	@echo ""
+	ssh "$(USER)@$(STAGE_SERVER)"
+	
