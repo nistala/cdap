@@ -38,16 +38,22 @@ In this exercise, you will:
 Exercise Steps
 ========================
 
-- Go to Continuuity Reactor Download: ``http://www.continuuity.com/download``
-- Register for free account
-- Download ``continuuity-sdk-<version>.zip``
+.. - Go to Continuuity Reactor Download: ``http://www.continuuity.com/download``
+.. - Register for free account
+.. - Download ``continuuity-sdk-<version>.zip``
+
+- Download ``continuuity-sdk-2.2.2.zip`` from |br|
+  `https://repository.continuuity.com/content/groups/ 
+  releases/com/continuuity/continuuity-sdk/2.2.2/ <https://repository.continuuity.com/content/groups/releases/com/continuuity/continuuity-sdk/2.2.2/>`__
 - Unzip the download
 - Open a command line window, go to ``/bin`` and run ``reactor.sh start``
 - Open a browser window, go to ``http://localhost:9999``
 - Follow the steps of the *Log Analytics Application* Quick Start Tour
 - When finished, shut down the Reactor with ``reactor.sh stop``
 
-These steps are online at ``http://continuuity.com/developers/quickstart``
+.. These steps are online at ``http://continuuity.com/developers/quickstart``
+
+These steps are online at `<http://continuuity.com/docs/reactor/2.2.2/en/quickstart.html>`__
 
 ----
 

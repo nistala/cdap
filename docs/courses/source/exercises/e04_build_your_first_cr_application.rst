@@ -48,7 +48,7 @@ Exercise Steps: Create the Project
       -DarchetypeCatalog=http://tinyurl.com/ndoa5l2 \
       -DarchetypeGroupId=com.continuuity \
       -DarchetypeArtifactId=reactor-app-archetype \
-      -DarchetypeVersion=2.1.0
+      -DarchetypeVersion=2.2.0
 
 - For *groupId* use ``com.example``
 - For *artifactId* (the project name) use ``SentimentAnalysis``
