@@ -47,11 +47,12 @@ Exercise Steps
   releases/com/continuuity/continuuity-sdk/2.2.2/ <https://repository.continuuity.com/content/groups/releases/com/continuuity/continuuity-sdk/2.2.2/>`__
 - Unzip the download
 - Open a command line window in the SDK directory
-- Go to ``/bin`` and run ``reactor.sh start``
-- On Windows, go to ``\bin`` and run ``reactor.bat start``
+- Go to ``/bin`` and run ``reactor.sh start`` or, |br|
+  (on Windows) go to ``\bin`` and run ``reactor.bat start``
 - Open a browser window, go to ``http://localhost:9999``
 - Follow the steps of the *Log Analytics Application* Quick Start Tour
-- When finished, shut down the Reactor with ``reactor.sh stop``
+- When finished, shut down the Reactor with ``reactor.sh stop`` or, |br|
+  (on Windows) ``reactor.bat stop``
 
 .. These steps are online at ``http://continuuity.com/developers/quickstart``
 
