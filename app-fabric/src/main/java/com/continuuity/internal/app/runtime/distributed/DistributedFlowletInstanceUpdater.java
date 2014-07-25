@@ -72,12 +72,12 @@ final class DistributedFlowletInstanceUpdater {
     int numRunningFlowlets = getNumberOfProvisionedInstances(flowletId);
     int secondsWaited = 0;
     while (numRunningFlowlets != expectedInstances) {
-      LOG.debug("waiting for {} instances of {} before suspending flowlets", expectedInstances, flowletId);
+      LOG.debug("Waiting for {} instance(s) of {} before suspending Flowlets", expectedInstances, flowletId);
       TimeUnit.SECONDS.sleep(SECONDS_PER_WAIT);
       secondsWaited += SECONDS_PER_WAIT;
       if (secondsWaited > MAX_WAIT_SECONDS) {
         String errmsg =
-          String.format("waited %d seconds for instances of %s to reach expected count of %d, but %d are running",
+          String.format("Waited %d second(s) for instances of %s to reach expected count of %d, but %d are running",
                                       secondsWaited, flowletId, expectedInstances, numRunningFlowlets);
         LOG.error(errmsg);
         throw new TimeoutException(errmsg);

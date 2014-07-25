@@ -66,7 +66,7 @@ public class ReducerWrapper extends Reducer {
                           new MetricsFieldSetter(basicMapReduceContext.getMetrics()),
                           new DataSetFieldSetter(basicMapReduceContext));
       } catch (Throwable t) {
-        LOG.error("Failed to inject fields to {}.", delegate.getClass(), t);
+        LOG.error("Failed to inject fields to {}", delegate.getClass(), t);
         throw Throwables.propagate(t);
       }
 
@@ -79,7 +79,7 @@ public class ReducerWrapper extends Reducer {
         try {
           ((ProgramLifecycle<BasicMapReduceContext>) delegate).initialize(basicMapReduceContext);
         } catch (Exception e) {
-          LOG.error("Failed to initialize mapper with " + basicMapReduceContext.toString(), e);
+          LOG.error("Failed to initialize mapper with {}", basicMapReduceContext.toString(), e);
           throw Throwables.propagate(e);
         }
       }
@@ -93,7 +93,7 @@ public class ReducerWrapper extends Reducer {
       try {
         basicMapReduceContext.flushOperations();
       } catch (Exception e) {
-        LOG.error("Failed to flush operations at the end of reducer of " + basicMapReduceContext.toString(), e);
+        LOG.error("Failed to flush operations at the end of reducer of {}", basicMapReduceContext.toString(), e);
         throw Throwables.propagate(e);
       }
 
@@ -102,7 +102,7 @@ public class ReducerWrapper extends Reducer {
         try {
           ((ProgramLifecycle<? extends RuntimeContext>) delegate).destroy();
         } catch (Exception e) {
-          LOG.error("Error during destroy of mapper", e);
+          LOG.error("Error during destruction of mapper", e);
           // Do nothing, try to finish
         }
       }
@@ -129,7 +129,7 @@ public class ReducerWrapper extends Reducer {
         boolean result = super.nextKey();
         if (++processedRecords > flushFreq) {
           try {
-            LOG.info("Flushing dataset operations...");
+            LOG.info("Flushing dataset operations");
             basicMapReduceContext.flushOperations();
           } catch (Exception e) {
             LOG.error("Failed to persist changes", e);
@@ -147,7 +147,7 @@ public class ReducerWrapper extends Reducer {
     try {
       return (Reducer) classLoader.loadClass(userReducer).newInstance();
     } catch (Exception e) {
-      LOG.error("Failed to create instance of the user-defined Reducer class: " + userReducer);
+      LOG.error("Failed to create instance of the user-defined reducer class: {}", userReducer);
       throw Throwables.propagate(e);
     }
   }

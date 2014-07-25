@@ -131,7 +131,7 @@ public final class FlowProgramRunner implements ProgramRunner {
             }
         })).get();
       } catch (Exception e) {
-        LOG.error("Fail to stop all flowlets on failure.");
+        LOG.error("Fail to stop all Flowlets on failure");
       }
       throw Throwables.propagate(t);
     }
@@ -180,7 +180,7 @@ public final class FlowProgramRunner implements ProgramRunner {
 
     @Override
     protected void doSuspend() throws Exception {
-      LOG.info("Suspending flow: " + flowSpec.getName());
+      LOG.info("Suspending Flow: {}" + flowSpec.getName());
       lock.lock();
       try {
         Futures.successfulAsList(
@@ -199,7 +199,7 @@ public final class FlowProgramRunner implements ProgramRunner {
 
     @Override
     protected void doResume() throws Exception {
-      LOG.info("Resuming flow: " + flowSpec.getName());
+      LOG.info("Resuming Flow: " + flowSpec.getName());
       lock.lock();
       try {
         Futures.successfulAsList(
@@ -218,7 +218,7 @@ public final class FlowProgramRunner implements ProgramRunner {
 
     @Override
     protected void doStop() throws Exception {
-      LOG.info("Stopping flow: " + flowSpec.getName());
+      LOG.info("Stopping Flow: " + flowSpec.getName());
       lock.lock();
       try {
         Futures.successfulAsList(

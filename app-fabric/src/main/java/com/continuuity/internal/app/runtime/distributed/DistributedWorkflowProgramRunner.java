@@ -13,6 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+ 
 package com.continuuity.internal.app.runtime.distributed;
 
 import com.continuuity.api.workflow.WorkflowSpecification;
@@ -49,16 +50,16 @@ public final class DistributedWorkflowProgramRunner extends AbstractDistributedP
                                      File hConfFile, File cConfFile, ApplicationLauncher launcher) {
     // Extract and verify parameters
     ApplicationSpecification appSpec = program.getSpecification();
-    Preconditions.checkNotNull(appSpec, "Missing application specification.");
+    Preconditions.checkNotNull(appSpec, "Missing application specification");
 
     Type processorType = program.getType();
-    Preconditions.checkNotNull(processorType, "Missing processor type.");
-    Preconditions.checkArgument(processorType == Type.WORKFLOW, "Only WORKFLOW process type is supported.");
+    Preconditions.checkNotNull(processorType, "Missing processor type");
+    Preconditions.checkArgument(processorType == Type.WORKFLOW, "Only WORKFLOW process type is supported");
 
     WorkflowSpecification workflowSpec = appSpec.getWorkflows().get(program.getName());
     Preconditions.checkNotNull(workflowSpec, "Missing WorkflowSpecification for %s", program.getName());
 
-    LOG.info("Launching distributed workflow: " + program.getName() + ":" + workflowSpec.getName());
+    LOG.info("Launching distributed Workflow: {}:{}", program.getName(), workflowSpec.getName());
     TwillController controller = launcher.launch(new WorkflowTwillApplication(program, workflowSpec,
                                                                               hConfFile, cConfFile, eventHandler));
     return new WorkflowTwillProgramController(program.getName(), controller).startListen();

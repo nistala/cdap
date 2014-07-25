@@ -85,7 +85,7 @@ public class ExplodeJarHttpHandler extends AbstractHttpHandler implements JarHtt
 
       LOG.info("Exploded {} files from jar {}", numFiles, jarFile.getAbsolutePath());
     } catch (Throwable t) {
-      LOG.error("Got exception: ", t);
+      LOG.error("Got exception", t);
       throw Throwables.propagate(t);
     }
   }
@@ -137,7 +137,7 @@ public class ExplodeJarHttpHandler extends AbstractHttpHandler implements JarHtt
                                                     mimeTypesMap.getContentType(file.getAbsolutePath())));
 
     } catch (Throwable t) {
-      LOG.error("Got exception: ", t);
+      LOG.error("Got exception", t);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }

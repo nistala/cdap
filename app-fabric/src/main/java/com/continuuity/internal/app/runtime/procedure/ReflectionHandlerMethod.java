@@ -61,13 +61,13 @@ final class ReflectionHandlerMethod implements HandlerMethod {
       try {
         method.invoke(procedure, request, txResponder);
       } catch (Throwable t) {
-        LOG.error("Exception in calling procedure handler: " + method, t);
+        LOG.error("Exception in calling procedure handler: {}", method, t);
         try {
           Throwable cause = t.getCause();
           txResponder.error(ProcedureResponse.Code.FAILURE,
                             cause + " at " + getFirstStackTrace(cause));
         } catch (IOException e) {
-          LOG.error("Fail to close response on error.", t);
+          LOG.error("Fail to close response on error", t);
         }
         throw Throwables.propagate(t);
       } finally {
@@ -75,7 +75,7 @@ final class ReflectionHandlerMethod implements HandlerMethod {
       }
 
     } catch (Exception e) {
-      LOG.error("Handle method failure.", e);
+      LOG.error("Handle method failure", e);
       throw Throwables.propagate(e);
     }
   }

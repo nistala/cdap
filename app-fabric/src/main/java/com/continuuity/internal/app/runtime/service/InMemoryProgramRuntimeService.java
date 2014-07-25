@@ -80,7 +80,7 @@ public final class InMemoryProgramRuntimeService extends AbstractProgramRuntimeS
           try {
             FileUtils.deleteDirectory(destinationUnpackedJarDir);
           } catch (IOException e) {
-            LOG.warn("Failed to cleanup temporary program directory {}.", destinationUnpackedJarDir, e);
+            LOG.warn("Failed to cleanup temporary program directory {}", destinationUnpackedJarDir, e);
           }
         }
 

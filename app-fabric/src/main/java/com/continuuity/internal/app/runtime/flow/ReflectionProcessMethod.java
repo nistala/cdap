@@ -81,7 +81,7 @@ public final class ReflectionProcessMethod<T> implements ProcessMethod<T> {
   @Override
   public ProcessResult<T> invoke(InputDatum<T> input) {
     try {
-      Preconditions.checkState(!hasParam || input.needProcess(), "Empty input provided to method that needs input.");
+      Preconditions.checkState(!hasParam || input.needProcess(), "Empty input provided to method that needs input");
 
       InputContext inputContext = input.getInputContext();
 

@@ -53,17 +53,17 @@ public class DistributedServiceProgramRunner extends AbstractDistributedProgramR
                                      ApplicationLauncher launcher) {
     // Extract and verify parameters
     ApplicationSpecification appSpec = program.getSpecification();
-    Preconditions.checkNotNull(appSpec, "Missing application specification.");
+    Preconditions.checkNotNull(appSpec, "Missing application specification");
 
     Type processorType = program.getType();
-    Preconditions.checkNotNull(processorType, "Missing processor type.");
-    Preconditions.checkArgument(processorType == Type.SERVICE, "Only SERVICE process type is supported.");
+    Preconditions.checkNotNull(processorType, "Missing processor type");
+    Preconditions.checkArgument(processorType == Type.SERVICE, "Only SERVICE process type is supported");
 
     final ServiceSpecification serviceSpec = appSpec.getServices().get(program.getName());
     Preconditions.checkNotNull(serviceSpec, "Missing ServiceSpecification for %s", program.getName());
 
     // Launch service runnables program runners
-    LOG.info("Launching distributed service: {}:{}", program.getName(), serviceSpec.getName());
+    LOG.info("Launching distributed Service: {}:{}", program.getName(), serviceSpec.getName());
 
     TwillController controller = launcher.launch(new ServiceTwillApplication(program, serviceSpec, hConfFile,
                                                                              cConfFile, eventHandler));

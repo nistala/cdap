@@ -110,13 +110,13 @@ public final class DataSetInstantiatorFromMetaData {
       }
       if (jsonSpec == null || jsonSpec.isEmpty()) {
         throw new DataSetInstantiationException(
-          "Data set '" + name + "' has no specification in meta data service.");
+          "Data set '" + name + "' has no specification in meta data service");
       }
       return GSON.fromJson(jsonSpec, DataSetSpecification.class);
 
     } catch (JsonSyntaxException e) {
       throw new DataSetInstantiationException(
-        "Error deserializing data set spec for '" + name + "' from JSON in meta data service.", e);
+        "Error deserializing data set spec for '" + name + "' from JSON in meta data service", e);
     } catch (OperationException e) {
       LOG.warn(e.getMessage(), e);
       throw new DataSetInstantiationException ("Could not retrieve data specs for " +

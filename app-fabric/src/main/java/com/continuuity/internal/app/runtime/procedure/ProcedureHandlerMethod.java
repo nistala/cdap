@@ -98,14 +98,14 @@ final class ProcedureHandlerMethod implements HandlerMethod {
       dataFabricFacade.createTransactionExecutor().execute(new TransactionExecutor.Subroutine() {
         @Override
         public void apply() throws Exception {
-          LOG.info("Initializing procedure: " + context);
+          LOG.info("Initializing procedure: {}", context);
           procedure.initialize(context);
-          LOG.info("Procedure initialized: " + context);
+          LOG.info("Procedure initialized: {}", context);
         }
       });
     } catch (TransactionFailureException e) {
       Throwable cause = e.getCause() == null ? e : e.getCause();
-      LOG.error("Procedure throws exception during init.", cause);
+      LOG.error("Procedure throws exception during init", cause);
       // make sure the context releases all resources, datasets, ...
       context.close();
       throw Throwables.propagate(cause);
@@ -121,7 +121,7 @@ final class ProcedureHandlerMethod implements HandlerMethod {
     context.getSystemMetrics().gauge("query.requests", 1);
     HandlerMethod handlerMethod = handlers.get(request.getMethod());
     if (handlerMethod == null) {
-      LOG.error("Unsupport procedure method " + request.getMethod() + " on procedure " + procedure.getClass());
+      LOG.error("Unsupport procedure method {} on procedure {}", request.getMethod(), procedure.getClass());
       context.getSystemMetrics().gauge("query.failures", 1);
       try {
         responder.stream(new ProcedureResponse(ProcedureResponse.Code.NOT_FOUND));

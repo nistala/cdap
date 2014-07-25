@@ -52,10 +52,10 @@ public class WebappProgramController extends AbstractProgramController {
 
   @Override
   protected void doStop() throws Exception {
-    LOG.info("Stopping webapp...");
+    LOG.info("Stopping Webapp");
     cancellable.cancel();
     httpService.stopAndWait();
-    LOG.info("Webapp stopped.");
+    LOG.info("Webapp stopped");
   }
 
   @Override

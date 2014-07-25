@@ -13,6 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+ 
 package com.continuuity.internal.app.runtime.distributed;
 
 import com.continuuity.api.flow.FlowSpecification;
@@ -215,7 +216,7 @@ public final class DistributedProgramRuntimeService extends AbstractProgramRunti
       ProgramController programController = createController(program, controller);
       return programController == null ? null : new SimpleRuntimeInfo(programController, type, programId);
     } catch (Exception e) {
-      LOG.error("Got exception: ", e);
+      LOG.error("Got exception", e);
       return null;
     }
   }
@@ -297,7 +298,7 @@ public final class DistributedProgramRuntimeService extends AbstractProgramRunti
     if (controllers.hasNext()) {
       TwillController controller = controllers.next();
       if (controllers.hasNext()) {
-        LOG.warn("Expected at most one live instance of Twill app {} but found at least two.", twillAppName);
+        LOG.warn("Expected at most one live instance of Twill app {} but found at least two", twillAppName);
       }
       ResourceReport report = controller.getResourceReport();
       if (report != null) {
@@ -344,7 +345,7 @@ public final class DistributedProgramRuntimeService extends AbstractProgramRunti
       try {
         this.hdfs = FileSystem.get(hConf);
       } catch (IOException e) {
-        LOG.error("unable to get hdfs, cluster storage metrics will be unavailable");
+        LOG.error("Unable to get HDFS; cluster storage metrics will be unavailable");
         this.hdfs = null;
       }
       this.continuuityPath = new Path(cConf.get(Constants.CFG_HDFS_NAMESPACE));
@@ -395,14 +396,14 @@ public final class DistributedProgramRuntimeService extends AbstractProgramRunti
           long totalMemory = clusterMetrics.get("totalMB").getAsLong();
           long availableMemory = clusterMetrics.get("availableMB").getAsLong();
           MetricsCollector collector = getCollector(CLUSTER_METRICS_CONTEXT);
-          LOG.trace("resource manager, total memory = " + totalMemory + " available = " + availableMemory);
+          LOG.trace("Resource manager: total memory = {}, available = {}", totalMemory, availableMemory);
           collector.gauge("resources.total.memory", (int) totalMemory);
           collector.gauge("resources.available.memory", (int) availableMemory);
         } else {
-          LOG.warn("unable to get resource manager metrics, cluster memory metrics will be unavailable");
+          LOG.warn("Unable to get resource manager metrics; cluster memory metrics will be unavailable");
         }
       } catch (IOException e) {
-        LOG.error("Exception getting cluster memory from ", e);
+        LOG.error("Exception getting cluster memory", e);
       } finally {
         if (reader != null) {
           try {
@@ -438,14 +439,14 @@ public final class DistributedProgramRuntimeService extends AbstractProgramRunti
 
         MetricsCollector collector = getCollector(CLUSTER_METRICS_CONTEXT);
         // TODO: metrics should support longs
-        LOG.trace("total cluster storage = " + storageCapacity + " total used = " + totalUsed);
+        LOG.trace("Total cluster storage = {}, total used = {}", storageCapacity, totalUsed);
         collector.gauge("resources.total.storage", (int) (storageCapacity / 1024 / 1024));
         collector.gauge("resources.available.storage", (int) (storageAvailable / 1024 / 1024));
         collector.gauge("resources.used.storage", (int) (totalUsed / 1024 / 1024));
         collector.gauge("resources.used.files", (int) totalFiles);
         collector.gauge("resources.used.directories", (int) totalDirectories);
       } catch (IOException e) {
-        LOG.warn("Exception getting hdfs metrics", e);
+        LOG.warn("Exception getting HDFS metrics", e);
       }
     }
 
@@ -476,7 +477,7 @@ public final class DistributedProgramRuntimeService extends AbstractProgramRunti
   @Override
   protected void startUp() throws Exception {
     resourceReporter.start();
-    LOG.debug("started distributed program runtime service");
+    LOG.debug("Started distributed program runtime service");
   }
 
   @Override

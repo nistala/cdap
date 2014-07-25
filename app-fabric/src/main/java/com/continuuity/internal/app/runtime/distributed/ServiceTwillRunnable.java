@@ -138,7 +138,7 @@ public class ServiceTwillRunnable implements TwillRunnable {
     name = context.getSpecification().getName();
     Map<String, String> configs = context.getSpecification().getConfigs();
 
-    LOG.info("Initialize runnable: " + name);
+    LOG.info("Initialize runnable: {}", name);
     try {
       CommandLine cmdLine = parseArgs(context.getApplicationArguments());
 
@@ -183,7 +183,7 @@ public class ServiceTwillRunnable implements TwillRunnable {
       RuntimeSpecification runtimeSpec = serviceSpec.getRunnables().get(runnableName);
 
       String className = runtimeSpec.getRunnableSpecification().getClassName();
-      LOG.info("Getting class : {}", program.getMainClass().getName());
+      LOG.info("Getting class: {}", program.getMainClass().getName());
       Class<?> clz = Class.forName(className, true, program.getClassLoader());
       Preconditions.checkArgument(TwillRunnable.class.isAssignableFrom(clz), "%s is not a TwillRunnable.", clz);
       delegate = (TwillRunnable) new InstantiatorFactory(false).get(TypeToken.of(clz)).create();
@@ -202,7 +202,7 @@ public class ServiceTwillRunnable implements TwillRunnable {
         }
       });
 
-      LOG.info("Runnable initialized: " + name);
+      LOG.info("Runnable initialized: {}", name);
     } catch (Throwable t) {
       LOG.error(t.getMessage(), t);
       throw Throwables.propagate(t);

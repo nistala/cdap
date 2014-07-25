@@ -181,7 +181,7 @@ final class InMemoryTwillContext implements TwillContext, Closeable {
       try {
         c.cancel();
       } catch (Throwable t) {
-        LOG.error("Exception when withdraw from leader election.", t);
+        LOG.error("Exception when withdrawing from leader election", t);
       }
     }
   }

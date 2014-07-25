@@ -109,7 +109,7 @@ final class FlowletProcessDriver extends AbstractExecutionThreadService {
 
   @Override
   protected void triggerShutdown() {
-    LOG.info("Shutting down flowlet");
+    LOG.info("Shutting down Flowlet");
     runnerThread.interrupt();
   }
 
@@ -128,7 +128,7 @@ final class FlowletProcessDriver extends AbstractExecutionThreadService {
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
       } catch (BrokenBarrierException e) {
-        LOG.error("Exception during suspend: " + flowletContext, e);
+        LOG.error("Exception during suspend: {}", flowletContext, e);
       }
     }
   }
@@ -194,12 +194,12 @@ final class FlowletProcessDriver extends AbstractExecutionThreadService {
             // it is in shutdown sequence.
             Uninterruptibles.getUninterruptibly(processFuture, 30, TimeUnit.SECONDS);
           } catch (ExecutionException e) {
-            LOG.error("Unexpected execution exception.", e);
+            LOG.error("Unexpected execution exception", e);
           } catch (TimeoutException e) {
             // If in shutdown sequence, cancel the task by interrupting it.
             // Otherwise, just keep waiting until it completess
             if (!isRunning()) {
-              LOG.info("Flowlet {} takes longer than 30 seconds to quite. Force quitting.",
+              LOG.info("Flowlet {} taking longer than 30 seconds to quit; force-quitting",
                        flowletContext.getFlowletId());
               processFuture.cancel(true);
             }
@@ -304,7 +304,7 @@ final class FlowletProcessDriver extends AbstractExecutionThreadService {
         }
       }
     } catch (Throwable t) {
-      LOG.error("Failed to start transaction.", t);
+      LOG.error("Failed to start transaction", t);
     }
 
     return false;
@@ -354,7 +354,7 @@ final class FlowletProcessDriver extends AbstractExecutionThreadService {
                            createInputAcknowledger(input));
       }
     } catch (Throwable t) {
-      LOG.error("Failed to invoke callback.", t);
+      LOG.error("Failed to invoke callback", t);
     }
   }
 
@@ -375,14 +375,14 @@ final class FlowletProcessDriver extends AbstractExecutionThreadService {
       dataFabricFacade.createTransactionExecutor().execute(new TransactionExecutor.Subroutine() {
         @Override
         public void apply() throws Exception {
-          LOG.info("Initializing flowlet: " + flowletContext);
+          LOG.info("Initializing Flowlet: {}", flowletContext);
           flowlet.initialize(flowletContext);
-          LOG.info("Flowlet initialized: " + flowletContext);
+          LOG.info("Flowlet initialized: {}", flowletContext);
         }
       });
     } catch (TransactionFailureException e) {
       Throwable cause = e.getCause() == null ? e : e.getCause();
-      LOG.error("Flowlet throws exception during flowlet initialize: " + flowletContext, cause);
+      LOG.error("Flowlet throws exception during Flowlet initialize: {}", flowletContext, cause);
       throw Throwables.propagate(cause);
     }
   }
@@ -392,14 +392,14 @@ final class FlowletProcessDriver extends AbstractExecutionThreadService {
       dataFabricFacade.createTransactionExecutor().execute(new TransactionExecutor.Subroutine() {
         @Override
         public void apply() throws Exception {
-          LOG.info("Destroying flowlet: " + flowletContext);
+          LOG.info("Destroying Flowlet: {}", flowletContext);
           flowlet.destroy();
-          LOG.info("Flowlet destroyed: " + flowletContext);
+          LOG.info("Flowlet destroyed: {}", flowletContext);
         }
       });
     } catch (TransactionFailureException e) {
       Throwable cause = e.getCause() == null ? e : e.getCause();
-      LOG.error("Flowlet throws exception during flowlet destroy: " + flowletContext, cause);
+      LOG.error("Flowlet throws exception during Flowlet destruction: {}", flowletContext, cause);
       // No need to propagate, as it is shutting down.
     } catch (InterruptedException e) {
       // No need to propagate, as it is shutting down.
@@ -437,7 +437,7 @@ final class FlowletProcessDriver extends AbstractExecutionThreadService {
           failurePolicy = txCallback.onFailure(inputObject, inputContext, reason);
           if (failurePolicy == null) {
             failurePolicy = FailurePolicy.RETRY;
-            LOG.info("Callback returns null for failure policy. Default to {}.", failurePolicy);
+            LOG.info("Callback returns null for failure policy; defaulting to {}", failurePolicy);
           }
         } catch (Throwable t) {
           LOG.error("Exception on onFailure call: {}", flowletContext, t);

@@ -155,14 +155,14 @@ final class ProcedureHandlerMethodFactory extends AbstractExecutionThreadService
         dataFabricFacade.createTransactionExecutor().execute(new TransactionExecutor.Subroutine() {
           @Override
           public void apply() throws Exception {
-            LOG.info("Destroying procedure: " + context);
+            LOG.info("Destroying procedure: {}", context);
             procedure.destroy();
-            LOG.info("Procedure destroyed: " + context);
+            LOG.info("Procedure destroyed: {}", context);
           }
         });
       } catch (TransactionFailureException e) {
         Throwable cause = e.getCause() == null ? e : e.getCause();
-        LOG.error("Procedure throws exception during destroy.", cause);
+        LOG.error("Procedure throws exception during destroy", cause);
       } catch (InterruptedException e) {
         // nothing to do: shutting down
       } finally {

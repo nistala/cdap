@@ -77,7 +77,7 @@ public class DeployDatasetModulesStage extends AbstractStage<ApplicationSpecLoca
           throw new IllegalArgumentException(msg);
         }
       } catch (ModuleConflictException e) {
-        LOG.info("Not deploying module " + moduleName + " as it already exists");
+        LOG.info("Not deploying module {} as it already exists", moduleName);
       }
     }
 

@@ -131,7 +131,7 @@ public class DeletedProgramHandlerStage extends AbstractStage<ApplicationSpecLoc
                                                               DISCOVERY_TIMEOUT_SECONDS, TimeUnit.SECONDS).pick();
 
     if (discoverable == null) {
-      LOG.error("Fail to get any metrics endpoint for deleting metrics.");
+      LOG.error("Failed to get any metrics endpoint for deleting metrics");
       return;
     }
 
@@ -153,7 +153,7 @@ public class DeletedProgramHandlerStage extends AbstractStage<ApplicationSpecLoc
         try {
           client.delete().get(METRICS_SERVER_RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
-          LOG.error("exception making metrics delete call", e);
+          LOG.error("Exception making metrics delete call", e);
           Throwables.propagate(e);
         } finally {
           client.close();

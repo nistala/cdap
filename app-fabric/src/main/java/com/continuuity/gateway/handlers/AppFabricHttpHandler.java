@@ -371,7 +371,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     try {
       LOG.trace("Taking transaction manager snapshot at time {}", System.currentTimeMillis());
       InputStream in = txClient.getSnapshotInputStream();
-      LOG.trace("Took and retrieved transaction manager snapshot successfully.");
+      LOG.trace("Took and retrieved transaction manager snapshot successfully");
       try {
         responder.sendChunkStart(HttpResponseStatus.OK, ImmutableMultimap.<String, String>of());
         while (true) {
@@ -408,7 +408,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
         LOG.info("Transaction {} successfully invalidated", txId);
         responder.sendStatus(HttpResponseStatus.OK);
       } else {
-        LOG.info("Transaction {} could not be invalidated: not in progress.", txId);
+        LOG.info("Transaction {} could not be invalidated: not in progress", txId);
         responder.sendStatus(HttpResponseStatus.CONFLICT);
       }
     } catch (NumberFormatException e) {
@@ -473,7 +473,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception:", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -513,7 +513,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable t) {
-      LOG.error("Got exception:", t);
+      LOG.error("Got exception", t);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -547,7 +547,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception:", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -709,7 +709,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception:", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -751,7 +751,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception:", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -869,7 +869,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable throwable) {
-      LOG.error("Got exception : ", throwable);
+      LOG.error("Got exception", throwable);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -897,7 +897,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable throwable) {
-      LOG.error("Got exception : ", throwable);
+      LOG.error("Got exception", throwable);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -911,7 +911,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
                                             ImmutableMap.of(programId.getId(), instances)).get();
       }
     } catch (Throwable throwable) {
-      LOG.warn("Exception when getting instances for {}.{} to {}. {}",
+      LOG.warn("Exception when getting instances for {}.{} to {}.{}",
                programId.getId(), Type.PROCEDURE.prettyName(), throwable.getMessage(), throwable);
       throw new Exception(throwable.getMessage());
     }
@@ -944,7 +944,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception:", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -987,7 +987,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception:", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -1024,7 +1024,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception:", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -1127,7 +1127,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception:", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -1147,7 +1147,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception:", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -1170,7 +1170,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception:", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -1203,7 +1203,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception:", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -1237,7 +1237,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception:", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -1322,7 +1322,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception:", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -1377,7 +1377,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
           sessionInfo.setStatus(DeployStatus.FAILED);
           responder.sendString(HttpResponseStatus.INTERNAL_SERVER_ERROR, t.getCause().getMessage());
         } catch (IOException e) {
-          LOG.error("Error while saving deploy jar.", e);
+          LOG.error("Error while saving deploy jar", e);
         } finally {
           save(sessionInfo.setStatus(sessionInfo.getStatus()), accountId);
           sessions.remove(accountId);
@@ -1453,12 +1453,12 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     try {
       String accountId = getAuthenticatedAccountId(request);
       DeployStatus status  = dstatus(accountId);
-      LOG.trace("Deployment status call at AppFabricHttpHandler , Status: {}", status);
+      LOG.trace("Deployment status call at AppFabricHttpHandler, Status: {}", status);
       responder.sendJson(HttpResponseStatus.OK, new Status(status.getCode(), status.getMessage()));
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception:", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -1495,14 +1495,14 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
 
       // Checks DNS, Ipv4, Ipv6 address in one go.
       String hostname = content.get("hostname");
-      Preconditions.checkArgument(!hostname.isEmpty(), "Empty hostname passed.");
+      Preconditions.checkArgument(!hostname.isEmpty(), "Empty hostname passed");
 
       String accountId = getAuthenticatedAccountId(request);
       String token = request.getHeader(Constants.Gateway.CONTINUUITY_API_KEY);
 
       final Location appArchive = store.getApplicationArchiveLocation(Id.Application.from(accountId, appId));
       if (appArchive == null || !appArchive.exists()) {
-        throw new IOException("Unable to locate the application.");
+        throw new IOException("Unable to locate the application");
       }
 
       if (!promote(token, accountId, appId, hostname)) {
@@ -1513,7 +1513,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception:", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -1524,7 +1524,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
       final Location appArchive = store.getApplicationArchiveLocation(Id.Application.from(accountId,
                                                                                           appId));
       if (appArchive == null || !appArchive.exists()) {
-        throw new Exception("Unable to locate the application.");
+        throw new Exception("Unable to locate the application");
       }
 
       String schema = "https";
@@ -1631,7 +1631,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception: ", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -1651,7 +1651,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception: ", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -1671,7 +1671,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
       if (status.getStatus().equals("NOT_FOUND")) {
         responder.sendStatus(HttpResponseStatus.NOT_FOUND);
       } else if (status.getStatus().equals("RUNNING")) {
-        responder.sendString(HttpResponseStatus.FORBIDDEN, "Flow is running, please stop it first.");
+        responder.sendString(HttpResponseStatus.FORBIDDEN, "Flow is running, please stop it first");
       } else {
         queueAdmin.dropAllForFlow(appId, flowId);
         // delete process metrics that are used to calculate the queue size (process.events.pending metric name)
@@ -1681,7 +1681,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception:", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -1713,7 +1713,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
         }
         responder.sendStatus(HttpResponseStatus.OK);
       } catch (Exception e) {
-        LOG.error("Exception clearing data fabric: ", e);
+        LOG.error("Exception clearing data fabric", e);
         responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
       }
     } catch (SecurityException e) {
@@ -1752,7 +1752,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
         Closeables.closeQuietly(r);
       }
     } catch (IOException e) {
-      LOG.warn("Failed to retrieve session info for account.");
+      LOG.warn("Failed to retrieve session info for account");
     }
     return null;
   }
@@ -1858,7 +1858,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
                                                               DISCOVERY_TIMEOUT_SECONDS, TimeUnit.SECONDS).pick();
 
     if (discoverable == null) {
-      LOG.error("Fail to get any metrics endpoint for deleting metrics.");
+      LOG.error("Fail to get any metrics endpoint for deleting metrics");
       throw new IOException("Can't find Metrics endpoint");
     }
 
@@ -1888,11 +1888,11 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
                                                               3L, TimeUnit.SECONDS).pick();
 
     if (discoverable == null) {
-      LOG.error("Fail to get any metrics endpoint for deleting metrics.");
+      LOG.error("Fail to get any metrics endpoint for deleting metrics");
       throw new IOException("Can't find Metrics endpoint");
     }
 
-    LOG.debug("Deleting metrics for flow {}.{}", application, flow);
+    LOG.debug("Deleting metrics for Flow {}.{}", application, flow);
     String url = String.format("http://%s:%d%s/metrics/reactor/apps/%s/flows/%s?prefixEntity=process",
                                discoverable.getSocketAddress().getHostName(),
                                discoverable.getSocketAddress().getPort(),
@@ -1909,7 +1909,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     try {
       client.delete().get(timeout, TimeUnit.MILLISECONDS);
     } catch (Exception e) {
-      LOG.error("exception making metrics delete call", e);
+      LOG.error("Exception making metrics delete call", e);
       Throwables.propagate(e);
     } finally {
       client.close();
@@ -1926,7 +1926,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     try {
       client.delete().get(METRICS_SERVER_RESPONSE_TIMEOUT, TimeUnit.MILLISECONDS);
     } catch (Exception e) {
-      LOG.error("exception making metrics delete call", e);
+      LOG.error("Exception making metrics delete call", e);
       Throwables.propagate(e);
     } finally {
       client.close();
@@ -2145,7 +2145,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
         truncateTable(tableName, new OperationContext(accountId));
         responder.sendStatus(HttpResponseStatus.OK);
       } catch (OperationException e) {
-        LOG.error("could not truncate dataset {}", tableName, e);
+        LOG.error("Could not truncate dataset {}", tableName, e);
         responder.sendStatus(HttpResponseStatus.CONFLICT);
       }
     } catch (DataSetInstantiationException e) {
@@ -2365,7 +2365,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception : ", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -2396,7 +2396,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception: ", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -2487,7 +2487,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception:", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -2507,7 +2507,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (IllegalArgumentException e) {
       responder.sendString(HttpResponseStatus.BAD_REQUEST, e.getMessage());
     } catch (Throwable e) {
-      LOG.error("Caught exception ", e);
+      LOG.error("Caught exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -2518,7 +2518,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
       store.addDataset(new Id.Account(programId.getAccountId()), streamSpec);
     } catch (Throwable throwable) {
       LOG.warn(throwable.getMessage(), throwable);
-      throw new Exception("Could not create dataset for " + programId.toString() + ", reason: " +
+      throw new Exception("Could not create Dataset for " + programId.toString() + ", reason: " +
                             throwable.getMessage());
     }
   }
@@ -2731,7 +2731,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception : ", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -3038,7 +3038,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     try {
       return dsFramework.getDatasetSpec(dsName);
     } catch (Exception e) {
-      LOG.warn("Couldn't get spec for dataset: " + dsName);
+      LOG.warn("Could not get spec for dataset: " + dsName);
       return null;
     }
   }
@@ -3124,7 +3124,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);
     } catch (Throwable e) {
-      LOG.error("Got exception:", e);
+      LOG.error("Got exception", e);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -3275,7 +3275,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
       queueAdmin.dropAll();
       streamAdmin.dropAll();
 
-      LOG.info("Deleting all data for account '" + account + "'.");
+      LOG.info("Deleting all data for account '{}'", account);
       dataSetAccessor.dropAll(DataSetAccessor.Namespace.USER);
       // Can't truncate metric entity tables because they are cached in memory by anybody who touches the metric
       // tables, and truncating will cause metrics to get incorrectly mapped to other random metrics.
@@ -3295,7 +3295,7 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
       // NOTE: there could be services running at the moment that rely on the system datasets to be available.
       dataSetAccessor.truncateAllExceptBlacklist(DataSetAccessor.Namespace.SYSTEM, datasetsToKeep);
 
-      LOG.info("All data for account '" + account + "' deleted.");
+      LOG.info("All data for account '{}' deleted", account);
       responder.sendStatus(HttpResponseStatus.OK);
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);

@@ -196,7 +196,7 @@ public class DataSetBasedScheduleStore extends RAMJobStore {
           public void apply() throws Exception {
             if (newJob != null) {
               persistJob(table, newJob);
-              LOG.debug("Schedule: stored job with key {}", newJob.getKey());
+              LOG.debug("Schedule: stored Job with key {}", newJob.getKey());
             }
             if (newTrigger != null) {
               persistTrigger(table, newTrigger, Trigger.TriggerState.NORMAL);
@@ -294,7 +294,7 @@ public class DataSetBasedScheduleStore extends RAMJobStore {
               }
             }
           } else {
-            LOG.debug("Schedule: No triggers found in job store");
+            LOG.debug("Schedule: No triggers found in Job store");
           }
       }
     });

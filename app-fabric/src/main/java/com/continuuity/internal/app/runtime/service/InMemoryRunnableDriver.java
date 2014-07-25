@@ -63,7 +63,7 @@ public class InMemoryRunnableDriver extends AbstractExecutionThreadService {
   @Override
   protected void triggerShutdown() {
     runnable.stop();
-    LOG.info("Runnable {} Stopped ", context.getSpecification().getName());
+    LOG.info("Runnable {} stopped", context.getSpecification().getName());
   }
 
   private void destroy() throws Exception {
@@ -73,7 +73,7 @@ public class InMemoryRunnableDriver extends AbstractExecutionThreadService {
     } finally {
       runnable.destroy();
     }
-    LOG.info("Runnable {} Destroyed ", context.getSpecification().getName());
+    LOG.info("Runnable {} destroyed", context.getSpecification().getName());
   }
 
   @Override
@@ -81,7 +81,7 @@ public class InMemoryRunnableDriver extends AbstractExecutionThreadService {
     try {
       runnable.run();
     } catch (Exception ex) {
-      LOG.info(" Starting Runnable {} Failed ", context.getSpecification().getName());
+      LOG.info(" Starting Runnable {} failed", context.getSpecification().getName());
     } finally {
       destroy();
     }

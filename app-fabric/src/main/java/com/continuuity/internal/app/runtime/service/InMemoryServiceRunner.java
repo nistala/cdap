@@ -156,7 +156,7 @@ public class InMemoryServiceRunner implements ProgramRunner {
 
     @Override
     protected void doStop() throws Exception {
-      LOG.info("Stopping Service : " + serviceSpec.getName());
+      LOG.info("Stopping Service: {}", serviceSpec.getName());
       Futures.successfulAsList
         (Iterables.transform(runnables.values(), new Function<ProgramController,
                                ListenableFuture<ProgramController>>() {
@@ -167,7 +167,7 @@ public class InMemoryServiceRunner implements ProgramRunner {
                              }
          )
         ).get();
-      LOG.info("Service stopped: " + serviceSpec.getName());
+      LOG.info("Service stopped: {}", serviceSpec.getName());
     }
 
     @Override

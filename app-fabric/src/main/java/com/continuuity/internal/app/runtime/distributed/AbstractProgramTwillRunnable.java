@@ -152,7 +152,7 @@ public abstract class AbstractProgramTwillRunnable<T extends ProgramRunner> impl
     name = context.getSpecification().getName();
     Map<String, String> configs = context.getSpecification().getConfigs();
 
-    LOG.info("Initialize runnable: " + name);
+    LOG.info("Initialize runnable: {}", name);
     try {
       CommandLine cmdLine = parseArgs(context.getApplicationArguments());
 
@@ -189,7 +189,7 @@ public abstract class AbstractProgramTwillRunnable<T extends ProgramRunner> impl
       programOpts =  new SimpleProgramOptions(name, createProgramArguments(context, configs), runtimeArguments);
       resourceReporter = new ProgramRunnableResourceReporter(program, metricsCollectionService, context);
 
-      LOG.info("Runnable initialized: " + name);
+      LOG.info("Runnable initialized: {}", name);
     } catch (Throwable t) {
       LOG.error(t.getMessage(), t);
       throw Throwables.propagate(t);
@@ -213,7 +213,7 @@ public abstract class AbstractProgramTwillRunnable<T extends ProgramRunner> impl
       controller.command(ProgramOptionConstants.INSTANCES, instances).get();
       return;
     }
-    LOG.warn("Ignore unsupported command: " + command);
+    LOG.warn("Ignore unsupported command: {}", command);
   }
 
   @Override
@@ -245,7 +245,7 @@ public abstract class AbstractProgramTwillRunnable<T extends ProgramRunner> impl
 
       @Override
       public void error(Throwable cause) {
-        LOG.error("Program runner error out.", cause);
+        LOG.error("Program runner erred out", cause);
         state.setException(cause);
       }
     }, MoreExecutors.sameThreadExecutor());
@@ -253,9 +253,9 @@ public abstract class AbstractProgramTwillRunnable<T extends ProgramRunner> impl
     runlatch.countDown();
     try {
       state.get();
-      LOG.info("Program stopped.");
+      LOG.info("Program stopped");
     } catch (Throwable t) {
-      LOG.error("Program terminated due to error.", t);
+      LOG.error("Program terminated due to error", t);
       throw Throwables.propagate(t);
     }
   }

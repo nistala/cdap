@@ -94,7 +94,7 @@ final class DataSetRecordReader<KEY, VALUE> extends RecordReader<KEY, VALUE> {
       try {
         TimeUnit.SECONDS.sleep(2L);
       } catch (InterruptedException e) {
-        LOG.info("sleep interrupted while waiting for final metrics to be emitted", e);
+        LOG.info("Sleep interrupted while waiting for final metrics to be emitted", e);
       } finally {
         context.getMetricsCollectionService().stop();
       }

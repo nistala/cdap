@@ -53,35 +53,35 @@ final class FlowletProgramController extends AbstractProgramController {
 
   @Override
   protected void doSuspend() throws Exception {
-    LOG.info("Suspending flowlet: " + flowletContext);
+    LOG.info("Suspending Flowlet: {}", flowletContext);
     driver.suspend();
     // Close all consumers
     for (ConsumerSupplier consumerSupplier : consumerSuppliers) {
       consumerSupplier.close();
     }
-    LOG.info("Flowlet suspended: " + flowletContext);
+    LOG.info("Flowlet suspended: {}", flowletContext);
   }
 
   @Override
   protected void doResume() throws Exception {
-    LOG.info("Resuming flowlet: " + flowletContext);
+    LOG.info("Resuming Flowlet: {}", flowletContext);
     // Open consumers
     for (ConsumerSupplier consumerSupplier : consumerSuppliers) {
       consumerSupplier.open(flowletContext.getInstanceCount());
     }
     driver.resume();
-    LOG.info("Flowlet resumed: " + flowletContext);
+    LOG.info("Flowlet resumed: {}", flowletContext);
   }
 
   @Override
   protected void doStop() throws Exception {
-    LOG.info("Stopping flowlet: " + flowletContext);
+    LOG.info("Stopping Flowlet: " + flowletContext);
     driver.stopAndWait();
     // Close all consumers
     for (ConsumerSupplier consumerSupplier : consumerSuppliers) {
       Closeables.closeQuietly(consumerSupplier);
     }
-    LOG.info("Flowlet stopped: " + flowletContext);
+    LOG.info("Flowlet stopped: {}", flowletContext);
   }
 
   @Override
@@ -92,14 +92,14 @@ final class FlowletProgramController extends AbstractProgramController {
       return;
     }
     int instances = (Integer) value;
-    LOG.info("Change flowlet instance count: " + flowletContext + ", new count is " + instances);
+    LOG.info("Change flowlet instance count: {}, new count is {}", flowletContext, instances);
     changeInstanceCount(flowletContext, instances);
-    LOG.info("Flowlet instance count changed: " + flowletContext + ", new count is " + instances);
+    LOG.info("Flowlet instance count changed: {}, new count is {}", flowletContext, instances);
   }
 
   private void changeInstanceCount(BasicFlowletContext flowletContext, int instanceCount) {
     Preconditions.checkState(getState() == State.SUSPENDED,
-                             "Cannot change instance count of a flowlet without suspension.");
+                             "Cannot change instance count of a Flowlet without suspension");
     flowletContext.setInstanceCount(instanceCount);
   }
 

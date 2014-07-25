@@ -13,6 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+ 
 package com.continuuity.internal.app.runtime.distributed;
 
 import com.continuuity.api.flow.FlowSpecification;
@@ -64,21 +65,21 @@ public final class DistributedFlowProgramRunner extends AbstractDistributedProgr
                                      File hConfFile, File cConfFile, ApplicationLauncher launcher) {
     // Extract and verify parameters
     ApplicationSpecification appSpec = program.getSpecification();
-    Preconditions.checkNotNull(appSpec, "Missing application specification.");
+    Preconditions.checkNotNull(appSpec, "Missing application specification");
 
     Type processorType = program.getType();
-    Preconditions.checkNotNull(processorType, "Missing processor type.");
-    Preconditions.checkArgument(processorType == Type.FLOW, "Only FLOW process type is supported.");
+    Preconditions.checkNotNull(processorType, "Missing processor type");
+    Preconditions.checkArgument(processorType == Type.FLOW, "Only FLOW process type is supported");
 
     try {
       FlowSpecification flowSpec = appSpec.getFlows().get(program.getName());
       Preconditions.checkNotNull(flowSpec, "Missing FlowSpecification for %s", program.getName());
 
-      LOG.info("Configuring flowlets queues");
+      LOG.info("Configuring Flowlets queues");
       Multimap<String, QueueName> flowletQueues = FlowUtils.configureQueue(program, flowSpec, streamAdmin, queueAdmin);
 
       // Launch flowlet program runners
-      LOG.info("Launching distributed flow: " + program.getName() + ":" + flowSpec.getName());
+      LOG.info("Launching distributed Flow: {}:{}", program.getName(), flowSpec.getName());
 
       TwillController controller = launcher.launch(new FlowTwillApplication(program, flowSpec,
                                                                             hConfFile, cConfFile, eventHandler));

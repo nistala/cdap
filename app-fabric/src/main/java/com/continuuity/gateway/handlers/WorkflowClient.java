@@ -79,7 +79,7 @@ public class WorkflowClient {
 
                                 @Override
                                 public void onThrowable(Throwable t) {
-                                  LOG.warn("Failed to request for workflow status", t);
+                                  LOG.warn("Failed to request for Workflow status", t);
                                   callback.handle(new Status(Status.Code.ERROR, ""));
 
                                 }

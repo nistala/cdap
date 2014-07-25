@@ -13,6 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+ 
 package com.continuuity.internal.app.runtime.distributed;
 
 import org.apache.twill.api.TwillController;
@@ -33,6 +34,6 @@ final class MapReduceTwillProgramController extends AbstractTwillProgramControll
   @Override
   protected void doCommand(String name, Object value) throws Exception {
     // MapReduce doesn't have any command for now.
-    LOG.info("Command ignored for mapreduce controller: {}, {}", name, value);
+    LOG.info("Command ignored for Mapreduce controller: {}, {}", name, value);
   }
 }

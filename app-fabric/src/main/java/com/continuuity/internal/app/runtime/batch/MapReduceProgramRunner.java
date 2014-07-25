@@ -207,7 +207,7 @@ public class MapReduceProgramRunner implements ProgramRunner {
 
       controller = new MapReduceProgramController(context);
 
-      LOG.info("Starting MapReduce job: " + context.toString());
+      LOG.info("Starting MapReduce job: {}", context.toString());
       submit(job, spec, program.getJarLocation(), context, dataSetInstantiator);
 
     } catch (Throwable e) {
@@ -220,7 +220,7 @@ public class MapReduceProgramRunner implements ProgramRunner {
     controller.addListener(new AbstractListener() {
       @Override
       public void stopping() {
-        LOG.info("Stopping mapreduce job: " + context);
+        LOG.info("Stopping MapReduce job: {}", context);
         try {
           if (!jobConf.isComplete()) {
             jobConf.killJob();
@@ -228,7 +228,7 @@ public class MapReduceProgramRunner implements ProgramRunner {
         } catch (Exception e) {
           throw Throwables.propagate(e);
         }
-        LOG.info("Mapreduce job stopped: " + context);
+        LOG.info("MapReduce job stopped: {}", context);
       }
     }, MoreExecutors.sameThreadExecutor());
 
@@ -259,7 +259,7 @@ public class MapReduceProgramRunner implements ProgramRunner {
 
     if (UserGroupInformation.isSecurityEnabled()) {
       Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
-      LOG.info("Running in secure mode. Adding all user credentials: {}", credentials.getAllTokens());
+      LOG.info("Running in secure mode; adding all user credentials: {}", credentials.getAllTokens());
       jobConf.getCredentials().addAll(credentials);
     }
 
@@ -290,10 +290,10 @@ public class MapReduceProgramRunner implements ProgramRunner {
     //       if we allow deploying new program while existing is running. To prevent races we submit a temp copy
 
     final Location jobJar = buildJobJar(context);
-    LOG.info("built jobJar at " + jobJar.toURI().toString());
+    LOG.info("Built jobJar at {}", jobJar.toURI().toString());
     final Location programJarCopy = createJobJarTempCopy(jobJarLocation, context);
-    LOG.info("copied programJar to " + programJarCopy.toURI().toString() +
-               ", source: " + jobJarLocation.toURI().toString());
+    LOG.info("Copied programJar to {}, source: {}", programJarCopy.toURI().toString(),
+             jobJarLocation.toURI().toString());
 
     jobConf.setJar(jobJar.toURI().toString());
     jobConf.addFileToClassPath(new Path(programJarCopy.toURI()));
@@ -312,7 +312,7 @@ public class MapReduceProgramRunner implements ProgramRunner {
           // note: this sets logging context on the thread level
           LoggingContextAccessor.setLoggingContext(context.getLoggingContext());
           try {
-            LOG.info("Submitting mapreduce job {}", context.toString());
+            LOG.info("Submitting MapReduce job {}", context.toString());
 
             ClassLoader oldClassLoader = Thread.currentThread().getContextClassLoader();
             Thread.currentThread().setContextClassLoader(jobConf.getConfiguration().getClassLoader());
@@ -334,9 +334,8 @@ public class MapReduceProgramRunner implements ProgramRunner {
               TimeUnit.MILLISECONDS.sleep(1000);
             }
 
-            LOG.info("Job is complete, status: " + jobConf.getStatus() +
-                       ", success: " + success +
-                       ", job: " + context.toString());
+            LOG.info("Job is complete, status: {}, success: {}, job: {}" + jobConf.getStatus(), success, 
+                     context.toString());
 
             // NOTE: we want to report the final stats (they may change since last report and before job completed)
             metricsWriter.reportStats();
@@ -352,7 +351,7 @@ public class MapReduceProgramRunner implements ProgramRunner {
           }
 
         } catch (Exception e) {
-          LOG.warn("Received Exception after submitting MapReduce job.", e);
+          LOG.warn("Received Exception after submitting MapReduce job", e);
           throw Throwables.propagate(e);
         } finally {
           // stopping controller when mapreduce job is finished
@@ -360,13 +359,13 @@ public class MapReduceProgramRunner implements ProgramRunner {
           try {
             jobJar.delete();
           } catch (IOException e) {
-            LOG.warn("Failed to delete temp mr job jar: " + jobJar.toURI());
+            LOG.warn("Failed to delete temp MapReduce job jar: {}", jobJar.toURI());
             // failure should not affect other stuff
           }
           try {
             programJarCopy.delete();
           } catch (IOException e) {
-            LOG.warn("Failed to delete temp mr job jar: " + programJarCopy.toURI());
+            LOG.warn("Failed to delete temp MapReduce job jar: {}", programJarCopy.toURI());
             // failure should not affect other stuff
           }
         }
@@ -463,7 +462,7 @@ public class MapReduceProgramRunner implements ProgramRunner {
       try {
         controller.stop().get();
       } catch (Throwable e) {
-        LOG.warn("Exception from stopping controller: " + context, e);
+        LOG.warn("Exception from stopping controller: {}", context, e);
         // we ignore the exception because we don't really care about the controller, but we must end the transaction!
       }
       try {
@@ -473,7 +472,7 @@ public class MapReduceProgramRunner implements ProgramRunner {
             // also no need to rollback changes if commit fails, as these changes where performed by mapreduce tasks
             // NOTE: can't call afterCommit on datasets in this case: the changes were made by external processes.
             if (!txSystemClient.commit(tx)) {
-              LOG.warn("Mapreduce job transaction failed to commit");
+              LOG.warn("MapReduce job transaction failed to commit");
               success = false;
             }
           } else {
@@ -511,7 +510,7 @@ public class MapReduceProgramRunner implements ProgramRunner {
     }
 
     if (outputDataSetName != null) {
-      LOG.debug("Using dataset {} as output for mapreduce job", outputDataSetName);
+      LOG.debug("Using Dataset {} as output for MapReduce job", outputDataSetName);
       // We checked on validation phase that it implements BatchWritable
       outputDataset = (BatchWritable) mapReduceContext.getDataSet(outputDataSetName);
       mapReduceContext.setOutput(outputDataset);
@@ -550,7 +549,7 @@ public class MapReduceProgramRunner implements ProgramRunner {
     }
 
     if (inputDataSetName != null) {
-      LOG.debug("Using dataset {} as input for mapreduce job", inputDataSetName);
+      LOG.debug("Using Dataset {} as input for MapReduce job", inputDataSetName);
       DataSetInputFormat.setInput(jobConf, inputDataSetName);
     } else if (batchReadable instanceof StreamBatchReadable) {
       // TODO: It's a hack for stream
@@ -559,7 +558,7 @@ public class MapReduceProgramRunner implements ProgramRunner {
       Location streamPath = StreamUtils.createGenerationLocation(streamConfig.getLocation(),
                                                                  StreamUtils.getGeneration(streamConfig));
 
-      LOG.info("Using stream as input from {}", streamPath.toURI());
+      LOG.info("Using Stream as input from {}", streamPath.toURI());
 
       TextStreamInputFormat.setTTL(jobConf, streamConfig.getTTL());
       TextStreamInputFormat.setStreamPath(jobConf, streamPath.toURI());
@@ -580,7 +579,7 @@ public class MapReduceProgramRunner implements ProgramRunner {
                                            programId.getAccountId(), programId.getApplicationId(),
                                            programId.getId(), context.getRunId().getId()));
 
-    LOG.debug("Creating job jar: {}", appFabricDependenciesJarLocation.toURI());
+    LOG.debug("Creating MapReduce job jar: {}", appFabricDependenciesJarLocation.toURI());
 
     Set<Class<?>> classes = Sets.newHashSet();
     classes.add(MapReduce.class);
@@ -612,7 +611,7 @@ public class MapReduceProgramRunner implements ProgramRunner {
       Class<?> hbaseTableUtilClass = new HBaseTableUtilFactory().get().getClass();
       classes.add(hbaseTableUtilClass);
     } catch (ProvisionException e) {
-      LOG.warn("Not including HBaseTableUtil classes in submitted job jar since they are not available.");
+      LOG.warn("Not including HBaseTableUtil classes in submitted MapReduce job jar since they are not available");
     }
 
     ClassLoader oldCLassLoader = Thread.currentThread().getContextClassLoader();

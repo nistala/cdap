@@ -13,6 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+ 
 package com.continuuity.internal.app.runtime.distributed;
 
 import com.continuuity.internal.app.runtime.ProgramOptionConstants;
@@ -54,7 +55,7 @@ final class FlowTwillProgramController extends AbstractTwillProgramController {
                       Integer.valueOf(command.get("newInstances")),
                       Integer.valueOf(command.get("oldInstances")));
     } catch (Throwable t) {
-      LOG.error(String.format("Fail to change instances: %s", command), t);
+      LOG.error("Fail to change instances: {}", command, t);
     } finally {
       lock.unlock();
     }

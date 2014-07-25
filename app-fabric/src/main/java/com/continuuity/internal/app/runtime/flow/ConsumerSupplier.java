@@ -13,6 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+ 
 package com.continuuity.internal.app.runtime.flow;
 
 import com.continuuity.common.queue.QueueName;
@@ -116,12 +117,12 @@ final class ConsumerSupplier<T> implements Supplier<T>, Closeable {
           ((Closeable) consumer).close();
           txContext.finish();
         } catch (TransactionFailureException e) {
-          LOG.warn("Fail to commit transaction when closing consumer.");
+          LOG.warn("Fail to commit transaction when closing consumer");
           txContext.abort();
         }
       }
     } catch (Exception e) {
-      LOG.warn("Fail to close queue consumer.", e);
+      LOG.warn("Fail to close queue consumer", e);
     }
     consumer = null;
   }

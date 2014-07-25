@@ -68,7 +68,7 @@ public class TransactionServiceManager extends AbstractDistributedReactorService
     } catch (IllegalArgumentException e) {
       return false;
     } catch (Exception e) {
-      LOG.warn("Unable to ping {} : Reason {} ", serviceName, e.getMessage());
+      LOG.warn("Unable to ping {}: reason: {}", serviceName, e.getMessage());
       return false;
     }
   }

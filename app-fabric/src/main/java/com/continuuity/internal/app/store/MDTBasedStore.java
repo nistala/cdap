@@ -486,9 +486,9 @@ public class MDTBasedStore implements Store {
   @Override
   public void setFlowletInstances(final Id.Program id, final String flowletId, int count)
     throws OperationException {
-    Preconditions.checkArgument(count > 0, "cannot change number of flowlet instances to negative number: " + count);
+    Preconditions.checkArgument(count > 0, "Cannot change number of Flowlet instances to negative number: " + count);
 
-    LOG.trace("Setting flowlet instances: account: {}, application: {}, flow: {}, flowlet: {}, new instances count: {}",
+    LOG.trace("Setting Flowlet instances: Account: {}, Application: {}, Flow: {}, Flowlet: {}, new instances count: {}",
               id.getAccountId(), id.getApplicationId(), id.getId(), flowletId, count);
 
     ApplicationSpecification newAppSpec = updateFlowletInstancesInAppSpec(id, flowletId, count);
@@ -497,7 +497,7 @@ public class MDTBasedStore implements Store {
     long timestamp = System.currentTimeMillis();
     storeAppSpec(id.getApplication(), newAppSpec, timestamp);
 
-    LOG.trace("Set flowlet instances: account: {}, application: {}, flow: {}, flowlet: {}, instances now: {}",
+    LOG.trace("Set Flowlet instances: Account: {}, Application: {}, Flow: {}, Flowlet: {}, instances now: {}",
               id.getAccountId(), id.getApplicationId(), id.getId(), flowletId, count);
   }
 
@@ -558,7 +558,7 @@ public class MDTBasedStore implements Store {
     long timestamp = System.currentTimeMillis();
     storeAppSpec(id.getApplication(), newAppSpec, timestamp);
 
-    LOG.trace("Setting program instances: account: {}, application: {}, procedure: {}, new instances count: {}",
+    LOG.trace("Setting program instances: Account: {}, Application: {}, Procedure: {}, new instances count: {}",
               id.getAccountId(), id.getApplicationId(), id.getId(), count);
 
   }
@@ -574,14 +574,14 @@ public class MDTBasedStore implements Store {
   @Override
   public void setServiceRunnableInstances(Id.Program id, String runnable, int count) throws OperationException {
 
-    Preconditions.checkArgument(count > 0, "cannot change number of program instances to negative number: " + count);
+    Preconditions.checkArgument(count > 0, "Cannot change number of program instances to negative number: " + count);
 
     ApplicationSpecification appSpec = getAppSpecSafely(id);
     ServiceSpecification serviceSpec = getServiceSpecSafely(id, appSpec);
 
     RuntimeSpecification runtimeSpec = serviceSpec.getRunnables().get(runnable);
     if (runtimeSpec == null) {
-      throw new IllegalArgumentException(String.format("Runnable not found, app: %s, service: %s, runnable %s",
+      throw new IllegalArgumentException(String.format("Runnable not found, App: %s, Service: %s, Runnable %s",
                                                        id.getApplication(), id.getId(), runnable));
     }
 
@@ -597,7 +597,7 @@ public class MDTBasedStore implements Store {
     long timestamp = System.currentTimeMillis();
     storeAppSpec(id.getApplication(), newAppSpec, timestamp);
 
-    LOG.trace("Setting program instances: account: {}, application: {}, service: {}, runnable: {}," +
+    LOG.trace("Setting program instances: Account: {}, Application: {}, Service: {}, Runnable: {}," +
               " new instances count: {}",
               id.getAccountId(), id.getApplicationId(), id.getId(), runnable, count);
 
@@ -702,9 +702,9 @@ public class MDTBasedStore implements Store {
   private ServiceSpecification getServiceSpecSafely(Id.Program id, ApplicationSpecification appSpec) {
     ServiceSpecification spec = appSpec.getServices().get(id.getId());
     if (spec == null) {
-      throw new IllegalArgumentException("no such service @ account id: " + id.getAccountId() +
-                                           ", app id: " + id.getApplication() +
-                                           ", service id: " + id.getId());
+      throw new IllegalArgumentException("No such service @ Account id: " + id.getAccountId() +
+                                           ", App id: " + id.getApplication() +
+                                           ", Service id: " + id.getId());
     }
     return spec;
   }
@@ -712,16 +712,16 @@ public class MDTBasedStore implements Store {
   private ProcedureSpecification getProcedureSpecSafely(Id.Program id, ApplicationSpecification appSpec) {
     ProcedureSpecification procedureSpecification = appSpec.getProcedures().get(id.getId());
     if (procedureSpecification == null) {
-      throw new IllegalArgumentException("no such procedure @ account id: " + id.getAccountId() +
-                                           ", app id: " + id.getApplication() +
-                                           ", procedure id: " + id.getId());
+      throw new IllegalArgumentException("No such procedure @ Account id: " + id.getAccountId() +
+                                           ", App id: " + id.getApplication() +
+                                           ", Procedure id: " + id.getId());
     }
     return procedureSpecification;
   }
 
   @Override
   public ApplicationSpecification removeApplication(Id.Application id) throws OperationException {
-    LOG.trace("Removing application: account: {}, application: {}", id.getAccountId(), id.getId());
+    LOG.trace("Removing application: Account: {}, Application: {}", id.getAccountId(), id.getId());
     ApplicationSpecification appSpec = getApplication(id);
     Preconditions.checkNotNull(appSpec, "No such application: %s", id.getId());
     removeApplicationFromAppSpec(id.getAccount(), appSpec);
@@ -766,16 +766,16 @@ public class MDTBasedStore implements Store {
                                               FieldTypes.ProgramRun.ARGS, id.getId());
       entry.addField(FieldTypes.ProgramRun.ENTRY_TYPE, gson.toJson(arguments));
       metaDataTable.add(context, entry);
-      LOG.trace("Added run time arguments to mds: id: {}, app: {}, prog: {} ", id.getAccountId(),
+      LOG.trace("Added run time arguments to mds: id: {}, App: {}, Prog: {} ", id.getAccountId(),
                 id.getApplicationId(), id.getId());
     } else {
-      LOG.trace("Run time args exists in mds: id: {}, app: {}, prog: {}", id.getAccountId(),
+      LOG.trace("Run time args exists in mds: id: {}, App: {}, Prog: {}", id.getAccountId(),
                 id.getApplicationId(), id.getId());
 
       metaDataTable.updateField(context, id.getAccountId(), id.getApplicationId(),
                                 FieldTypes.ProgramRun.ARGS, id.getId(),
                                 FieldTypes.ProgramRun.ENTRY_TYPE, gson.toJson(arguments), -1);
-      LOG.trace("Updated application in mds: id: {}, app: {}, prog: {}", id.getId(),
+      LOG.trace("Updated application in mds: id: {}, App: {}, Prog: {}", id.getAccountId(),
                 id.getApplicationId(), id.getId());
     }
   }
@@ -964,13 +964,13 @@ public class MDTBasedStore implements Store {
   public void changeFlowletSteamConnection(Id.Program flow, String flowletId, String oldValue, String newValue)
     throws OperationException {
 
-    Preconditions.checkArgument(flow != null, "flow cannot be null");
-    Preconditions.checkArgument(flowletId != null, "flowletId cannot be null");
+    Preconditions.checkArgument(flow != null, "Flow cannot be null");
+    Preconditions.checkArgument(flowletId != null, "FlowletId cannot be null");
     Preconditions.checkArgument(oldValue != null, "oldValue cannot be null");
     Preconditions.checkArgument(newValue != null, "newValue cannot be null");
 
-    LOG.trace("Changing flowlet stream connection: account: {}, application: {}, flow: {}, flowlet: {}," +
-                " old coonnected stream: {}, new connected stream: {}",
+    LOG.trace("Changing Flowlet Stream connection: account: {}, Application: {}, Flow: {}, Flowlet: {}," +
+                " old connected Stream: {}, new connected Stream: {}",
                flow.getAccountId(), flow.getApplicationId(), flow.getId(), flowletId, oldValue, newValue);
 
     ApplicationSpecification appSpec = getAppSpecSafely(flow);
@@ -993,8 +993,8 @@ public class MDTBasedStore implements Store {
 
     if (!adjusted) {
       throw new IllegalArgumentException(
-        String.format("Cannot change stream connection to %s, the connection to be changed is not found," +
-          " account: %s, application: %s, flow: %s, flowlet: %s, source stream: %s",
+        String.format("Cannot change Stream connection to %s, the connection to be changed was not found," +
+          " Account: %s, Application: %s, Flow: %s, Flowlet: %s, Source Stream: %s",
                       newValue, flow.getAccountId(), flow.getApplicationId(), flow.getId(), flowletId, oldValue));
     }
 
@@ -1007,8 +1007,8 @@ public class MDTBasedStore implements Store {
     long timestamp = System.currentTimeMillis();
     storeAppSpec(flow.getApplication(), newAppSpec, timestamp);
 
-    LOG.trace("Changed flowlet stream connection: account: {}, application: {}, flow: {}, flowlet: {}," +
-                " old coonnected stream: {}, new connected stream: {}",
+    LOG.trace("Changed Flowlet Stream connection: Account: {}, Application: {}, Flow: {}, Flowlet: {}," +
+                " old connected Stream: {}, new connected Stream: {}",
               flow.getAccountId(), flow.getApplicationId(), flow.getId(), flowletId, oldValue, newValue);
 
     // todo: change stream "used by" flow mapping in metadata?

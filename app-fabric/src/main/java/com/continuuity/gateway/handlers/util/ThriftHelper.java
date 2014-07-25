@@ -43,7 +43,7 @@ public class ThriftHelper {
     ServerException {
     Discoverable endpoint = endpointStrategy.pick();
     if (endpoint == null) {
-      String message = String.format("Service '%s' is not registered in discovery service.", serviceName);
+      String message = String.format("Service '%s' is not registered in discovery service", serviceName);
       LOG.error(message);
       throw new ServerException(message);
     }
@@ -52,7 +52,7 @@ public class ThriftHelper {
     try {
       transport.open();
     } catch (TTransportException e) {
-      String message = String.format("Unable to connect to thrift service %s at %s. Reason: %s",
+      String message = String.format("Unable to connect to thrift service %s at %s; reason: %s",
                                      serviceName, endpoint.getSocketAddress(), e.getMessage());
       LOG.error(message);
       throw new ServerException(message, e);

@@ -13,6 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+ 
 package com.continuuity.internal.app.runtime.distributed;
 
 import com.continuuity.internal.app.runtime.ProgramOptionConstants;
@@ -44,12 +45,12 @@ final class ProcedureTwillProgramController extends AbstractTwillProgramControll
     Map<String, Integer> command = (Map<String, Integer>) value;
     try {
       for (Map.Entry<String, Integer> entry : command.entrySet()) {
-        LOG.info("Change procedure instance count: {} new count is: {}",  entry.getKey(), entry.getValue());
+        LOG.info("Change procedure instance count: {}, new count is: {}",  entry.getKey(), entry.getValue());
         twillController.changeInstances(entry.getKey(), entry.getValue());
-        LOG.info("Procedure instance count changed: {} new count is {}", entry.getKey(), entry.getValue());
+        LOG.info("Procedure instance count changed: {}, new count is {}", entry.getKey(), entry.getValue());
       }
     } catch (Throwable t) {
-      LOG.error(String.format("Fail to change instances: %s", command), t);
+      LOG.error("Fail to change instances: {}", command, t);
     }
   }
 }

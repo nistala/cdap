@@ -67,7 +67,7 @@ public class MapperWrapper extends Mapper {
                           new MetricsFieldSetter(basicMapReduceContext.getMetrics()),
                           new DataSetFieldSetter(basicMapReduceContext));
       } catch (Throwable t) {
-        LOG.error("Failed to inject fields to {}.", delegate.getClass(), t);
+        LOG.error("Failed to inject fields to {}", delegate.getClass(), t);
         throw Throwables.propagate(t);
       }
 
@@ -102,7 +102,7 @@ public class MapperWrapper extends Mapper {
         try {
           ((ProgramLifecycle<? extends RuntimeContext>) delegate).destroy();
         } catch (Exception e) {
-          LOG.error("Error during destroy of mapper {}", basicMapReduceContext, e);
+          LOG.error("Error during destruction of mapper {}", basicMapReduceContext, e);
           // Do nothing, try to finish
         }
       }
@@ -128,7 +128,7 @@ public class MapperWrapper extends Mapper {
         boolean result = super.nextKeyValue();
         if (++processedRecords > flushFreq) {
           try {
-            LOG.info("Flushing dataset operations...");
+            LOG.info("Flushing dataset operations");
             basicMapReduceContext.flushOperations();
           } catch (Exception e) {
             LOG.error("Failed to persist changes", e);
@@ -146,7 +146,7 @@ public class MapperWrapper extends Mapper {
     try {
       return (Mapper) classLoader.loadClass(userMapper).newInstance();
     } catch (Exception e) {
-      LOG.error("Failed to create instance of the user-defined Mapper class: " + userMapper);
+      LOG.error("Failed to create instance of the user-defined mapper class: " + userMapper);
       throw Throwables.propagate(e);
     }
   }

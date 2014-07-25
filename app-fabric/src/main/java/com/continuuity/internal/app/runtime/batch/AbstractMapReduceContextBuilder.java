@@ -104,7 +104,7 @@ public abstract class AbstractMapReduceContextBuilder {
         program = new WorkflowMapReduceProgram(program, mapReduceSpec);
       }
     } catch (IOException e) {
-      LOG.error("Could not init Program based on location: " + programLocation);
+      LOG.error("Could not init Program based on location: {}", programLocation);
       throw Throwables.propagate(e);
     }
 

@@ -99,7 +99,7 @@ final class WorkflowDriver extends AbstractExecutionThreadService {
 
   @Override
   protected void run() throws Exception {
-    LOG.info("Start workflow execution for {}", workflowSpec);
+    LOG.info("Start Workflow execution for {}", workflowSpec);
     InstantiatorFactory instantiator = new InstantiatorFactory(false);
     ClassLoader classLoader = program.getClassLoader();
 
@@ -114,7 +114,7 @@ final class WorkflowDriver extends AbstractExecutionThreadService {
       try {
         action.run();
       } catch (Throwable t) {
-        LOG.warn("Exception on WorkflowAction.run(), aborting Workflow. {}", actionSpec);
+        LOG.warn("Exception on WorkflowAction.run(), aborting Workflow {}", actionSpec);
         // this will always rethrow
         Throwables.propagateIfPossible(t, Exception.class);
       } finally {
@@ -125,7 +125,7 @@ final class WorkflowDriver extends AbstractExecutionThreadService {
 
     // If there is some task left when the loop exited, it must be called by explicit stop of this driver.
     if (iterator.hasNext()) {
-      LOG.warn("Workflow explicitly stopped. Treated as abort on error. {} {}", workflowSpec);
+      LOG.warn("Workflow explicitly stopped; treated as abort on error {} {}", workflowSpec);
       throw new IllegalStateException("Workflow stopped without executing all tasks: " + workflowSpec);
     }
 
@@ -145,7 +145,7 @@ final class WorkflowDriver extends AbstractExecutionThreadService {
    * @throws IllegalStateException if the service is not started.
    */
   InetSocketAddress getServiceEndpoint() {
-    Preconditions.checkState(httpService != null && httpService.isRunning(), "Workflow service is not started.");
+    Preconditions.checkState(httpService != null && httpService.isRunning(), "Workflow service is not started");
     return httpService.getBindAddress();
   }
 
@@ -163,7 +163,7 @@ final class WorkflowDriver extends AbstractExecutionThreadService {
       action.initialize(new BasicWorkflowContext(workflowSpec, actionSpec,
                                                  logicalStartTime, runnerFactory, runtimeArgs));
     } catch (Throwable t) {
-      LOG.warn("Exception on WorkflowAction.initialize(), abort Workflow. {}", actionSpec, t);
+      LOG.warn("Exception on WorkflowAction.initialize(), aborting Workflow {}", actionSpec, t);
       // this will always rethrow
       Throwables.propagateIfPossible(t, Exception.class);
     }

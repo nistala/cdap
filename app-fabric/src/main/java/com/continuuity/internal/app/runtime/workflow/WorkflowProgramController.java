@@ -13,6 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+ 
 package com.continuuity.internal.app.runtime.workflow;
 
 import com.continuuity.app.program.Program;
@@ -50,12 +51,12 @@ final class WorkflowProgramController extends AbstractProgramController {
 
   @Override
   protected void doSuspend() throws Exception {
-    LOG.info("Suspend not supported.");
+    LOG.info("Suspend not supported");
   }
 
   @Override
   protected void doResume() throws Exception {
-    LOG.info("Resume not supported.");
+    LOG.info("Resume not supported");
   }
 
   @Override
@@ -81,17 +82,17 @@ final class WorkflowProgramController extends AbstractProgramController {
 
       @Override
       public void terminated(Service.State from) {
-        LOG.info("Workflow service terminated from {}. Un-registering service {}.", from, serviceName);
+        LOG.info("Workflow service terminated from {}; un-registering service {}", from, serviceName);
         cancelAnnounce.cancel();
-        LOG.info("Service {} unregistered.", serviceName);
+        LOG.info("Service {} unregistered", serviceName);
         stop();
       }
 
       @Override
       public void failed(Service.State from, Throwable failure) {
-        LOG.info("Workflow service failed from {}. Un-registering service {}.", from, serviceName, failure);
+        LOG.info("Workflow service failed from {}; un-registering service {}", from, serviceName, failure);
         cancelAnnounce.cancel();
-        LOG.info("Service {} unregistered.", serviceName);
+        LOG.info("Service {} unregistered", serviceName);
         error(failure);
       }
     }, Threads.SAME_THREAD_EXECUTOR);

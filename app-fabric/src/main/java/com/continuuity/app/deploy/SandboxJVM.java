@@ -84,19 +84,19 @@ public class SandboxJVM {
     try {
       CommandLine line = parser.parse(options, args);
       if (!line.hasOption("jar")) {
-        LOG.error("Application JAR not specified.");
+        LOG.error("Application JAR not specified");
         return -1;
       }
       if (!line.hasOption("output")) {
-        LOG.error("Output file not specified.");
+        LOG.error("Output file not specified");
         return -1;
       }
       if (!line.hasOption("id")) {
-        LOG.error("Account id not specified.");
+        LOG.error("Account id not specified");
         return -1;
       }
       if (!line.hasOption("locfactory")) {
-        LOG.error("Location factory not specified.");
+        LOG.error("Location factory not specified");
         return -1;
       }
 
@@ -162,7 +162,7 @@ public class SandboxJVM {
           writer.close();
         }
       } catch (IOException e) {
-        LOG.error("Error writing to file {}. {}", outputFile, e.getMessage());
+        LOG.error("Error writing to file {}: {}", outputFile, e.getMessage());
         return -1;
       }
     } finally {

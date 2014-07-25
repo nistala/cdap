@@ -130,7 +130,7 @@ final class TransactionResponder extends AbstractProcedureResponder {
           txContext.abort();
           LOG.info("Transaction aborted due to IOException", e);
         } catch (TransactionFailureException te) {
-          LOG.error("Fail to abort transaction.", te);
+          LOG.error("Fail to abort transaction", te);
         }
         throw e;
       }
@@ -146,7 +146,7 @@ final class TransactionResponder extends AbstractProcedureResponder {
           txContext.abort();
           LOG.info("Transaction aborted due to IOException", e);
         } catch (TransactionFailureException te) {
-          LOG.error("Fail to abort transaction.", te);
+          LOG.error("Fail to abort transaction", te);
         }
         throw e;
       }
@@ -162,7 +162,7 @@ final class TransactionResponder extends AbstractProcedureResponder {
           txContext.abort();
           LOG.info("Transaction aborted due to IOException", e);
         } catch (TransactionFailureException te) {
-          LOG.error("Fail to abort transaction.", te);
+          LOG.error("Fail to abort transaction", te);
         }
         throw e;
       }
@@ -178,7 +178,7 @@ final class TransactionResponder extends AbstractProcedureResponder {
           txContext.abort();
           LOG.info("Transaction aborted due to IOException", e);
         } catch (TransactionFailureException te) {
-          LOG.error("Fail to abort transaction.", te);
+          LOG.error("Fail to abort transaction", te);
         }
         throw e;
       }
@@ -197,11 +197,11 @@ final class TransactionResponder extends AbstractProcedureResponder {
           txContext.abort();
           LOG.info("Transaction aborted due to IOException", e);
         } catch (TransactionFailureException te) {
-          LOG.error("Fail to abort transaction.", te);
+          LOG.error("Fail to abort transaction", te);
         }
         throw e;
       } catch (TransactionFailureException te) {
-        LOG.info("Transaction finish failed.", te);
+        LOG.info("Transaction failed to finish", te);
       }
     }
   }

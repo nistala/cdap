@@ -106,7 +106,7 @@ final class ProcedureDispatcher extends SimpleChannelHandler {
 
   @Override
   public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
-    LOG.error("Exception caught in channel processing.", e.getCause());
+    LOG.error("Exception caught in channel processing", e.getCause());
     ctx.getChannel().close();
   }
 
@@ -125,7 +125,7 @@ final class ProcedureDispatcher extends SimpleChannelHandler {
 
   private void handleRequest(HttpRequest httpRequest, Channel channel) {
     if (!(HttpMethod.POST.equals(httpRequest.getMethod()) || (HttpMethod.GET.equals(httpRequest.getMethod())))) {
-      errorResponse(HttpResponseStatus.METHOD_NOT_ALLOWED, channel, "Only GET and POST methods are supported.");
+      errorResponse(HttpResponseStatus.METHOD_NOT_ALLOWED, channel, "Only GET and POST methods are supported");
       return;
     }
 
@@ -147,8 +147,8 @@ final class ProcedureDispatcher extends SimpleChannelHandler {
     try {
       handler = handlerMethod.get();
     } catch (Throwable t) {
-      LOG.error("Fail to get procedure.", t);
-      errorResponse(HttpResponseStatus.INTERNAL_SERVER_ERROR, channel, "Fail to get procedure.");
+      LOG.error("Fail to get procedure", t);
+      errorResponse(HttpResponseStatus.INTERNAL_SERVER_ERROR, channel, "Fail to get procedure");
       return;
     }
     handler.handle(request, new HttpProcedureResponder(channel));

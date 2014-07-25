@@ -13,6 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+ 
 package com.continuuity.internal.app.runtime.distributed;
 
 import com.continuuity.app.program.Program;
@@ -115,7 +116,7 @@ public abstract class AbstractDistributedProgramRunner implements ProgramRunner 
         TwillPreparer twillPreparer = twillRunner
           .prepare(twillApplication);
         if (options.isDebug()) {
-          LOG.info("Starting {} with debugging enabled.", program.getId());
+          LOG.info("Starting {} with debugging enabled", program.getId());
           twillPreparer.enableDebugging();
         }
         TwillController twillController = twillPreparer

@@ -59,7 +59,7 @@ public final class DistributedSchedulerService extends AbstractSchedulerService 
         @Override
         public void onChange(ServiceDiscovered serviceDiscovered) {
           if (!Iterables.isEmpty(serviceDiscovered) && !schedulerStarted.get()) {
-            LOG.info("Starting scheduler, Discovered {} transaction service(s)",
+            LOG.info("Starting scheduler; discovered {} transaction service(s)",
                      Iterables.size(serviceDiscovered));
             startScheduler();
             schedulerStarted.set(true);

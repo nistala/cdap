@@ -74,7 +74,7 @@ public class IntactJarHttpHandler extends AbstractHttpHandler implements JarHttp
 
       servePathGenerator = new ServePathGenerator(Constants.Webapp.WEBAPP_DIR, fileExists);
     } catch (IOException e) {
-      LOG.error("Got exception: ", e);
+      LOG.error("Got exception", e);
       throw Throwables.propagate(e);
     }
   }
@@ -129,7 +129,7 @@ public class IntactJarHttpHandler extends AbstractHttpHandler implements JarHttp
         in.close();
       }
     } catch (Throwable t) {
-      LOG.error("Got exception: ", t);
+      LOG.error("Got exception", t);
       responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
   }

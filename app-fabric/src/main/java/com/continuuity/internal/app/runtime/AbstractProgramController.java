@@ -196,7 +196,7 @@ public abstract class AbstractProgramController implements ProgramController {
    */
   protected final void started() {
     if (!state.compareAndSet(State.STARTING, State.ALIVE)) {
-      LOG.info("Program already started {} {}", programName, runId);
+      LOG.info("Program already started: {} {}", programName, runId);
       return;
     }
     LOG.info("Program started: {} {}", programName, runId);

@@ -138,7 +138,7 @@ public final class AppFabricServer extends AbstractIdleService {
 
       @Override
       public void terminated(State from) {
-        LOG.info("AppFabric HTTP service stopped.");
+        LOG.info("AppFabric HTTP service stopped");
         if (cancellable != null) {
           cancellable.cancel();
         }
@@ -146,7 +146,7 @@ public final class AppFabricServer extends AbstractIdleService {
 
       @Override
       public void failed(State from, Throwable failure) {
-        LOG.info("AppFabric HTTP service stopped with failure.", failure);
+        LOG.info("AppFabric HTTP service stopped with failure", failure);
         if (cancellable != null) {
           cancellable.cancel();
         }

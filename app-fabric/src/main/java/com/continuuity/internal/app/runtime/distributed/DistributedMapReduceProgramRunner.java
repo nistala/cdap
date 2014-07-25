@@ -13,6 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+ 
 package com.continuuity.internal.app.runtime.distributed;
 
 import com.continuuity.api.mapreduce.MapReduceSpecification;
@@ -49,16 +50,16 @@ public final class DistributedMapReduceProgramRunner extends AbstractDistributed
                                      File hConfFile, File cConfFile, ApplicationLauncher launcher) {
     // Extract and verify parameters
     ApplicationSpecification appSpec = program.getSpecification();
-    Preconditions.checkNotNull(appSpec, "Missing application specification.");
+    Preconditions.checkNotNull(appSpec, "Missing application specification");
 
     Type processorType = program.getType();
-    Preconditions.checkNotNull(processorType, "Missing processor type.");
-    Preconditions.checkArgument(processorType == Type.MAPREDUCE, "Only MAPREDUCE process type is supported.");
+    Preconditions.checkNotNull(processorType, "Missing processor type");
+    Preconditions.checkArgument(processorType == Type.MAPREDUCE, "Only MAPREDUCE process type is supported");
 
     MapReduceSpecification spec = appSpec.getMapReduce().get(program.getName());
     Preconditions.checkNotNull(spec, "Missing MapReduceSpecification for %s", program.getName());
 
-    LOG.info("Launching MapReduce program: " + program.getName() + ":" + spec.getName());
+    LOG.info("Launching MapReduce program: {}:{}", program.getName(), spec.getName());
     TwillController controller = launcher.launch(new MapReduceTwillApplication(program, spec,
                                                                                hConfFile, cConfFile, eventHandler));
 

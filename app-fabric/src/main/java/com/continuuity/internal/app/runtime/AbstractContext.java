@@ -108,7 +108,7 @@ public abstract class AbstractContext implements DataSetContext {
     try {
       ds.close();
     } catch (Throwable t) {
-      LOG.error("Dataset throws exceptions during close:" + ds.toString() + ", in context: " + this);
+      LOG.error("Dataset throws exceptions during close: {}, in  context: ", ds.toString(), this);
     }
   }
 }

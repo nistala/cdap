@@ -93,7 +93,7 @@ final class ProcedurePipelineFactory implements ChannelPipelineFactory {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
       if (ctx.getChannel().isConnected()) {
-        LOG.error("Got exception: ", e.getCause());
+        LOG.error("Got exception", e.getCause());
 
         HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.SERVICE_UNAVAILABLE);
         response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, 0);

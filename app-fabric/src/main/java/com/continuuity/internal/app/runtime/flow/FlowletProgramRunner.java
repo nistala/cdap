@@ -188,13 +188,13 @@ public final class FlowletProgramRunner implements ProgramRunner {
 
       boolean disableTransaction = program.getMainClass().isAnnotationPresent(DisableTransaction.class);
       if (disableTransaction) {
-        LOG.info("Transaction is disable for flowlet {}.{}.{}",
+        LOG.info("Transaction is disable for Flowlet {}.{}.{}",
                  program.getApplicationId(), program.getId().getId(), flowletName);
       }
 
       Class<?> clz = Class.forName(flowletDef.getFlowletSpec().getClassName(), true,
                                    program.getClassLoader());
-      Preconditions.checkArgument(Flowlet.class.isAssignableFrom(clz), "%s is not a Flowlet.", clz);
+      Preconditions.checkArgument(Flowlet.class.isAssignableFrom(clz), "%s is not a Flowlet", clz);
 
       Class<? extends Flowlet> flowletClass = (Class<? extends Flowlet>) clz;
 
@@ -254,14 +254,14 @@ public final class FlowletProgramRunner implements ProgramRunner {
                                                              dataFabricFacade, serviceHook);
 
       if (disableTransaction) {
-        LOG.info("Transaction disabled for flowlet {}", flowletContext);
+        LOG.info("Transaction disabled for Flowlet {}", flowletContext);
       }
 
       FlowletProgramController controller = new FlowletProgramController(program.getName(), flowletName,
                                                                          flowletContext, driver, consumerSuppliers);
       controllerRef.set(controller);
 
-      LOG.info("Starting flowlet: {}", flowletContext);
+      LOG.info("Starting Flowlet: {}", flowletContext);
       driver.start();
       LOG.info("Flowlet started: {}", flowletContext);
 
@@ -566,7 +566,7 @@ public final class FlowletProgramRunner implements ProgramRunner {
         byteBufferInput.reset(input);
         try {
           final Schema sourceSchema = schemaCache.get(input);
-          Preconditions.checkNotNull(sourceSchema, "Fail to find source schema.");
+          Preconditions.checkNotNull(sourceSchema, "Fail to find source schema");
           return datumReader.read(decoder, sourceSchema);
         } catch (IOException e) {
           throw Throwables.propagate(e);
@@ -688,25 +688,25 @@ public final class FlowletProgramRunner implements ProgramRunner {
       this.propertyListener = new StreamPropertyListener() {
         @Override
         public void ttlChanged(String streamName, long ttl) {
-          LOG.debug("TTL for stream '{}' changed to {} for flowlet '{}'", streamName, ttl, flowletName);
+          LOG.debug("TTL for Stream '{}' changed to {} for Flowlet '{}'", streamName, ttl, flowletName);
           suspendAndResume();
         }
 
         @Override
         public void ttlDeleted(String streamName) {
-          LOG.debug("TTL for stream '{}' deleted for flowlet '{}'", streamName, flowletName);
+          LOG.debug("TTL for Stream '{}' deleted for Flowlet '{}'", streamName, flowletName);
           suspendAndResume();
         }
 
         @Override
         public void generationChanged(String streamName, int generation) {
-          LOG.debug("Generation for stream '{}' changed to {} for flowlet '{}'", streamName, generation, flowletName);
+          LOG.debug("Generation for Stream '{}' changed to {} for Flowlet '{}'", streamName, generation, flowletName);
           suspendAndResume();
         }
 
         @Override
         public void generationDeleted(String streamName) {
-          LOG.debug("Generation for stream '{}' deleted for flowlet '{}'", streamName, flowletName);
+          LOG.debug("Generation for Stream '{}' deleted for Flowlet '{}'", streamName, flowletName);
           suspendAndResume();
         }
       };
@@ -747,7 +747,7 @@ public final class FlowletProgramRunner implements ProgramRunner {
             controller.get().suspend().get();
             controller.get().resume().get();
           } catch (Exception e) {
-            LOG.error("Failed to suspend and resume flowlet.", e);
+            LOG.error("Failed to suspend and resume Flowlet", e);
           } finally {
             suspendLock.unlock();
           }

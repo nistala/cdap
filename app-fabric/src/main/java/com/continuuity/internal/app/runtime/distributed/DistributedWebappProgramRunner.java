@@ -48,13 +48,13 @@ public final class DistributedWebappProgramRunner extends AbstractDistributedPro
                                      File hConfFile, File cConfFile, ApplicationLauncher launcher) {
     // Extract and verify parameters
     ApplicationSpecification appSpec = program.getSpecification();
-    Preconditions.checkNotNull(appSpec, "Missing application specification.");
+    Preconditions.checkNotNull(appSpec, "Missing application specification");
 
     Type processorType = program.getType();
-    Preconditions.checkNotNull(processorType, "Missing processor type.");
-    Preconditions.checkArgument(processorType == Type.WEBAPP, "Only WEBAPP process type is supported.");
+    Preconditions.checkNotNull(processorType, "Missing processor type");
+    Preconditions.checkArgument(processorType == Type.WEBAPP, "Only WEBAPP process type is supported");
 
-    LOG.info("Launching distributed webapp: " + program.getName());
+    LOG.info("Launching distributed Webapp: {}", program.getName());
     TwillController controller = launcher.launch(new WebappTwillApplication(program, hConfFile,
                                                                             cConfFile, eventHandler));
     return new WebappTwillProgramController(program.getName(), controller).startListen();

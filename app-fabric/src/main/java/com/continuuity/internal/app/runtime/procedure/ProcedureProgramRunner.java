@@ -157,8 +157,8 @@ public final class ProcedureProgramRunner implements ProgramRunner {
 
       channelGroup.add(serverChannel);
 
-      LOG.info(String.format("Procedure server started for %s.%s listening on %s",
-                             program.getApplicationId(), program.getName(), serverChannel.getLocalAddress()));
+      LOG.info("Procedure server started for {}.{} listening on {}",
+                             program.getApplicationId(), program.getName(), serverChannel.getLocalAddress());
 
       int servicePort = ((InetSocketAddress) serverChannel.getLocalAddress()).getPort();
       return new ProcedureProgramController(program, runId,
@@ -245,11 +245,11 @@ public final class ProcedureProgramRunner implements ProgramRunner {
 
     @Override
     protected void doStop() throws Exception {
-      LOG.info("Stopping procedure: " + procedureContext);
+      LOG.info("Stopping procedure: {}", procedureContext);
       cancellable.cancel();
       try {
         if (!channelGroup.close().await(CLOSE_CHANNEL_TIMEOUT, TimeUnit.SECONDS)) {
-          LOG.warn("Timeout when closing all channels.");
+          LOG.warn("Timeout when closing all channels");
         }
       } finally {
         bootstrap.releaseExternalResources();
@@ -257,7 +257,7 @@ public final class ProcedureProgramRunner implements ProgramRunner {
       }
       handlerMethodFactory.stopAndWait();
 
-      LOG.info("Procedure stopped: " + procedureContext);
+      LOG.info("Procedure stopped: {}", procedureContext);
     }
 
     @Override
@@ -266,7 +266,7 @@ public final class ProcedureProgramRunner implements ProgramRunner {
       if (!ProgramOptionConstants.INSTANCES.equals(name) || !(value instanceof Integer)) {
         return;
       }
-      LOG.info("Setting procedure instance in procedure program runner.");
+      LOG.info("Setting procedure instance in procedure program runner");
       procedureContext.setInstanceCount((Integer) value);
    }
   }

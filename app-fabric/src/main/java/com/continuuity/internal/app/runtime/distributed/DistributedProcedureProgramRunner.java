@@ -13,6 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+ 
 package com.continuuity.internal.app.runtime.distributed;
 
 import com.continuuity.api.procedure.ProcedureSpecification;
@@ -49,16 +50,16 @@ public final class DistributedProcedureProgramRunner extends AbstractDistributed
                                      File hConfFile, File cConfFile, ApplicationLauncher launcher) {
     // Extract and verify parameters
     ApplicationSpecification appSpec = program.getSpecification();
-    Preconditions.checkNotNull(appSpec, "Missing application specification.");
+    Preconditions.checkNotNull(appSpec, "Missing application specification");
 
     Type processorType = program.getType();
-    Preconditions.checkNotNull(processorType, "Missing processor type.");
-    Preconditions.checkArgument(processorType == Type.PROCEDURE, "Only PROCEDURE process type is supported.");
+    Preconditions.checkNotNull(processorType, "Missing processor type");
+    Preconditions.checkArgument(processorType == Type.PROCEDURE, "Only PROCEDURE process type is supported");
 
     ProcedureSpecification procedureSpec = appSpec.getProcedures().get(program.getName());
     Preconditions.checkNotNull(procedureSpec, "Missing ProcedureSpecification for %s", program.getName());
 
-    LOG.info("Launching distributed flow: " + program.getName() + ":" + procedureSpec.getName());
+    LOG.info("Launching distributed Flow: {}:{}", program.getName(), procedureSpec.getName());
     TwillController controller = launcher.launch(new ProcedureTwillApplication(program, procedureSpec,
                                                                                hConfFile, cConfFile, eventHandler));
     return new ProcedureTwillProgramController(program.getName(), controller).startListen();

@@ -149,7 +149,7 @@ public final class StreamNamerImpl {
 
       if (to.isFlowStream()) {
         // case 2. or 4. -> this is not supported: log and return error;
-        LOG.error("Unsupported connection to flow stream '{}'.",
+        LOG.error("Unsupported connection to Flow Stream '{}'",
                   new Object[]{connection.getTo().getStream()});
         return false;
       } else {
@@ -207,7 +207,7 @@ public final class StreamNamerImpl {
         return true;
       }
     }
-    LOG.error("No flowlet with name '{}' is defined in flow.", new Object[]{flowletName});
+    LOG.error("No Flowlet with name '{}' is defined in Flow", new Object[]{flowletName});
     return false;
   }
 }
