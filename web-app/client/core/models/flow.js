@@ -45,6 +45,72 @@ define(['core/models/program'], function (Program) {
 
 		},
 
+		updateState: function (http, done) {
+		  var self = this;
+
+ 		  //Update the flow's currentState. Program.updateState does this.
+		  this._super(http, done);
+
+		  //In addition, use live-info to update containersLabel/actualInstances
+      //IF not local: (TODO). (or just check if the response to live-info has a .containers attribute).
+      http.rest(this.get('context'), 'live-info', function (response) {
+        response = {
+                 yarnAppId: "application_1405811506350_0013",
+                 containers: [
+                   {
+                     type: "flowlet",
+                     name: "wordCounter",
+                     instance: 0,
+                     container: "container_1405811506350_0013_01_000002",
+                     host: "dev-slave5.sjc1.continuuity.net",
+                     memory: 512,
+                     virtualCores: 1
+                   },
+                   {
+                     type: "flowlet",
+                     name: "wordCounter",
+                     instance: 0,
+                     container: "container_1405811506350_0013_01_000003",
+                     host: "dev-slave5.sjc1.continuuity.net",
+                     memory: 512,
+                     virtualCores: 1
+                   }
+                 ],
+                 app: "PurchaseHistory",
+                 type: "Flow",
+                 id: "PurchaseFlow",
+                 runtime: "distributed"
+                 };
+
+        var containers = response.containers;
+        if(containers === undefined){
+          return;
+        }
+
+        //counterObj is a hash from flowletName -> running count of instances
+        counterObj = {};
+
+        containers.forEach(function (container) {
+          if(container.type === "flowlet") {
+            if(counterObj[container.name] === undefined){
+              counterObj[container.name] = 0;
+            }
+            ++counterObj[container.name];
+          }
+        });
+
+        self.flowlets.forEach(function(flowlet){
+          flowlet.containersLabel = counterObj[flowlet.name];
+//          flowlet.set('containersLabel', counterObj[flowlet.name]);
+        });
+
+        if (typeof done === 'function') {
+          done(response.status);
+        }
+      });
+		  return;
+		},
+
 		getSubPrograms: function (callback, http) {
 
 			var app = this.get('app');
