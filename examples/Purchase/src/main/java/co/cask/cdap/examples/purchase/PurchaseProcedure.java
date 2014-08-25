@@ -111,15 +111,8 @@ public class PurchaseProcedure extends AbstractProcedure {
   @Handle("ping")
   @SuppressWarnings("unused")
   public void ping(ProcedureRequest request, ProcedureResponder responder) throws Exception {
-    String key = request.getArgument("key");
-    if (key == null) {
-      responder.error(ProcedureResponse.Code.NOT_FOUND, "Key not provided.");
-      return;
-    }
-
-    int value = Bytes.toInt(table.read(key));
+    int value = Bytes.toInt(table.read("testKey"));
     responder.sendJson(ProcedureResponse.Code.SUCCESS, value);
     return;
   }
-
 }

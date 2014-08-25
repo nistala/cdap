@@ -85,7 +85,7 @@ public class CatalogLookupService extends AbstractService {
 
       try {
         for (int i = 0; i < 100; i++) {
-          final int finalI = i++;
+          final int finalI = i;
 
           getContext().execute(new TxRunnable() {
             @Override
