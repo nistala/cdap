@@ -16,11 +16,19 @@
 
 package co.cask.cdap.examples.purchase;
 
+import co.cask.cdap.api.data.DataSetContext;
+import co.cask.cdap.api.dataset.Dataset;
+import co.cask.cdap.api.dataset.lib.KeyValueTable;
+import co.cask.cdap.api.dataset.table.Table;
 import co.cask.cdap.api.service.AbstractService;
+import co.cask.cdap.api.service.AbstractServiceWorker;
+import co.cask.cdap.api.service.TxRunnable;
 import co.cask.cdap.api.service.http.AbstractHttpServiceHandler;
 import co.cask.cdap.api.service.http.HttpServiceRequest;
 import co.cask.cdap.api.service.http.HttpServiceResponder;
 import com.google.common.base.Charsets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -36,6 +44,7 @@ public class CatalogLookupService extends AbstractService {
     setName(PurchaseApp.SERVICE_NAME);
     setDescription("Service to lookup product ids.");
     addHandler(new ProductCatalogLookup());
+    addWorker(new ExampleWorker());
   }
 
   /**
@@ -49,6 +58,35 @@ public class CatalogLookupService extends AbstractService {
     public void handler(HttpServiceRequest request, HttpServiceResponder responder, @PathParam("id") String id) {
       // send string Cat-<id> with 200 OK response.
       responder.sendString(200, "Cat-" + id, Charsets.UTF_8);
+    }
+  }
+
+  /**
+   * Example Worker.
+   */
+  public static final class ExampleWorker extends AbstractServiceWorker {
+
+    @Override
+    public void stop() {
+
+    }
+
+    @Override
+    public void destroy() {
+
+    }
+
+    @Override
+    public void run() {
+
+      getContext().execute(new TxRunnable() {
+        @Override
+        public void run(DataSetContext context) {
+          KeyValueTable dataset = context.getDataSet("testTable");
+          dataset.write("testKey", "value");
+        }
+      });
+
     }
   }
 }

@@ -36,6 +36,7 @@ public class PurchaseApp extends AbstractApplication {
     setDescription("Purchase history app");
     addStream(new Stream("purchaseStream"));
     createDataset("frequentCustomers", KeyValueTable.class);
+    createDataset("testTable", KeyValueTable.class);
     addFlow(new PurchaseFlow());
     addProcedure(new PurchaseProcedure());
     addWorkflow(new PurchaseHistoryWorkflow());

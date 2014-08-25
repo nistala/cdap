@@ -17,6 +17,8 @@ package co.cask.cdap.examples.purchase;
 
 import co.cask.cdap.api.annotation.Handle;
 import co.cask.cdap.api.annotation.UseDataSet;
+import co.cask.cdap.api.common.Bytes;
+import co.cask.cdap.api.dataset.lib.KeyValueTable;
 import co.cask.cdap.api.procedure.AbstractProcedure;
 import co.cask.cdap.api.procedure.ProcedureContext;
 import co.cask.cdap.api.procedure.ProcedureRequest;
@@ -81,6 +83,9 @@ public class PurchaseProcedure extends AbstractProcedure {
     }
   }
 
+  @UseDataSet("testTable")
+  private KeyValueTable table;
+
   /**
    * Return the specified customer's purchases as a JSON history object.
    *
@@ -101,6 +106,24 @@ public class PurchaseProcedure extends AbstractProcedure {
     } else {
       responder.sendJson(new ProcedureResponse(ProcedureResponse.Code.SUCCESS), history);
     }
+  }
+
+  @Handle("ping")
+  @SuppressWarnings("unused")
+  public void ping(ProcedureRequest request, ProcedureResponder responder) throws Exception {
+    String key = request.getArgument("key");
+    if (key == null) {
+      responder.error(ProcedureResponse.Code.NOT_FOUND, "Key not provided.");
+      return;
+    }
+
+    String value = Bytes.toString(table.read(key));
+    if (value == null) {
+      responder.error(ProcedureResponse.Code.NOT_FOUND, "Key not found.");
+    } else {
+      responder.sendJson(ProcedureResponse.Code.SUCCESS, value);
+    }
+    return;
   }
 
 }
