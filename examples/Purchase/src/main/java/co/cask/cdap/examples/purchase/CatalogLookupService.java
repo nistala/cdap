@@ -16,6 +16,7 @@
 
 package co.cask.cdap.examples.purchase;
 
+import co.cask.cdap.api.common.Bytes;
 import co.cask.cdap.api.data.DataSetContext;
 import co.cask.cdap.api.dataset.Dataset;
 import co.cask.cdap.api.dataset.lib.KeyValueTable;
@@ -27,9 +28,12 @@ import co.cask.cdap.api.service.http.AbstractHttpServiceHandler;
 import co.cask.cdap.api.service.http.HttpServiceRequest;
 import co.cask.cdap.api.service.http.HttpServiceResponder;
 import com.google.common.base.Charsets;
+import com.google.common.base.Throwables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Timer;
+import java.util.concurrent.TimeUnit;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -79,14 +83,23 @@ public class CatalogLookupService extends AbstractService {
     @Override
     public void run() {
 
-      getContext().execute(new TxRunnable() {
-        @Override
-        public void run(DataSetContext context) {
-          KeyValueTable dataset = context.getDataSet("testTable");
-          dataset.write("testKey", "value");
-        }
-      });
+      try {
+        for (int i = 0; i < 100; i++) {
+          final int finalI = i++;
 
+          getContext().execute(new TxRunnable() {
+            @Override
+            public void run(DataSetContext context) {
+              KeyValueTable dataset = context.getDataSet("testTable");
+              dataset.write("testKey", Bytes.toBytes(finalI));
+            }
+          });
+
+          Thread.sleep(5000);
+        }
+      } catch (Exception e) {
+        Throwables.propagate(e);
+      }
     }
   }
 }

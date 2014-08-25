@@ -117,12 +117,8 @@ public class PurchaseProcedure extends AbstractProcedure {
       return;
     }
 
-    String value = Bytes.toString(table.read(key));
-    if (value == null) {
-      responder.error(ProcedureResponse.Code.NOT_FOUND, "Key not found.");
-    } else {
-      responder.sendJson(ProcedureResponse.Code.SUCCESS, value);
-    }
+    int value = Bytes.toInt(table.read(key));
+    responder.sendJson(ProcedureResponse.Code.SUCCESS, value);
     return;
   }
 
