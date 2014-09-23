@@ -85,7 +85,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Cask Data Application Platform Tutorial'
+project = u'CDAP Tutorial'
 copyright = u'2014 Cask Data, Inc.'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -247,7 +247,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'CDAP.tex', u'CDAP Documentation',
+  ('index', 'CDAP.tex', u'CDAP Tutorial',
    u'Cask Data, Inc.', 'manual'),
 ]
 
