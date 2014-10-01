@@ -21,6 +21,7 @@ import com.google.common.io.InputSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -105,8 +106,7 @@ public final class HttpRequests {
 
       try {
         if (isSuccessful(conn.getResponseCode())) {
-          return new HttpResponse(conn.getResponseCode(), conn.getResponseMessage(),
-                                  ByteStreams.toByteArray(conn.getInputStream()));
+          return new HttpResponse(conn.getResponseCode(), conn.getResponseMessage(), nullGuard(conn.getInputStream()));
         }
       } catch (FileNotFoundException e) {
         // Server returns 404. Hence handle as error flow below. Intentional having empty catch block.
@@ -114,8 +114,7 @@ public final class HttpRequests {
 
       // Non 2xx response
       InputStream es = conn.getErrorStream();
-      byte[] content = (es == null) ? new byte[0] : ByteStreams.toByteArray(es);
-      return new HttpResponse(conn.getResponseCode(), conn.getResponseMessage(), content);
+      return new HttpResponse(conn.getResponseCode(), conn.getResponseMessage(), nullGuard(es));
     } finally {
       conn.disconnect();
     }
@@ -136,7 +135,14 @@ public final class HttpRequests {
     return 200 <= responseCode && responseCode < 300;
   }
 
-  public static void disableCertCheck(HttpsURLConnection conn)
+  private static InputStream nullGuard(InputStream inputStream) {
+    if (inputStream == null) {
+      return new ByteArrayInputStream(new byte[0]);
+    }
+    return inputStream;
+  }
+
+  private static void disableCertCheck(HttpsURLConnection conn)
     throws NoSuchAlgorithmException, KeyManagementException {
     if (TRUST_ALL_SSL_FACTORY.get() == null) {
       SSLContext sslContext = SSLContext.getInstance("SSL");

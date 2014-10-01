@@ -284,20 +284,31 @@ abstract class ExploreHttpClient implements Explore {
     throw new ExploreException("Cannot get the tables. Reason: " + getDetails(response));
   }
 
+  private String parseResponse(HttpResponse response) throws ExploreException {
+    try {
+      return new String(response.getResponseBody(), Charsets.UTF_8);
+    } catch (IOException e) {
+      String message = "Cannot parse server response";
+      LOG.error(message, e);
+      throw new ExploreException(message, e);
+    }
+  }
+
   private String parseResponseAsMap(HttpResponse response, String key) throws ExploreException {
     Map<String, String> responseMap = parseJson(response, MAP_TYPE_TOKEN);
     if (responseMap.containsKey(key)) {
       return responseMap.get(key);
     }
 
-    String message = String.format("Cannot find key %s in server response: %s", key,
-                                   new String(response.getResponseBody(), Charsets.UTF_8));
+    String responseString = parseResponse(response);
+    String message = String.format("Cannot find key %s in server response: %s", key, responseString);
     LOG.error(message);
     throw new ExploreException(message);
   }
 
   private <T> T parseJson(HttpResponse response, Type type) throws ExploreException {
-    String responseString = new String(response.getResponseBody(), Charsets.UTF_8);
+    String responseString = parseResponse(response);
+
     try {
       return GSON.fromJson(responseString, type);
     } catch (JsonSyntaxException e) {
@@ -350,11 +361,10 @@ abstract class ExploreHttpClient implements Explore {
     }
   }
 
-  private String getDetails(HttpResponse response) {
+  private String getDetails(HttpResponse response) throws ExploreException {
     return String.format("Response code: %s, message:'%s', body: '%s'",
                          response.getResponseCode(), response.getResponseMessage(),
-                         response.getResponseBody() == null ?
-                           "null" : new String(response.getResponseBody(), Charsets.UTF_8));
+                         parseResponse(response));
 
   }
 

@@ -25,6 +25,7 @@ import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -130,7 +131,7 @@ public abstract class HttpRequestsTestBase {
   }
 
   private void verifyResponse(HttpResponse response, Matcher<Object> expectedResponseCode,
-                              Matcher<Object> expectedMessage, Matcher<Object> expectedBody) {
+                              Matcher<Object> expectedMessage, Matcher<Object> expectedBody) throws IOException {
 
     Assert.assertTrue("Response code - expected: " + expectedResponseCode.toString()
                         + " actual: " + response.getResponseCode(),

@@ -88,7 +88,7 @@ class DatasetServiceClient {
                                                          instanceName, getDetails(response)));
     }
 
-    return GSON.fromJson(new String(response.getResponseBody(), Charsets.UTF_8), DatasetMeta.class);
+    return GSON.fromJson(parseResponse(response), DatasetMeta.class);
   }
 
   public Collection<DatasetSpecification> getAllInstances() throws DatasetManagementException {
@@ -98,8 +98,7 @@ class DatasetServiceClient {
                                                          getDetails(response)));
     }
 
-    return GSON.fromJson(new String(response.getResponseBody(), Charsets.UTF_8),
-                         new TypeToken<List<DatasetSpecification>>() { }.getType());
+    return GSON.fromJson(parseResponse(response), new TypeToken<List<DatasetSpecification>>() { }.getType());
   }
 
   public Collection<DatasetModuleMeta> getAllModules() throws DatasetManagementException {
@@ -109,8 +108,7 @@ class DatasetServiceClient {
                                                          getDetails(response)));
     }
 
-    return GSON.fromJson(new String(response.getResponseBody(), Charsets.UTF_8),
-                         new TypeToken<List<DatasetModuleMeta>>() { }.getType());
+    return GSON.fromJson(parseResponse(response), new TypeToken<List<DatasetModuleMeta>>() { }.getType());
   }
 
   public DatasetTypeMeta getType(String typeName) throws DatasetManagementException {
@@ -122,7 +120,7 @@ class DatasetServiceClient {
       throw new DatasetManagementException(String.format("Cannot retrieve dataset type %s info, details: %s",
                                                          typeName, getDetails(response)));
     }
-    return GSON.fromJson(new String(response.getResponseBody(), Charsets.UTF_8), DatasetTypeMeta.class);
+    return GSON.fromJson(parseResponse(response), DatasetTypeMeta.class);
   }
 
   public void addInstance(String datasetInstanceName, String datasetType, DatasetProperties props)
@@ -188,7 +186,6 @@ class DatasetServiceClient {
                                                          moduleName, getDetails(response)));
     }
   }
-
 
   public void deleteModule(String moduleName) throws DatasetManagementException {
     HttpResponse response = doDelete("modules/" + moduleName);
@@ -277,10 +274,16 @@ class DatasetServiceClient {
 
   private String getDetails(HttpResponse response) throws DatasetManagementException {
     return String.format("Response code: %s, message:'%s', body: '%s'",
-                         response.getResponseCode(), response.getResponseMessage(),
-                         response.getResponseBody() == null ?
-                           "null" : new String(response.getResponseBody(), Charsets.UTF_8));
+                         response.getResponseCode(), response.getResponseMessage(), parseResponse(response));
 
+  }
+
+  private String parseResponse(HttpResponse response) throws DatasetManagementException {
+    try {
+      return new String(response.getResponseBody(), Charsets.UTF_8);
+    } catch (IOException e) {
+      throw new DatasetManagementException("Cannot parse response", e);
+    }
   }
 
   private String resolve(String resource) throws DatasetManagementException {

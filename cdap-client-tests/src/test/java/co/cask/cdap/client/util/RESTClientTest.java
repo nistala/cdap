@@ -38,6 +38,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -135,7 +136,7 @@ public class RESTClientTest {
   }
 
   private void verifyResponse(HttpResponse response, Matcher<Object> expectedResponseCode,
-                              Matcher<Object> expectedMessage, Matcher<Object> expectedBody) {
+                              Matcher<Object> expectedMessage, Matcher<Object> expectedBody) throws IOException {
 
     Assert.assertTrue("Response code - expected: " + expectedResponseCode.toString()
                         + " actual: " + response.getResponseCode(),

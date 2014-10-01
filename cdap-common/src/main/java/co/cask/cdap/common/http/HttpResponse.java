@@ -16,7 +16,10 @@
 package co.cask.cdap.common.http;
 
 import com.google.common.base.Charsets;
+import com.google.common.io.ByteStreams;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 
 /**
@@ -25,12 +28,12 @@ import java.nio.charset.Charset;
 public class HttpResponse {
   private final int responseCode;
   private final String responseMessage;
-  private final byte[] responseBody;
+  private final InputStream content;
 
-  HttpResponse(int responseCode, String responseMessage, byte[] responseBody) {
+  HttpResponse(int responseCode, String responseMessage, InputStream content) {
     this.responseCode = responseCode;
     this.responseMessage = responseMessage;
-    this.responseBody = responseBody;
+    this.content = content;
   }
 
   public int getResponseCode() {
@@ -41,15 +44,19 @@ public class HttpResponse {
     return responseMessage;
   }
 
-  public byte[] getResponseBody() {
-    return responseBody;
+  public InputStream getContent() {
+    return content;
   }
 
-  public String getResponseBodyAsString() {
-    return new String(responseBody, Charsets.UTF_8);
+  public byte[] getResponseBody() throws IOException {
+    return ByteStreams.toByteArray(content);
   }
 
-  public String getResponseBodyAsString(Charset charset) {
-    return new String(responseBody, charset);
+  public String getResponseBodyAsString() throws IOException {
+    return new String(getResponseBody(), Charsets.UTF_8);
+  }
+
+  public String getResponseBodyAsString(Charset charset) throws IOException {
+    return new String(getResponseBody(), charset);
   }
 }

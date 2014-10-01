@@ -19,6 +19,7 @@ import com.google.common.base.Charsets;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 
+import java.io.IOException;
 import java.lang.reflect.Type;
 
 /**
@@ -33,35 +34,39 @@ public final class ObjectResponse<T> extends HttpResponse {
   private final T object;
 
   @SuppressWarnings("unchecked")
-  public static <T> ObjectResponse<T> fromJsonBody(HttpResponse response, Type typeOfObject, Gson gson) {
+  public static <T> ObjectResponse<T> fromJsonBody(HttpResponse response, Type typeOfObject,
+                                                   Gson gson) throws IOException {
     T object = response.getResponseBody() == null ?
       null : (T) gson.fromJson(new String(response.getResponseBody(), Charsets.UTF_8), typeOfObject);
     return new ObjectResponse<T>(response, object);
   }
 
   @SuppressWarnings("unchecked")
-  public static <T> ObjectResponse<T> fromJsonBody(HttpResponse response, Type typeOfObject) {
+  public static <T> ObjectResponse<T> fromJsonBody(HttpResponse response, Type typeOfObject) throws IOException {
     return fromJsonBody(response, typeOfObject, GSON);
   }
 
-  public static <T> ObjectResponse<T> fromJsonBody(HttpResponse response, TypeToken<T> typeOfObject, Gson gson) {
+  public static <T> ObjectResponse<T> fromJsonBody(HttpResponse response, TypeToken<T> typeOfObject,
+                                                   Gson gson) throws IOException {
     return fromJsonBody(response, typeOfObject.getType(), gson);
   }
 
-  public static <T> ObjectResponse<T> fromJsonBody(HttpResponse response, TypeToken<T> typeOfObject) {
+  public static <T> ObjectResponse<T> fromJsonBody(HttpResponse response,
+                                                   TypeToken<T> typeOfObject) throws IOException {
     return fromJsonBody(response, typeOfObject.getType(), GSON);
   }
 
-  public static <T> ObjectResponse<T> fromJsonBody(HttpResponse response, Class<T> typeOfObject, Gson gson) {
+  public static <T> ObjectResponse<T> fromJsonBody(HttpResponse response, Class<T> typeOfObject,
+                                                   Gson gson) throws IOException {
     return fromJsonBody(response, (Type) typeOfObject, gson);
   }
 
-  public static <T> ObjectResponse<T> fromJsonBody(HttpResponse response, Class<T> typeOfObject) {
+  public static <T> ObjectResponse<T> fromJsonBody(HttpResponse response, Class<T> typeOfObject) throws IOException {
     return fromJsonBody(response, (Type) typeOfObject, GSON);
   }
 
   private ObjectResponse(HttpResponse response, T object) {
-    super(response.getResponseCode(), response.getResponseMessage(), response.getResponseBody());
+    super(response.getResponseCode(), response.getResponseMessage(), response.getContent());
     this.object = object;
   }
 

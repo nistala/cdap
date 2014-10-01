@@ -30,7 +30,6 @@ import co.cask.cdap.common.http.ObjectResponse;
 import co.cask.cdap.common.stream.StreamEventTypeAdapter;
 import co.cask.cdap.proto.StreamProperties;
 import co.cask.cdap.proto.StreamRecord;
-import co.cask.cdap.security.authentication.client.AccessToken;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
@@ -44,13 +43,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.List;
 import javax.inject.Inject;
-import javax.net.ssl.HttpsURLConnection;
-import javax.ws.rs.core.HttpHeaders;
 
 /**
  * Provides ways to interact with CDAP Streams.
@@ -216,44 +211,30 @@ public class StreamClient {
    * @throws IOException If fails to read from stream
    * @throws StreamNotFoundException If the given stream does not exists
    */
-  public void getEvents(String streamId, long startTime, long endTime, int limit,
-                        Function<? super StreamEvent, Boolean> callback) throws IOException, StreamNotFoundException {
+  public void getEvents(final String streamId, long startTime, long endTime, int limit,
+                        final Function<? super StreamEvent, Boolean> callback)
+    throws IOException, StreamNotFoundException {
+
     URL url = config.resolveURL(String.format("streams/%s/events?start=%d&end=%d&limit=%d",
                                               streamId, startTime, endTime, limit));
-    HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
-    AccessToken accessToken = config.getAccessToken();
-    if (accessToken != null) {
-      urlConn.setRequestProperty(HttpHeaders.AUTHORIZATION, accessToken.getTokenType() + " " + accessToken.getValue());
+    HttpRequest request = HttpRequest.get(url).build();
+    HttpResponse response = HttpRequests.execute(request);
+
+    if (response.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) {
+      throw new StreamNotFoundException(streamId);
     }
 
-    if (urlConn instanceof HttpsURLConnection && !config.getDefaultConfig().isVerifySSLCert()) {
-      try {
-        HttpRequests.disableCertCheck((HttpsURLConnection) urlConn);
-      } catch (Exception e) {
-        // TODO: Log "Got exception while disabling SSL certificate check for request.getURL()"
-      }
+    if (response.getResponseCode() == HttpURLConnection.HTTP_NO_CONTENT) {
+      return;
     }
 
-    try {
-      if (urlConn.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-        throw new StreamNotFoundException(streamId);
+    JsonReader jsonReader = new JsonReader(new InputStreamReader(response.getContent(), Charsets.UTF_8));
+    jsonReader.beginArray();
+    while (jsonReader.peek() != JsonToken.END_ARRAY) {
+      Boolean result = callback.apply(GSON.<StreamEvent>fromJson(jsonReader, StreamEvent.class));
+      if (result == null || !result) {
+        break;
       }
-      if (urlConn.getResponseCode() == HttpURLConnection.HTTP_NO_CONTENT) {
-        return;
-      }
-
-      // The response is an array of stream event object
-      JsonReader jsonReader = new JsonReader(new InputStreamReader(urlConn.getInputStream(), Charsets.UTF_8));
-      jsonReader.beginArray();
-      while (jsonReader.peek() != JsonToken.END_ARRAY) {
-        Boolean result = callback.apply(GSON.<StreamEvent>fromJson(jsonReader, StreamEvent.class));
-        if (result == null || !result) {
-          break;
-        }
-      }
-      // No need to close reader, the urlConn.disconnect in finally will close all underlying streams
-    } finally {
-      urlConn.disconnect();
     }
   }
 

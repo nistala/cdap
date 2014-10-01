@@ -107,7 +107,8 @@ public abstract class RemoteDatasetOpExecutor extends AbstractIdleService implem
   private DatasetAdminOpResponse executeAdminOp(String instanceName, String opName)
     throws IOException, HandlerException {
 
-    HttpResponse httpResponse = HttpRequests.execute(HttpRequest.post(resolve(instanceName, opName)).build());
+    HttpRequest request = HttpRequest.post(resolve(instanceName, opName)).build();
+    HttpResponse httpResponse = HttpRequests.execute(request);
     if (httpResponse.getResponseCode() != 200) {
       throw new HandlerException(HttpResponseStatus.valueOf(httpResponse.getResponseCode()),
                                  httpResponse.getResponseMessage());
