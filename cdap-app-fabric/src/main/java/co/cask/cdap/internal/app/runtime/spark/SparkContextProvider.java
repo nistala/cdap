@@ -17,8 +17,10 @@
 package co.cask.cdap.internal.app.runtime.spark;
 
 import co.cask.cdap.common.conf.CConfiguration;
+import co.cask.cdap.internal.app.runtime.spark.distributed.DistributedSparkContextBuilder;
 import co.cask.cdap.internal.app.runtime.spark.inmemory.InMemorySparkContextBuilder;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.mapreduce.MRConfig;
 
 /**
@@ -64,7 +66,8 @@ public class SparkContextProvider {
       if ("local".equals(mrFramework)) {
         contextBuilder = new InMemorySparkContextBuilder(conf);
       } else {
-        throw new RuntimeException("Spark does not run in distributed mode right now");
+//        throw new RuntimeException("Spark does not run in distributed mode right now");
+        contextBuilder = new DistributedSparkContextBuilder(conf, HBaseConfiguration.create(hConf));
       }
     }
     return contextBuilder;

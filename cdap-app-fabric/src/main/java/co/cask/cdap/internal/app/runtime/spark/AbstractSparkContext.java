@@ -89,6 +89,7 @@ abstract class AbstractSparkContext implements SparkContext {
     SparkConf sparkConf = new SparkConf();
     sparkConf.setAppName(basicSparkContext.getProgramName());
     sparkConf.set(SPARK_METRICS_CONF_KEY, basicSparkContext.getMetricsPropertyFile().getAbsolutePath());
+    sparkConf.set("spark.yarn.user.classpath.first", "true");
     return sparkConf;
   }
 

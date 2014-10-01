@@ -315,9 +315,10 @@ final class SparkRuntimeService extends AbstractExecutionThreadService {
       }
     }
 
+    String mode = conf.get(MRConfig.FRAMEWORK_NAME).equalsIgnoreCase("local") ?
+      conf.get(MRConfig.FRAMEWORK_NAME) : "yarn-client";
     return new String[]{"--class", SparkProgramWrapper.class.getCanonicalName(), "--jars",
-      Joiner.on(',').join(jars), "--master", conf.get(MRConfig.FRAMEWORK_NAME), jobJarCopy.toURI().getPath(),
-      sparkSpec.getMainClassName()};
+      Joiner.on(',').join(jars), "--master", mode, jobJarCopy.toURI().getPath(), sparkSpec.getMainClassName()};
   }
 
   /**
