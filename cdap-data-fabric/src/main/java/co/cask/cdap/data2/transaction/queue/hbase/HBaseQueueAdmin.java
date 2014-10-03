@@ -17,6 +17,7 @@
 package co.cask.cdap.data2.transaction.queue.hbase;
 
 import co.cask.cdap.api.common.Bytes;
+import co.cask.cdap.api.dataset.DatasetAdmin;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.queue.QueueName;
 import co.cask.cdap.data.Namespace;
@@ -42,6 +43,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -463,7 +465,9 @@ public class HBaseQueueAdmin implements QueueAdmin {
                                  getConsumerStateColumn(removeGroupId, i));
           }
         }
-        mutations.add(delete);
+        if (!delete.isEmpty()) {
+          mutations.add(delete);
+        }
       }
 
       // For each group that changed (either a new group or number of instances change), update the startRow
@@ -474,8 +478,7 @@ public class HBaseQueueAdmin implements QueueAdmin {
         if (!oldGroupInfo.containsKey(groupId)) {
           // For new group, simply put with smallest rowKey from other group or an empty byte array if none exists.
           for (int i = 0; i < instances; i++) {
-            put.add(QueueEntryRow.COLUMN_FAMILY,
-                    getConsumerStateColumn(groupId, i),
+            put.add(QueueEntryRow.COLUMN_FAMILY, getConsumerStateColumn(groupId, i),
                     smallest == null ? Bytes.EMPTY_BYTE_ARRAY : smallest);
           }
         } else if (oldGroupInfo.get(groupId) != instances) {
@@ -487,7 +490,9 @@ public class HBaseQueueAdmin implements QueueAdmin {
           mutations = getConfigMutations(groupId, instances, rowKey, HBaseConsumerState.create(columnMap), mutations);
         }
       }
-      mutations.add(put);
+      if (!put.isEmpty()) {
+        mutations.add(put);
+      }
 
       // Compute and applies changes
       if (!mutations.isEmpty()) {
