@@ -111,12 +111,14 @@ final class SparkRuntimeService extends AbstractExecutionThreadService {
 
     try {
       Location programJarCopy = copyProgramJar(programJarLocation, context);
+      LOG.info("Built program jar at {}", programJarCopy.toURI().toString());
       try {
         // We remember tx, so that we can re-use it in Spark tasks
         Transaction tx = txClient.startLong();
         try {
           SparkContextConfig.set(sparkHConf, context, cConf, tx, programJarCopy);
           Location dependencyJar = buildDependencyJar(context, SparkContextConfig.getHConf());
+          LOG.info("Built dependency jar at {}", dependencyJar.toURI().toString());
           try {
             File tmpFile = File.createTempFile(SparkMetricsSink.SPARK_METRICS_PROPERTIES_FILENAME,
                                                Location.TEMP_FILE_SUFFIX,

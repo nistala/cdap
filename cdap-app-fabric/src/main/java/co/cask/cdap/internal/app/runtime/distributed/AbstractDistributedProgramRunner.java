@@ -122,6 +122,8 @@ public abstract class AbstractDistributedProgramRunner implements ProgramRunner 
           .withDependencies(new HBaseTableUtilFactory().get().getClass())
           .addLogHandler(new PrinterLogHandler(new PrintWriter(System.out)))
           .addSecureStore(YarnSecureStore.create(HBaseTokenUtils.obtainToken(hConf, new Credentials())))
+          .withClassPaths(twillApplication instanceof SparkTwillApplication ?
+                            "/usr/lib/spark/assembly/lib/spark-assembly-1.0.0-cdh5.1.3-hadoop2.3.0-cdh5.1.3.jar" : "")
           .withApplicationArguments(
             String.format("--%s", RunnableOptions.JAR), copiedProgram.getJarLocation().getName(),
             String.format("--%s", RunnableOptions.RUNTIME_ARGS), runtimeArgs
