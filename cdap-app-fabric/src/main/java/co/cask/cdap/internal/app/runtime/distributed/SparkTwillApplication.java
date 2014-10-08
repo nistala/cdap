@@ -31,6 +31,9 @@ import java.io.File;
  */
 public final class SparkTwillApplication implements TwillApplication {
 
+  static final File SPARK_JAR_FILE =
+                        new File ("/usr/lib/spark/assembly/lib/spark-assembly-1.0.0-cdh5.1.3-hadoop2.3.0-cdh5.1.3.jar");
+
   private final SparkSpecification spec;
   private final Program program;
   private final File hConfig;
@@ -59,11 +62,6 @@ public final class SparkTwillApplication implements TwillApplication {
 
     Location programLocation = program.getJarLocation();
 
-    // get spark jar
-    final String sparkHomeDir = "/usr/lib/spark";
-    File sparkLibJar = new File((sparkHomeDir.endsWith("/") ? sparkHomeDir + "" : sparkHomeDir + "/") +
-                            "assembly/lib/spark-assembly-1.0.0-cdh5.1.3-hadoop2.3.0-cdh5.1.3.jar");
-
     return TwillSpecification.Builder.with()
       .setName(String.format("%s.%s.%s.%s",
                              ProgramType.SPARK.name().toLowerCase(),
@@ -76,7 +74,7 @@ public final class SparkTwillApplication implements TwillApplication {
       .add(programLocation.getName(), programLocation.toURI())
       .add("hConf.xml", hConfig.toURI())
       .add("cConf.xml", cConfig.toURI())
-      .add(sparkLibJar.getName(), sparkLibJar.toURI()).apply()
+      .add(SPARK_JAR_FILE.getName(), SPARK_JAR_FILE.toURI()).apply()
       .anyOrder().withEventHandler(eventHandler).build();
   }
 }
