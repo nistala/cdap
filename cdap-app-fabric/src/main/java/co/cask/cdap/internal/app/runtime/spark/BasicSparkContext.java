@@ -111,6 +111,11 @@ public class BasicSparkContext extends AbstractContext implements SparkContext {
     throw new IllegalStateException("Writing  dataset is not supported here");
   }
 
+  @Override
+  public <T> T readFromStream(String streamName, Class<?> vClass, long startTime, long endTime) {
+    throw new IllegalStateException("Reading stream is not supported here");
+  }
+
   private static String getMetricContext(Program program) {
     return String.format("%s.%s.%s.%s", program.getApplicationId(), TypeId.getMetricContextId(ProgramType.SPARK),
                          program.getName(), INSTANCE_ID);

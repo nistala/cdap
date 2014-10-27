@@ -17,6 +17,7 @@
 package co.cask.cdap.api.spark;
 
 import co.cask.cdap.api.RuntimeContext;
+import co.cask.cdap.api.data.stream.Stream;
 import co.cask.cdap.api.dataset.Dataset;
 
 /**
@@ -69,6 +70,18 @@ public interface SparkContext extends RuntimeContext {
    * @throws UnsupportedOperationException if the SparkContext is not yet initialized
    */
   <T> void writeToDataset(T rdd, String datasetName, Class<?> kClass, Class<?> vClass);
+
+  /**
+   * Create a Spark RDD that uses {@link Stream} as input source
+   *
+   * @param streamName the name of the {@link Stream} to be read as an RDD
+   * @param vClass     the value class
+   * @param startTime  the starting time of the stream to be read
+   * @param endTime    the ending time of the streams to be read
+   * @param <T>        type of RDD
+   * @return the RDD created from {@link Stream}
+   */
+  <T> T readFromStream(String streamName, Class<?> vClass, long startTime, long endTime);
 
   /**
    * Returns

@@ -81,71 +81,93 @@ public class StreamInputFormat<K, V> extends InputFormat<K, V> {
   private static final String MIN_SPLIT_SIZE = "input.streaminputformat.min.splits.size";
   private static final String DECODER_TYPE = "input.streaminputformat.decoder.type";
 
+  public static void setTTL(Job job, long ttl) {
+    setTTL(job.getConfiguration(), ttl);
+  }
+
   /**
    * Sets the TTL for the stream events.
    *
-   * @param job The job to modify
+   * @param conf  The job configuration to modify
    * @param ttl TTL of the stream in milliseconds.
    */
-  public static void setTTL(Job job, long ttl) {
+  public static void setTTL(Configuration conf, long ttl) {
     Preconditions.checkArgument(ttl >= 0, "TTL must be >= 0");
-    job.getConfiguration().setLong(STREAM_TTL, ttl);
+    conf.setLong(STREAM_TTL, ttl);
+  }
+
+  public static void setTimeRange(Job job, long startTime, long endTime) {
+    setTimeRange(job.getConfiguration(), startTime, endTime);
   }
 
   /**
    * Sets the time range for the stream events.
    *
-   * @param job The job to modify
+   * @param conf The job to modify
    * @param startTime Timestamp in milliseconds of the event start time (inclusive).
    * @param endTime Timestamp in milliseconds of the event end time (exclusive).
    */
-  public static void setTimeRange(Job job, long startTime, long endTime) {
+  public static void setTimeRange(Configuration conf, long startTime, long endTime) {
     Preconditions.checkArgument(startTime >= 0, "Start time must be >= 0");
     Preconditions.checkArgument(endTime >= 0, "End time must be >= 0");
 
-    job.getConfiguration().setLong(EVENT_START_TIME, startTime);
-    job.getConfiguration().setLong(EVENT_END_TIME, endTime);
+    conf.setLong(EVENT_START_TIME, startTime);
+    conf.setLong(EVENT_END_TIME, endTime);
+  }
+
+  public static void setStreamPath(Job job, URI path) {
+    setStreamPath(job.getConfiguration(), path);
   }
 
   /**
    * Sets the base path to stream files.
    *
-   * @param job The job to modify.
+   * @param conf The conf to modify.
    * @param path The file path to stream base directory.
    */
-  public static void setStreamPath(Job job, URI path) {
-    job.getConfiguration().set(STREAM_PATH, path.toString());
+  public static void setStreamPath(Configuration conf, URI path) {
+    conf.set(STREAM_PATH, path.toString());
   }
 
+  public static void setMaxSplitSize(Job job, long maxSplits) {
+    setMaxSplitSize(job.getConfiguration(), maxSplits);
+  }
   /**
    * Sets the maximum split size.
    *
-   * @param job The job to modify.
+   * @param conf The conf to modify.
    * @param maxSplits Maximum split size in bytes.
    */
-  public static void setMaxSplitSize(Job job, long maxSplits) {
-    job.getConfiguration().setLong(MAX_SPLIT_SIZE, maxSplits);
+  public static void setMaxSplitSize(Configuration conf, long maxSplits) {
+    conf.setLong(MAX_SPLIT_SIZE, maxSplits);
+  }
+
+  public static void setMinSplitSize(Job job, long minSplits) {
+    setMinSplitSize(job.getConfiguration(), minSplits);
   }
 
   /**
    * Sets the minimum split size.
    *
-   * @param job The job to modify.
+   * @param conf The job to modify.
    * @param minSplits Minimum split size in bytes.
    */
-  public static void setMinSplitSize(Job job, long minSplits) {
-    job.getConfiguration().setLong(MIN_SPLIT_SIZE, minSplits);
+  public static void setMinSplitSize(Configuration conf, long minSplits) {
+    conf.setLong(MIN_SPLIT_SIZE, minSplits);
   }
 
+  public static void setDecoderType(Job job, String decoderType) {
+    setDecoderType(job.getConfiguration(), decoderType);
+  }
 
   /**
    * Sets the class name for the {@link StreamEventDecoder}.
    *
-   * @param job The job to modify.
+   * @param conf The job to modify.
    * @param decoderType Class name of the decoder class
    */
-  public static void setDecoderType(Job job, String decoderType) {
-    job.getConfiguration().set(DECODER_TYPE, decoderType);
+  public static void setDecoderType(Configuration conf, String decoderType) {
+    conf.set(DECODER_TYPE, decoderType);
   }
 
   /**
