@@ -55,12 +55,10 @@ public class SparkPageRankApp extends AbstractApplication {
     setName("SparkPageRank");
     setDescription("Spark page rank app");
     addStream(new Stream("backlinkURLStream"));
-    addFlow(new BackLinkFlow());
     addSpark(new SparkPageRankSpecification());
     addProcedure(new RanksProcedure());
 
     try {
-      ObjectStores.createObjectStore(getConfigurer(), "backlinkURLs", String.class);
       ObjectStores.createObjectStore(getConfigurer(), "ranks", Double.class);
     } catch (UnsupportedTypeException e) {
       // This exception is thrown by ObjectStore if its parameter type cannot be
@@ -82,59 +80,6 @@ public class SparkPageRankApp extends AbstractApplication {
         .setDescription("Spark Page Rank Program")
         .setMainClassName(SparkPageRankProgram.class.getName())
         .build();
-    }
-  }
-
-  /**
-   * This is a simple Flow that consumes URL pair events from a Stream and stores them in a dataset.
-   */
-  public static class BackLinkFlow implements Flow {
-
-    @Override
-    public FlowSpecification configure() {
-      return FlowSpecification.Builder.with()
-        .setName("BackLinkFlow")
-        .setDescription("Reads URL pair and stores in dataset")
-        .withFlowlets()
-        .add("reader", new BacklinkURLsReader())
-        .connect()
-        .fromStream("backlinkURLStream").to("reader")
-        .build();
-    }
-  }
-
-  /**
-   * This Flowlet reads events from a Stream and saves them to a datastore.
-   */
-  public static class BacklinkURLsReader extends AbstractFlowlet {
-
-    private static final Logger LOG = LoggerFactory.getLogger(BacklinkURLsReader.class);
-
-    // Annotation indicates that backlinkURLs dataset is used in the Flowlet.
-    @UseDataSet("backlinkURLs")
-    private ObjectStore<String> backlinkStore;
-
-    /**
-     * Input file format should be pairs of an URL and a backlink URL:
-     * URL backlink-URL
-     * URL backlink-URL
-     * URL backlink-URL
-     * ...
-     * where URL and its backlink URL are separated by a space.
-     */
-    @ProcessInput
-    public void process(StreamEvent event) {
-      String body = new String(event.getBody().array());
-      LOG.trace("Backlink info: {}", body);
-      // Store the URL pairs in one row. One pair is kept in the value of an table entry.
-      backlinkStore.write(getIdAsByte(UUID.randomUUID()), body);
-    }
-
-    private static byte[] getIdAsByte(UUID uuid) {
-      ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
-      bb.putLong(uuid.getMostSignificantBits());
-      bb.putLong(uuid.getLeastSignificantBits());
-      return bb.array();
     }
   }
 
