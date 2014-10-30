@@ -17,11 +17,21 @@
 package co.cask.cdap.examples.purchase;
 
 import co.cask.cdap.api.service.AbstractService;
+import co.cask.cdap.api.service.AbstractServiceWorker;
+import co.cask.cdap.api.service.ServiceWorkerContext;
 import co.cask.cdap.api.service.http.AbstractHttpServiceHandler;
 import co.cask.cdap.api.service.http.HttpServiceRequest;
 import co.cask.cdap.api.service.http.HttpServiceResponder;
 import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.AbstractScheduledService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -30,13 +40,102 @@ import javax.ws.rs.PathParam;
  * A Catalog Lookup Service implementation that provides ids for products.
  */
 public class CatalogLookupService extends AbstractService {
+  private static final Logger LOG = LoggerFactory.getLogger(CatalogLookupService.class);
 
   @Override
   protected void configure() {
     setName(PurchaseApp.SERVICE_NAME);
     setDescription("Service to lookup product ids.");
     addHandler(new ProductCatalogLookup());
+    addWorker(new GuavaServiceWorker(new CrawlingService()));
   }
+
+  /**
+   * A Catalog Lookup Service implementation that provides ids for products.
+   */
+  public static class CrawlingService extends AbstractScheduledService {
+    private static final Logger LOG = LoggerFactory.getLogger(CrawlingService.class);
+
+    protected void startUp() throws Exception {
+      LOG.info("started up");
+    }
+
+    protected void runOneIteration() throws Exception {
+      LOG.info("run one iteration");
+    }
+
+    protected void shutDown() throws Exception {
+      LOG.info("started up");
+    }
+
+    @Override
+    protected Scheduler scheduler() {
+      return Scheduler.newFixedRateSchedule(0, 1, TimeUnit.SECONDS);
+    }
+  }
+
+  public class GuavaServiceWorker extends AbstractServiceWorker {
+
+    private com.google.common.util.concurrent.Service service;
+    private CountDownLatch stopLatch;
+
+    public GuavaServiceWorker(com.google.common.util.concurrent.Service service) {
+      this.service = service;
+    }
+
+    @Override
+    protected void configure() {
+      setProperties(ImmutableMap.of("service.class", service.getClass().getName()));
+    }
+
+    @Override
+    public void initialize(ServiceWorkerContext context) throws Exception {
+      super.initialize(context);
+      String serviceClassName = context.getSpecification().getProperties().get("service.class");
+      service = (com.google.common.util.concurrent.Service) Class.forName(serviceClassName).newInstance();
+
+      stopLatch = new CountDownLatch(1);
+      service.addListener(new Service.Listener() {
+        @Override
+        public void starting() {
+        }
+
+        @Override
+        public void running() {
+        }
+
+        @Override
+        public void stopping(Service.State from) {
+        }
+
+        @Override
+        public void terminated(Service.State from) {
+          stopLatch.countDown();
+        }
+
+        @Override
+        public void failed(Service.State from, Throwable failure) {
+          stopLatch.countDown();
+        }
+      }, MoreExecutors.sameThreadExecutor());
+      service.start();
+    }
+
+    @Override
+    public void run() {
+      try {
+        stopLatch.await();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+
+    @Override
+    public void stop() {
+      service.stop();
+    }
+  }
+
 
   /**
    * Lookup Handler to serve requests.

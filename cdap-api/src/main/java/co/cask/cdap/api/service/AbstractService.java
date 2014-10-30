@@ -82,6 +82,14 @@ public abstract class AbstractService implements Service {
   }
 
   /**
+   * Adds a worker to the Service. The worker simple class name is used as the worker name.
+   * @param worker
+   */
+  protected void addWorker(ServiceWorker worker) {
+    addWorker(worker.getClass().getSimpleName(), worker);
+  }
+
+  /**
    * Adds workers to the Service. The worker simple class name is used as the worker name.
    *
    * @param worker The worker to add
