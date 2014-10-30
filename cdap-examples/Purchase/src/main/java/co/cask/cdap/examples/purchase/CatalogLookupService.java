@@ -25,12 +25,13 @@ import co.cask.cdap.api.service.http.HttpServiceResponder;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.AbstractScheduledService;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Service;
+import org.apache.twill.common.Services;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -77,7 +78,7 @@ public class CatalogLookupService extends AbstractService {
   public class GuavaServiceWorker extends AbstractServiceWorker {
 
     private com.google.common.util.concurrent.Service service;
-    private CountDownLatch stopLatch;
+    private Future<Service.State> completion;
 
     public GuavaServiceWorker(com.google.common.util.concurrent.Service service) {
       this.service = service;
@@ -93,40 +94,18 @@ public class CatalogLookupService extends AbstractService {
       super.initialize(context);
       String serviceClassName = context.getSpecification().getProperties().get("service.class");
       service = (com.google.common.util.concurrent.Service) Class.forName(serviceClassName).newInstance();
-
-      stopLatch = new CountDownLatch(1);
-      service.addListener(new Service.Listener() {
-        @Override
-        public void starting() {
-        }
-
-        @Override
-        public void running() {
-        }
-
-        @Override
-        public void stopping(Service.State from) {
-        }
-
-        @Override
-        public void terminated(Service.State from) {
-          stopLatch.countDown();
-        }
-
-        @Override
-        public void failed(Service.State from, Throwable failure) {
-          stopLatch.countDown();
-        }
-      }, MoreExecutors.sameThreadExecutor());
+      completion = Services.getCompletionFuture(service);
       service.start();
     }
 
     @Override
     public void run() {
       try {
-        stopLatch.await();
+        completion.get();
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
+      } catch (ExecutionException e) {
+        LOG.error("Caught exception while running guava service: ", e);
       }
     }
 
