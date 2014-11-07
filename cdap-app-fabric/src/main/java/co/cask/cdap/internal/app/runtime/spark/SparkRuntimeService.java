@@ -176,6 +176,7 @@ final class SparkRuntimeService extends AbstractExecutionThreadService {
       } finally {
         // job completed so update running status and get the success status
         SparkProgramWrapper.setSparkProgramRunning(false);
+        SparkProgramWrapper.stopSparkProgram(); // calls stop on SparkContext
         Thread.currentThread().setContextClassLoader(oldClassLoader);
       }
     } catch (Exception e) {
