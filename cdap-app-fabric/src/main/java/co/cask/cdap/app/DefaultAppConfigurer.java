@@ -45,7 +45,9 @@ import co.cask.cdap.internal.spark.DefaultSparkSpecification;
 import co.cask.cdap.internal.workflow.DefaultWorkflowSpecification;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import com.google.common.reflect.TypeToken;
 
+import java.lang.reflect.Type;
 import java.util.Map;
 
 /**
@@ -110,13 +112,15 @@ public class DefaultAppConfigurer implements ApplicationConfigurer {
   }
 
   @Override
-  public void createDataset(String datasetInstanceName,
-                            Class<? extends Dataset> datasetClass,
-                            DatasetProperties properties) {
-
+  public void createDataset(String datasetInstanceName, Type datasetType, DatasetProperties properties) {
     Preconditions.checkArgument(datasetInstanceName != null, "Dataset instance name cannot be null.");
-    Preconditions.checkArgument(datasetClass != null, "Dataset class name cannot be null.");
+    Preconditions.checkArgument(datasetType != null, "Dataset type cannot be null.");
     Preconditions.checkArgument(properties != null, "Instance properties name cannot be null.");
+
+    Class<?> datasetClass = TypeToken.of(datasetType).getRawType();
+    Preconditions.checkArgument(Dataset.class.isAssignableFrom(datasetClass),
+                                "Dataset type should implements interface {}", Dataset.class.getName());
+
     dataSetInstances.put(datasetInstanceName,
                          new DatasetCreationSpec(datasetInstanceName, datasetClass.getName(), properties));
     dataSetModules.put(datasetClass.getName(), datasetClass.getName());

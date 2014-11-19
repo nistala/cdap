@@ -30,6 +30,8 @@ import co.cask.cdap.api.service.http.HttpServiceHandler;
 import co.cask.cdap.api.spark.Spark;
 import co.cask.cdap.api.workflow.Workflow;
 
+import java.lang.reflect.Type;
+
 /**
  * A support class for {@link Application Applications} which reduces repetition and results in
  * a more readable configuration.
@@ -133,22 +135,19 @@ public abstract class AbstractApplication implements Application {
    * Calls {@link ApplicationConfigurer#createDataset(String, String, DatasetProperties)}, passing the dataset class
    * and properties.
    *
-   * @see ApplicationConfigurer#createDataset(String, Class, co.cask.cdap.api.dataset.DatasetProperties)
+   * @see ApplicationConfigurer#createDataset(String, Type, co.cask.cdap.api.dataset.DatasetProperties)
    */
-  protected void createDataset(String datasetName,
-                               Class<? extends Dataset> datasetClass,
-                               DatasetProperties properties) {
-    configurer.createDataset(datasetName, datasetClass, properties);
+  protected void createDataset(String datasetName, Type datasetType, DatasetProperties properties) {
+    configurer.createDataset(datasetName, datasetType, properties);
   }
 
   /**
-   * Calls {@link ApplicationConfigurer#createDataset(String, Class, DatasetProperties)}, passing empty properties.
+   * Calls {@link ApplicationConfigurer#createDataset(String, Type, DatasetProperties)}, passing empty properties.
    *
-   * @see ApplicationConfigurer#createDataset(String, Class, DatasetProperties)
+   * @see ApplicationConfigurer#createDataset(String, Type, DatasetProperties)
    */
-  protected void createDataset(String datasetName,
-                               Class<? extends Dataset> datasetClass) {
-    configurer.createDataset(datasetName, datasetClass, DatasetProperties.EMPTY);
+  protected void createDataset(String datasetName, Type datasetType) {
+    createDataset(datasetName, datasetType, DatasetProperties.EMPTY);
   }
 
   /**

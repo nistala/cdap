@@ -28,6 +28,8 @@ import co.cask.cdap.api.service.Service;
 import co.cask.cdap.api.spark.Spark;
 import co.cask.cdap.api.workflow.Workflow;
 
+import java.lang.reflect.Type;
+
 /**
  * Configures a CDAP Application.
  */
@@ -86,15 +88,13 @@ public interface ApplicationConfigurer {
 
   /**
    * Adds a Dataset instance, created automatically (if absent in the CDAP instance), deploying a Dataset type
-   * using the datasetClass parameter as the dataset class and the given properties.
+   * using the datasetType parameter as the dataset class and the given properties.
    *
    * @param datasetName dataset instance name
-   * @param datasetClass dataset class to create the Dataset type from
+   * @param datasetType dataset class to create the Dataset type from
    * @param props dataset instance properties
    */
-  void createDataset(String datasetName,
-                     Class<? extends Dataset> datasetClass,
-                     DatasetProperties props);
+  void createDataset(String datasetName, Type datasetType, DatasetProperties props);
 
   /**
    * Adds a {@link Flow} to the Application.
