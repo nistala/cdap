@@ -119,24 +119,6 @@ public final class Constants {
     public static final int DEFAULT_HISTORY_RESULTS_LIMIT = 100;
 
     public static final String SERVICE_DESCRIPTION = "Service for managing application lifecycle.";
-
-    /**
-     * Program Status Types used to query program runs
-     */
-    public static enum QUERY_PROGRAM_STATUS_TYPE {
-      Running("running"),
-      Completed("completed"),
-      Failed("failed");
-      private final String status;
-
-      private QUERY_PROGRAM_STATUS_TYPE(String id) {
-        this.status = id;
-      }
-
-      public String getStatus() {
-        return status;
-      }
-    };
   }
 
   /**
@@ -414,7 +396,11 @@ public final class Constants {
    * Security configuration.
    */
   public static final class Security {
-    /** Enables Kerberos authentication */
+    /** Enables security. */
+    public static final String ENABLED = "security.enabled";
+    /** Enables authorization. */
+    public static final String AUTHORIZATION_ENABLED = "security.authorization.enabled";
+    /** Enables Kerberos authentication. */
     public static final String KERBEROS_ENABLED = "kerberos.auth.enabled";
     /** Algorithm used to generate the digest for access tokens. */
     public static final String TOKEN_DIGEST_ALGO = "security.token.digest.algorithm";
@@ -435,8 +421,6 @@ public final class Constants {
     /** Long lasting Access token expiration time in milliseconds. */
     public static final String EXTENDED_TOKEN_EXPIRATION = "security.server.extended.token.expiration.ms";
     public static final String CFG_FILE_BASED_KEYFILE_PATH = "security.data.keyfile.path";
-    /** Configuration for enabling the security. */
-    public static final String CFG_SECURITY_ENABLED = "security.enabled";
     /** Configuration for security realm. */
     public static final String CFG_REALM = "security.realm";
     /** Authentication Handler class name */
@@ -449,6 +433,14 @@ public final class Constants {
     public static final String BASIC_REALM_FILE = "security.authentication.basic.realmfile";
     /** Enables SSL */
     public static final String SSL_ENABLED = "ssl.enabled";
+
+    /**
+     * Headers for security.
+     */
+    public static final class Headers {
+      /** Internal user ID header passed from Router to downstream services */
+      public static final String USER_ID = "CDAP-UserId";
+    }
 
     /**
      * Security configuration for Router.
