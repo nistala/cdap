@@ -5,15 +5,15 @@
 define(['core/models/program'], function (Program) {
 
     var METRICS_PATHS = {
-        'system/apps/{{appId}}/spark/{{programId}}/{{programId}}.BlockManager.memory.remainingMem_MB?aggregate=true': 'blockRemainingMemory',
-        'system/apps/{{appId}}/spark/{{programId}}/{{programId}}.BlockManager.memory.maxMem_MB?aggregate=true': 'blockMaxMemory',
-        'system/apps/{{appId}}/spark/{{programId}}/{{programId}}.BlockManager.memory.memUsed_MB?aggregate=true': 'blockUsedMemory',
-        'system/apps/{{appId}}/spark/{{programId}}/{{programId}}.BlockManager.disk.diskSpaceUsed_MB?aggregate=true': 'blockDiskSpaceUsed',
-        'system/apps/{{appId}}/spark/{{programId}}/{{programId}}.DAGScheduler.job.activeJobs?aggregate=true': 'schedulerActiveJobs',
-        'system/apps/{{appId}}/spark/{{programId}}/{{programId}}.DAGScheduler.job.allJobs?aggregate=true': 'schedulerAllJobs',
-        'system/apps/{{appId}}/spark/{{programId}}/{{programId}}.DAGScheduler.stage.failedStages?aggregate=true': 'schedulerFailedStages',
-        'system/apps/{{appId}}/spark/{{programId}}/{{programId}}.DAGScheduler.stage.runningStages?aggregate=true': 'schedulerRunningStages',
-        'system/apps/{{appId}}/spark/{{programId}}/{{programId}}.DAGScheduler.stage.waitingStages?aggregate=true': 'schedulerWaitingStages'
+        'system/apps/{{appId}}/spark/{{programId}}/runs/{{runId}}/{{programId}}.BlockManager.memory.remainingMem_MB?aggregate=true': 'blockRemainingMemory',
+        'system/apps/{{appId}}/spark/{{programId}}/runs/{{runId}}/{{programId}}.BlockManager.memory.maxMem_MB?aggregate=true': 'blockMaxMemory',
+        'system/apps/{{appId}}/spark/{{programId}}/runs/{{runId}}/{{programId}}.BlockManager.memory.memUsed_MB?aggregate=true': 'blockUsedMemory',
+        'system/apps/{{appId}}/spark/{{programId}}/runs/{{runId}}/{{programId}}.BlockManager.disk.diskSpaceUsed_MB?aggregate=true': 'blockDiskSpaceUsed',
+        'system/apps/{{appId}}/spark/{{programId}}/runs/{{runId}}/{{programId}}.DAGScheduler.job.activeJobs?aggregate=true': 'schedulerActiveJobs',
+        'system/apps/{{appId}}/spark/{{programId}}/runs/{{runId}}/{{programId}}.DAGScheduler.job.allJobs?aggregate=true': 'schedulerAllJobs',
+        'system/apps/{{appId}}/spark/{{programId}}/runs/{{runId}}/{{programId}}.DAGScheduler.stage.failedStages?aggregate=true': 'schedulerFailedStages',
+        'system/apps/{{appId}}/spark/{{programId}}/runs/{{runId}}/{{programId}}.DAGScheduler.stage.runningStages?aggregate=true': 'schedulerRunningStages',
+        'system/apps/{{appId}}/spark/{{programId}}/runs/{{runId}}/{{programId}}.DAGScheduler.stage.waitingStages?aggregate=true': 'schedulerWaitingStages'
     };
 
     var METRIC_TYPES = {
@@ -135,8 +135,21 @@ define(['core/models/program'], function (Program) {
             var programId = this.get('id');
             var paths = [];
             var pathMap = {};
+            http.rest('apps', appId, 'spark', programId, 'runs?limit=1', function (runIdResponse, status) {
+               if ((status != 200) || (!runIdResponse.length > 0)) {
+                 return;
+               }
+               var runId = runIdResponse[0]["runid"];
+
+                if ((status != 200) || (!runIdResponse.length > 0)) {
+                  return;
+                }
+                var runId = runIdResponse[0]["runid"];
+                var paths = [];
+                var pathMap = {};
+
             for (var path in METRICS_PATHS) {
-                var url = S(path).template({'appId': appId, 'programId': programId}).s;
+                var url = S(path).template({'appId': appId, 'programId': programId, 'runId': runId}).s;
                 paths.push(url);
                 pathMap[url] = METRICS_PATHS[path];
             }
@@ -168,6 +181,8 @@ define(['core/models/program'], function (Program) {
                     metric = null;
                 }
             });
+           }
+          );
         },
 
         setMetricData: function (name, value) {
