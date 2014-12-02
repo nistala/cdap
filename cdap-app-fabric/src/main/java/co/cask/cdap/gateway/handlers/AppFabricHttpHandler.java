@@ -797,6 +797,8 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
       } else if ("debug".equals(action)) {
         status = start(id, type, decodeArguments(request), true);
       } else if ("stop".equals(action)) {
+        // Should see twice in logs with the same timestamp
+        System.out.println(request.getHeader("timestamp"));
         status = stop(id, type);
       }
       if (status == AppFabricServiceStatus.INTERNAL_ERROR) {

@@ -31,10 +31,12 @@ import co.cask.cdap.proto.ProgramType;
 import co.cask.cdap.proto.RunRecord;
 import co.cask.common.http.HttpMethod;
 import co.cask.common.http.HttpRequest;
+import co.cask.common.http.HttpRequests;
 import co.cask.common.http.HttpResponse;
 import co.cask.common.http.ObjectResponse;
 import com.google.common.base.Charsets;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 
@@ -102,8 +104,14 @@ public class ProgramClient {
 
     URL url = config.resolveURL(String.format("apps/%s/%s/%s/stop",
                                               appId, programType.getCategoryName(), programName));
-    HttpResponse response = restClient.execute(HttpMethod.POST, url, config.getAccessToken(),
-                                               HttpURLConnection.HTTP_NOT_FOUND);
+//    HttpResponse response = restClient.execute(HttpMethod.POST, url, config.getAccessToken(),
+//                                               HttpURLConnection.HTTP_NOT_FOUND);
+    Map<String, String> headers = ImmutableMap.of("timestamp", "" + System.nanoTime());
+    // Should see only once
+    System.out.println(headers);
+    HttpRequest request = HttpRequest.builder(HttpMethod.POST, url)
+      .addHeaders(headers).build();
+    HttpResponse response = HttpRequests.execute(request);
     if (response.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) {
       throw new ProgramNotFoundException(programType, appId, programName);
     }
