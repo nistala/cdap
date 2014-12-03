@@ -19,7 +19,7 @@ package co.cask.cdap.data2.dataset2.lib.table;
 import co.cask.cdap.api.dataset.DatasetAdmin;
 import co.cask.cdap.api.dataset.DatasetDefinition;
 import co.cask.cdap.api.dataset.DatasetProperties;
-import co.cask.cdap.api.dataset.table.OrderedTable;
+import co.cask.cdap.api.dataset.table.Table;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.data.Namespace;
 import co.cask.cdap.data2.datafabric.DefaultDatasetNamespace;
@@ -39,8 +39,8 @@ public abstract class MetaTableUtil {
       new NamespacedDatasetFramework(framework, new DefaultDatasetNamespace(conf, Namespace.SYSTEM));
   }
 
-  public OrderedTable getMetaTable() throws Exception {
-    return DatasetsUtil.getOrCreateDataset(dsFramework, getMetaTableName(), OrderedTable.class.getName(),
+  public Table getMetaTable() throws Exception {
+    return DatasetsUtil.getOrCreateDataset(dsFramework, getMetaTableName(), Table.class.getName(),
                                            DatasetProperties.EMPTY, DatasetDefinition.NO_ARGUMENTS, null);
   }
 

@@ -17,7 +17,7 @@
 package co.cask.cdap.internal.app.runtime.schedule;
 
 import co.cask.cdap.api.dataset.DatasetProperties;
-import co.cask.cdap.api.dataset.table.OrderedTable;
+import co.cask.cdap.api.dataset.table.Table;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.data2.dataset2.DatasetFramework;
 import co.cask.cdap.data2.dataset2.DatasetManagementException;
@@ -48,6 +48,6 @@ public class ScheduleStoreTableUtil extends MetaTableUtil {
    * @param datasetFramework framework to add types and datasets to
    */
   public static void setupDatasets(DatasetFramework datasetFramework) throws IOException, DatasetManagementException {
-    datasetFramework.addInstance(OrderedTable.class.getName(), SCHEDULE_STORE_DATASET_NAME, DatasetProperties.EMPTY);
+    datasetFramework.addInstance(Table.class.getName(), SCHEDULE_STORE_DATASET_NAME, DatasetProperties.EMPTY);
   }
 }
