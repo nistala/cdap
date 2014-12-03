@@ -19,7 +19,7 @@ package co.cask.cdap.data2.datafabric.dataset.service.mds;
 import co.cask.cdap.api.common.Bytes;
 import co.cask.cdap.api.dataset.DatasetSpecification;
 import co.cask.cdap.api.dataset.module.EmbeddedDataset;
-import co.cask.cdap.api.dataset.table.OrderedTable;
+import co.cask.cdap.api.dataset.table.Table;
 import com.google.common.collect.Lists;
 
 import java.util.Collection;
@@ -39,7 +39,7 @@ public final class DatasetInstanceMDS extends AbstractObjectsStore {
    */
   private static final byte[] INSTANCE_PREFIX = Bytes.toBytes("i_");
 
-  public DatasetInstanceMDS(DatasetSpecification spec, @EmbeddedDataset("") OrderedTable table) {
+  public DatasetInstanceMDS(DatasetSpecification spec, @EmbeddedDataset("") Table table) {
     super(spec, table);
   }
 
