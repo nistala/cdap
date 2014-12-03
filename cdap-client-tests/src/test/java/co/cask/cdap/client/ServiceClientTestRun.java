@@ -61,6 +61,7 @@ public class ServiceClientTestRun extends ClientTestBase {
 
   @After
   public void tearDown() throws Throwable {
+    //TimeUnit.SECONDS.sleep(5);
     programClient.stop(FakeApp.NAME, ProgramType.SERVICE, PingService.NAME);
     assertProgramStopped(programClient, FakeApp.NAME, ProgramType.SERVICE, PingService.NAME);
   }
@@ -80,6 +81,14 @@ public class ServiceClientTestRun extends ClientTestBase {
     ServiceHttpEndpoint endpoint = endpoints.get(0);
     assertEquals("GET", endpoint.getMethod());
     assertEquals("/ping", endpoint.getPath());
+  }
+
+  @Test
+  public void noopTest() throws Exception {
+    URL url = new URL(serviceClient.getServiceURL(FakeApp.NAME, PingService.NAME), "ping");
+    HttpRequest request = HttpRequest.builder(HttpMethod.GET, url).build();
+    HttpResponse response = HttpRequests.execute(request);
+    assertEquals(HttpURLConnection.HTTP_OK, response.getResponseCode());
   }
 
   @Test

@@ -22,11 +22,14 @@ import co.cask.cdap.gateway.handlers.AuthenticatedHttpHandler;
 import com.google.inject.Inject;
 import org.apache.commons.lang.StringUtils;
 import org.jboss.netty.handler.codec.http.HttpRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Class to match the request path to corresponding service like app-fabric, or metrics service.
  */
 public final class RouterPathLookup extends AuthenticatedHttpHandler {
+  private static final Logger LOG = LoggerFactory.getLogger(RouterPathLookup.class);
 
   @Inject
   public RouterPathLookup(Authenticator authenticator) { super(authenticator); }
@@ -48,7 +51,7 @@ public final class RouterPathLookup extends AuthenticatedHttpHandler {
       String method = httpRequest.getMethod().getName();
       AllowedMethod requestMethod = AllowedMethod.valueOf(method);
       String[] uriParts = StringUtils.split(requestPath, '/');
-
+      System.out.println("Request at the Router : " + requestPath);
       //Check if the call should go to webapp
       //If service contains "$HOST" and if first split element is NOT the gateway version, then send it to WebApp
       //WebApp serves only static files (HTML, CSS, JS) and so /<appname> calls should go to WebApp

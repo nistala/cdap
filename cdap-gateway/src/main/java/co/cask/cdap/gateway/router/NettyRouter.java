@@ -44,6 +44,7 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.ChannelUpstreamHandler;
 import org.jboss.netty.channel.Channels;
+import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.jboss.netty.channel.group.ChannelGroup;
 import org.jboss.netty.channel.group.DefaultChannelGroup;
@@ -219,6 +220,15 @@ public class NettyRouter extends AbstractIdleService {
                                           .build());
   }
 
+  private static class Observer extends SimpleChannelUpstreamHandler {
+    @Override
+    public void messageReceived(ChannelHandlerContext ctx,
+                                MessageEvent event) throws Exception {
+      System.out.println("Observer: Received request");
+      super.messageReceived(ctx, event);
+    }
+  }
+
   private void bootstrapServer(final ChannelUpstreamHandler connectionTracker) {
     ExecutorService serverBossExecutor = createExecutorService(serverBossThreadPoolSize,
                                                                "router-server-boss-thread-%d");
@@ -235,6 +245,7 @@ public class NettyRouter extends AbstractIdleService {
         @Override
         public ChannelPipeline getPipeline() throws Exception {
           ChannelPipeline pipeline = Channels.pipeline();
+          pipeline.addLast("observer", new Observer());
           if (isSSLEnabled()) {
             // Add SSLHandler is SSL is enabled
             pipeline.addLast("ssl", sslHandlerFactory.create());

@@ -798,14 +798,16 @@ public class AppFabricHttpHandler extends AbstractAppFabricHttpHandler {
         status = start(id, type, decodeArguments(request), true);
       } else if ("stop".equals(action)) {
         // Should see twice in logs with the same timestamp
-        System.out.println(request.getHeader("timestamp"));
+        System.out.println(request.getUri() + "  " + request.getHeader("timestamp"));
         status = stop(id, type);
       }
       if (status == AppFabricServiceStatus.INTERNAL_ERROR) {
+        System.out.println("Response for : " + request.getUri() + " " + status.getCode() + " sent");
         responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
         return;
       }
 
+      System.out.println("Response for : " + request.getUri() + " " + status.getCode() + " sent");
       responder.sendString(status.getCode(), status.getMessage());
     } catch (SecurityException e) {
       responder.sendStatus(HttpResponseStatus.UNAUTHORIZED);

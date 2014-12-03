@@ -31,18 +31,23 @@ import co.cask.cdap.proto.ProgramType;
 import co.cask.cdap.proto.RunRecord;
 import co.cask.common.http.HttpMethod;
 import co.cask.common.http.HttpRequest;
-import co.cask.common.http.HttpRequests;
+import co.cask.common.http.HttpRequestConfig;
 import co.cask.common.http.HttpResponse;
 import co.cask.common.http.ObjectResponse;
 import com.google.common.base.Charsets;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -106,15 +111,88 @@ public class ProgramClient {
                                               appId, programType.getCategoryName(), programName));
 //    HttpResponse response = restClient.execute(HttpMethod.POST, url, config.getAccessToken(),
 //                                               HttpURLConnection.HTTP_NOT_FOUND);
-    Map<String, String> headers = ImmutableMap.of("timestamp", "" + System.nanoTime());
+    Map<String, String> headers = Maps.newHashMap();
+    headers.put("timestamp", "" + System.nanoTime());
+    headers.put("Expect", "100-continue");
     // Should see only once
     System.out.println(headers);
     HttpRequest request = HttpRequest.builder(HttpMethod.POST, url)
       .addHeaders(headers).build();
-    HttpResponse response = HttpRequests.execute(request);
+    HttpResponse response = execute(request, HttpRequestConfig.DEFAULT);
+//    HttpResponse response = restClient.execute(HttpMethod.POST, url, config.getAccessToken(),
+//                                               HttpURLConnection.HTTP_NOT_FOUND);
     if (response.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) {
       throw new ProgramNotFoundException(programType, appId, programName);
     }
+  }
+
+  private static HttpResponse execute(HttpRequest request, HttpRequestConfig requestConfig) throws IOException {
+
+    HttpClient client = new DefaultHttpClient();
+    try {
+      HttpPost post = new HttpPost(request.getURL().toString());
+      post.setEntity(new StringEntity(GSON.toJson(request.getBody())));
+      org.apache.http.HttpResponse response = client.execute(post);
+      return new HttpResponse(response.getStatusLine().getStatusCode(), response.getStatusLine().getReasonPhrase(), null, new HashMap<String, List<String>>());
+    } finally {
+      client.getConnectionManager().shutdown();
+    }
+
+/*
+    String requestMethod = request.getMethod().name();
+    URL url = request.getURL();
+
+    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+    conn.setRequestMethod(requestMethod);
+    conn.setReadTimeout(requestConfig.getReadTimeout());
+    conn.setConnectTimeout(requestConfig.getConnectTimeout());
+
+    Multimap<String, String> headers = request.getHeaders();
+    if (headers != null) {
+      for (Map.Entry<String, String> header : headers.entries()) {
+        conn.setRequestProperty(header.getKey(), header.getValue());
+      }
+    }
+
+    InputSupplier<? extends InputStream> bodySrc = request.getBody();
+    if (bodySrc != null) {
+      conn.setDoOutput(true);
+    }
+
+    conn.connect();
+    try {
+      if (bodySrc != null) {
+        OutputStream os = conn.getOutputStream();
+        try {
+          ByteStreams.copy(bodySrc, os);
+        } finally {
+          os.close();
+        }
+      }
+
+      try {
+        int responseCode = conn.getResponseCode();
+        System.out.println("Response received for Stop : " + responseCode);
+        if (isSuccessful(responseCode)) {
+          return new HttpResponse(responseCode, conn.getResponseMessage(),
+                                  ByteStreams.toByteArray(conn.getInputStream()), conn.getHeaderFields());
+        }
+      } catch (FileNotFoundException e) {
+        // Server returns 404. Hence handle as error flow below. Intentional having empty catch block.
+      }
+
+      // Non 2xx response
+      InputStream es = conn.getErrorStream();
+      byte[] content = (es == null) ? new byte[0] : ByteStreams.toByteArray(es);
+      return new HttpResponse(conn.getResponseCode(), conn.getResponseMessage(), content, conn.getHeaderFields());
+    } finally {
+      conn.disconnect();
+    }
+    */
+  }
+
+  private static boolean isSuccessful(int responseCode) {
+    return 200 <= responseCode && responseCode < 300;
   }
 
   /**
