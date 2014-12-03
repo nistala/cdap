@@ -17,7 +17,7 @@
 package co.cask.cdap.logging.save;
 
 import co.cask.cdap.api.dataset.DatasetProperties;
-import co.cask.cdap.api.dataset.table.OrderedTable;
+import co.cask.cdap.api.dataset.table.Table;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.data2.dataset2.DatasetFramework;
 import co.cask.cdap.data2.dataset2.DatasetManagementException;
@@ -48,6 +48,6 @@ public class LogSaverTableUtil extends MetaTableUtil {
    * @param datasetFramework framework to add types and datasets to
    */
   public static void setupDatasets(DatasetFramework datasetFramework) throws IOException, DatasetManagementException {
-    datasetFramework.addInstance(OrderedTable.class.getName(), TABLE_NAME, DatasetProperties.EMPTY);
+    datasetFramework.addInstance(Table.class.getName(), TABLE_NAME, DatasetProperties.EMPTY);
   }
 }

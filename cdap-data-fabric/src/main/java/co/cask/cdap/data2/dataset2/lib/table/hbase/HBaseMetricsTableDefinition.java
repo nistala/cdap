@@ -20,7 +20,7 @@ import co.cask.cdap.api.dataset.DatasetAdmin;
 import co.cask.cdap.api.dataset.DatasetProperties;
 import co.cask.cdap.api.dataset.DatasetSpecification;
 import co.cask.cdap.api.dataset.lib.AbstractDatasetDefinition;
-import co.cask.cdap.api.dataset.table.OrderedTable;
+import co.cask.cdap.api.dataset.table.Table;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.data2.dataset2.lib.table.MetricsTable;
 import co.cask.cdap.data2.util.hbase.HBaseTableUtil;
@@ -76,7 +76,7 @@ public class HBaseMetricsTableDefinition extends AbstractDatasetDefinition<Metri
     hBaseTableUtil.setBloomFilter(columnDescriptor, HBaseTableUtil.BloomType.ROW);
     columnDescriptor.setMaxVersions(1);
 
-    long ttlMillis = spec.getLongProperty(OrderedTable.PROPERTY_TTL, -1);
+    long ttlMillis = spec.getLongProperty(Table.PROPERTY_TTL, -1);
     if (ttlMillis > 0) {
       columnDescriptor.setTimeToLive((int) TimeUnit.MILLISECONDS.toSeconds(ttlMillis));
     }

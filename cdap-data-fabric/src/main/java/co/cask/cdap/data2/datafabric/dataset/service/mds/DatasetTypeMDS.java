@@ -19,7 +19,7 @@ package co.cask.cdap.data2.datafabric.dataset.service.mds;
 import co.cask.cdap.api.common.Bytes;
 import co.cask.cdap.api.dataset.DatasetSpecification;
 import co.cask.cdap.api.dataset.module.EmbeddedDataset;
-import co.cask.cdap.api.dataset.table.OrderedTable;
+import co.cask.cdap.api.dataset.table.Table;
 import co.cask.cdap.proto.DatasetModuleMeta;
 import co.cask.cdap.proto.DatasetTypeMeta;
 import com.google.common.collect.Lists;
@@ -46,7 +46,7 @@ public class DatasetTypeMDS extends AbstractObjectsStore {
    */
   private static final byte[] TYPE_TO_MODULE_PREFIX = Bytes.toBytes("t_");
 
-  public DatasetTypeMDS(DatasetSpecification spec, @EmbeddedDataset("") OrderedTable table) {
+  public DatasetTypeMDS(DatasetSpecification spec, @EmbeddedDataset("") Table table) {
     super(spec, table);
   }
 

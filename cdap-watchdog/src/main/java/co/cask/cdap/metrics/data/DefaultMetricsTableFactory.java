@@ -18,7 +18,7 @@ package co.cask.cdap.metrics.data;
 import co.cask.cdap.api.dataset.DatasetAdmin;
 import co.cask.cdap.api.dataset.DatasetProperties;
 import co.cask.cdap.api.dataset.DatasetSpecification;
-import co.cask.cdap.api.dataset.table.OrderedTable;
+import co.cask.cdap.api.dataset.table.Table;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.data.Namespace;
 import co.cask.cdap.data2.datafabric.DefaultDatasetNamespace;
@@ -92,7 +92,7 @@ public final class DefaultMetricsTableFactory implements MetricsTableFactory {
       int ttl =  cConf.getInt(MetricsConstants.ConfigKeys.RETENTION_SECONDS + "." + resolution + ".seconds", -1);
 
       DatasetProperties props = ttl > 0 ?
-        DatasetProperties.builder().add(OrderedTable.PROPERTY_TTL, ttl).build() : DatasetProperties.EMPTY;
+        DatasetProperties.builder().add(Table.PROPERTY_TTL, ttl).build() : DatasetProperties.EMPTY;
       MetricsTable table = getOrCreateMetricsTable(tableName, props);
       LOG.info("TimeSeriesTable created: {}", tableName);
       return new TimeSeriesTable(table, entityCodecs.getUnchecked(namespace), resolution, getRollTime(resolution));
