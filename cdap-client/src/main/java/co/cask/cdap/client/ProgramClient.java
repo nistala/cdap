@@ -37,6 +37,9 @@ import co.cask.common.http.ObjectResponse;
 import com.google.common.base.Charsets;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.io.ByteStreams;
+import com.google.common.io.InputSupplier;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import org.apache.http.client.HttpClient;
@@ -44,7 +47,9 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
@@ -113,12 +118,10 @@ public class ProgramClient {
 //                                               HttpURLConnection.HTTP_NOT_FOUND);
     Map<String, String> headers = Maps.newHashMap();
     headers.put("timestamp", "" + System.nanoTime());
-    headers.put("Expect", "100-continue");
     // Should see only once
     System.out.println(headers);
-    HttpRequest request = HttpRequest.builder(HttpMethod.POST, url)
-      .addHeaders(headers).build();
-    HttpResponse response = execute(request, HttpRequestConfig.DEFAULT);
+    HttpRequest request = HttpRequest.builder(HttpMethod.POST, url).addHeaders(headers).build();
+    HttpResponse response = oldExecute(request, HttpRequestConfig.DEFAULT);
 //    HttpResponse response = restClient.execute(HttpMethod.POST, url, config.getAccessToken(),
 //                                               HttpURLConnection.HTTP_NOT_FOUND);
     if (response.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) {
@@ -126,19 +129,8 @@ public class ProgramClient {
     }
   }
 
-  private static HttpResponse execute(HttpRequest request, HttpRequestConfig requestConfig) throws IOException {
 
-    HttpClient client = new DefaultHttpClient();
-    try {
-      HttpPost post = new HttpPost(request.getURL().toString());
-      post.setEntity(new StringEntity(GSON.toJson(request.getBody())));
-      org.apache.http.HttpResponse response = client.execute(post);
-      return new HttpResponse(response.getStatusLine().getStatusCode(), response.getStatusLine().getReasonPhrase(), null, new HashMap<String, List<String>>());
-    } finally {
-      client.getConnectionManager().shutdown();
-    }
-
-/*
+  private static HttpResponse oldExecute(HttpRequest request, HttpRequestConfig requestConfig) throws IOException {
     String requestMethod = request.getMethod().name();
     URL url = request.getURL();
 
@@ -146,6 +138,8 @@ public class ProgramClient {
     conn.setRequestMethod(requestMethod);
     conn.setReadTimeout(requestConfig.getReadTimeout());
     conn.setConnectTimeout(requestConfig.getConnectTimeout());
+    conn.setDoOutput(true);
+    conn.setRequestProperty("Connection", "close");
 
     Multimap<String, String> headers = request.getHeaders();
     if (headers != null) {
@@ -161,14 +155,14 @@ public class ProgramClient {
 
     conn.connect();
     try {
-      if (bodySrc != null) {
-        OutputStream os = conn.getOutputStream();
-        try {
-          ByteStreams.copy(bodySrc, os);
-        } finally {
-          os.close();
-        }
-      }
+//      if (bodySrc != null) {
+//        OutputStream os = conn.getOutputStream();
+//        try {
+//          ByteStreams.copy(bodySrc, os);
+//        } finally {
+//          os.close();
+//        }
+//      }
 
       try {
         int responseCode = conn.getResponseCode();
@@ -188,7 +182,20 @@ public class ProgramClient {
     } finally {
       conn.disconnect();
     }
-    */
+  }
+
+  private static HttpResponse execute(HttpRequest request, HttpRequestConfig requestConfig) throws IOException {
+
+    HttpClient client = new DefaultHttpClient();
+    try {
+      HttpPost post = new HttpPost(request.getURL().toString());
+      post.setEntity(new StringEntity(GSON.toJson(request.getBody())));
+      org.apache.http.HttpResponse response = client.execute(post);
+      return new HttpResponse(response.getStatusLine().getStatusCode(), response.getStatusLine().getReasonPhrase(),
+                              null, new HashMap<String, List<String>>());
+    } finally {
+      client.getConnectionManager().shutdown();
+    }
   }
 
   private static boolean isSuccessful(int responseCode) {
