@@ -17,6 +17,7 @@
 package co.cask.cdap.examples.helloworld;
 
 import co.cask.cdap.api.annotation.ProcessInput;
+import co.cask.cdap.api.annotation.Tick;
 import co.cask.cdap.api.annotation.UseDataSet;
 import co.cask.cdap.api.app.AbstractApplication;
 import co.cask.cdap.api.common.Bytes;

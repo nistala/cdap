@@ -105,24 +105,31 @@ public class MetricsRequestExecutor {
       } else {
         MetricsScanQuery scanQuery = createScanQuery(metricsRequest);
 
-        PeekingIterator<TimeValue> timeValueItor = Iterators.peekingIterator(queryTimeSeries(metricsRequest.getScope(),
-                                                                                     scanQuery,
-                                                                                     metricsRequest.getInterpolator()));
+        PeekingIterator<TimeValue> timeValueItor = Iterators.peekingIterator(
+          queryTimeSeries(metricsRequest.getScope(),
+                          scanQuery,
+                          metricsRequest.getInterpolator(),
+                          metricsRequest.getTimeSeriesResolution().getResolution()));
 
         // if this is an interpolated timeseries, we might have extended the "start" in order to interpolate.
         // so fast forward the iterator until we we're inside the actual query time window.
-        while (timeValueItor.hasNext() && (timeValueItor.peek().getTime() < metricsRequest.getStartTime())) {
-          timeValueItor.next();
+        if (metricsRequest.getInterpolator() != null) {
+          while (timeValueItor.hasNext() &&
+            ((timeValueItor.peek().getTime() +
+              metricsRequest.getTimeSeriesResolution().getResolution()) <= metricsRequest.getStartTime())) {
+            timeValueItor.next();
+          }
         }
 
+        long resultTime = timeValueItor.peek().getTime();
         for (int i = 0; i < metricsRequest.getCount(); i++) {
-          long resultTime = metricsRequest.getStartTime() + i;
-
           if (timeValueItor.hasNext() && timeValueItor.peek().getTime() == resultTime) {
-            builder.addData(resultTime, timeValueItor.next().getValue());
-            continue;
+            TimeValue value = timeValueItor.next();
+            builder.addData(value.getTime(), value.getValue());
+          } else {
+            builder.addData(resultTime, 0);
           }
-          builder.addData(resultTime, 0);
+          resultTime += metricsRequest.getTimeSeriesResolution().getResolution();
         }
       }
       resultObj = builder.build();
@@ -148,7 +155,8 @@ public class MetricsRequestExecutor {
     MetricsScope scope = metricsRequest.getScope();
 
     PeekingIterator<TimeValue> tuplesReadItor =
-      Iterators.peekingIterator(queryTimeSeries(scope, scanQuery, metricsRequest.getInterpolator()));
+      Iterators.peekingIterator(queryTimeSeries(scope, scanQuery, metricsRequest.getInterpolator(),
+                                                metricsRequest.getTimeSeriesResolution().getResolution()));
 
     scanQuery = new MetricsScanQueryBuilder()
       .setContext(metricsRequest.getContextPrefix())
@@ -156,10 +164,11 @@ public class MetricsRequestExecutor {
       .build(metricsRequest.getStartTime(), metricsRequest.getEndTime());
 
     PeekingIterator<TimeValue> eventsProcessedItor =
-      Iterators.peekingIterator(queryTimeSeries(scope, scanQuery, metricsRequest.getInterpolator()));
+      Iterators.peekingIterator(queryTimeSeries(scope, scanQuery, metricsRequest.getInterpolator(),
+                                                metricsRequest.getTimeSeriesResolution().getResolution()));
+    long resultTime = Math.min(tuplesReadItor.peek().getTime(), eventsProcessedItor.peek().getTime());
 
     for (int i = 0; i < metricsRequest.getCount(); i++) {
-      long resultTime = metricsRequest.getStartTime() + i;
       long tupleRead = 0;
       long eventProcessed = 0;
       if (tuplesReadItor.hasNext() && tuplesReadItor.peek().getTime() == resultTime) {
@@ -174,6 +183,7 @@ public class MetricsRequestExecutor {
       } else {
         builder.addData(resultTime, 0);
       }
+      resultTime += metricsRequest.getTimeSeriesResolution().getResolution();
     }
   }
 
@@ -227,9 +237,9 @@ public class MetricsRequestExecutor {
   }
 
   private Iterator<TimeValue> queryTimeSeries(MetricsScope scope, MetricsScanQuery scanQuery,
-                                              Interpolator interpolator) throws OperationException {
+                                              Interpolator interpolator, int resolution) throws OperationException {
     Map<TimeseriesId, Iterable<TimeValue>> timeValues = Maps.newHashMap();
-    MetricsScanner scanner = metricsTableCaches.get(scope).getUnchecked(1).scan(scanQuery);
+    MetricsScanner scanner = metricsTableCaches.get(scope).getUnchecked(resolution).scan(scanQuery);
     while (scanner.hasNext()) {
       MetricsScanResult res = scanner.next();
       // if we get multiple scan results for the same logical timeseries, concatenate them together.
@@ -262,8 +272,9 @@ public class MetricsRequestExecutor {
   }
 
   private MetricsScanQuery createScanQuery(MetricsRequest request) {
-    long start = request.getStartTime();
-    long end = request.getEndTime();
+    int resolution = request.getTimeSeriesResolution().getResolution();
+    long start = request.getStartTime() / resolution * resolution;
+    long end = (request.getEndTime() / resolution + 1) * resolution;
 
     // if we're interpolating, expand the time window a little to allow interpolation at the start and end.
     // Before returning the results, we'll make sure to only return what the client requested.

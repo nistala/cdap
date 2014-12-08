@@ -23,6 +23,19 @@
         <description>Retention resolution 1 sec table (in seconds)</description>
     </property>
 
+    <property>
+        <name>metrics.data.table.ts.rollTime.60</name>
+        <value>60</value>
+        <description>Roll time for a new row in 1 minute MetricsTable</description>
+    </property>
+
+
+    <property>
+        <name>metrics.data.table.ts.rollTime.3600</name>
+        <value>24</value>
+        <description>Roll time for a new row in 1hour MetricsTable</description>
+    </property>
+
     <!--
         Data Fabric configuration
     -->

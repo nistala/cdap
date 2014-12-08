@@ -16,6 +16,7 @@
 
 package co.cask.cdap.metrics.process;
 
+
 import co.cask.cdap.common.metrics.MetricsScope;
 import co.cask.cdap.data2.OperationException;
 import co.cask.cdap.metrics.data.MetricsTableFactory;
@@ -24,11 +25,14 @@ import co.cask.cdap.metrics.transport.MetricsRecord;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * A {@link MetricsProcessor} that writes metrics into time series table. It ignore write errors by simply
@@ -38,15 +42,17 @@ public final class TimeSeriesMetricsProcessor implements MetricsProcessor {
 
   private static final Logger LOG = LoggerFactory.getLogger(TimeSeriesMetricsProcessor.class);
 
-  private final LoadingCache<String, TimeSeriesTable> timeSeriesTables;
+  private final LoadingCache<String, List<TimeSeriesTable>> timeSeriesTables;
 
   @Inject
   public TimeSeriesMetricsProcessor(final MetricsTableFactory tableFactory) {
     timeSeriesTables = CacheBuilder.newBuilder()
-                                   .build(new CacheLoader<String, TimeSeriesTable>() {
+                                   .build(new CacheLoader<String, List<TimeSeriesTable>>() {
       @Override
-      public TimeSeriesTable load(String key) throws Exception {
-        return tableFactory.createTimeSeries(key, 1);
+      public List<TimeSeriesTable> load(String key) throws Exception {
+        return ImmutableList.of(tableFactory.createTimeSeries(key, 1),
+                                tableFactory.createTimeSeries(key, 60),
+                                tableFactory.createTimeSeries(key, 3600));
       }
     });
   }
@@ -54,7 +60,11 @@ public final class TimeSeriesMetricsProcessor implements MetricsProcessor {
   @Override
   public void process(MetricsScope scope, Iterator<MetricsRecord> records) {
     try {
-      timeSeriesTables.getUnchecked(scope.name()).save(records);
+      List<TimeSeriesTable> listTimeSeriesTables = timeSeriesTables.getUnchecked(scope.name());
+      List<MetricsRecord> metricsRecords = Lists.newArrayList(records);
+      for (TimeSeriesTable table : listTimeSeriesTables) {
+        table.save(metricsRecords.iterator());
+      }
     } catch (OperationException e) {
       LOG.error("Failed to write to time series table: {}", e.getMessage(), e);
     }

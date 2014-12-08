@@ -16,6 +16,7 @@
 package co.cask.cdap.metrics.query;
 
 import co.cask.cdap.common.conf.Constants;
+import co.cask.cdap.common.metrics.MetricRequest;
 import co.cask.cdap.common.metrics.MetricsScope;
 import co.cask.cdap.common.utils.ImmutablePair;
 import co.cask.cdap.common.utils.TimeMathParser;
@@ -41,6 +42,7 @@ final class MetricsRequestParser {
 
   private static final String COUNT = "count";
   private static final String START_TIME = "start";
+  private static final String RESOLUTION = "resolution";
   private static final String END_TIME = "end";
   private static final String RUN_ID = "runs";
   private static final String INTERPOLATE = "interpolate";
@@ -391,12 +393,26 @@ final class MetricsRequestParser {
     int count;
     long startTime;
     long endTime;
+    int resolution = 1;
     long now = TimeUnit.SECONDS.convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+
+    if (queryParams.containsKey(RESOLUTION)) {
+      try {
+        MetricsRequest.TimeSeriesResolution resolutionInterval = MetricsRequest.TimeSeriesResolution.valueOf(
+          queryParams.get(RESOLUTION).get(0).toUpperCase());
+        builder.setTimeSeriesResolution(resolutionInterval);
+        resolution = resolutionInterval.getResolution();
+      } catch (IllegalArgumentException e) {
+        builder.setTimeSeriesResolution(MetricsRequest.TimeSeriesResolution.SECOND);
+      }
+    } else {
+      builder.setTimeSeriesResolution(MetricsRequest.TimeSeriesResolution.SECOND);
+    }
 
     if (queryParams.containsKey(START_TIME) && queryParams.containsKey(END_TIME)) {
       startTime = TimeMathParser.parseTime(now, queryParams.get(START_TIME).get(0));
       endTime = TimeMathParser.parseTime(now, queryParams.get(END_TIME).get(0));
-      count = (int) (endTime - startTime) + 1;
+      count = (int) ((endTime - startTime) / resolution   + 1);
     } else if (queryParams.containsKey(COUNT)) {
       count = Integer.parseInt(queryParams.get(COUNT).get(0));
       // both start and end times are inclusive, which is the reason for the +-1.

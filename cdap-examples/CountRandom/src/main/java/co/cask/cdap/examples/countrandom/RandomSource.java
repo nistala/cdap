@@ -18,6 +18,7 @@ package co.cask.cdap.examples.countrandom;
 import co.cask.cdap.api.annotation.Tick;
 import co.cask.cdap.api.flow.flowlet.AbstractFlowlet;
 import co.cask.cdap.api.flow.flowlet.OutputEmitter;
+import co.cask.cdap.api.metrics.Metrics;
 
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -27,11 +28,13 @@ import java.util.concurrent.TimeUnit;
  */
 public class RandomSource extends AbstractFlowlet {
   private OutputEmitter<Integer> randomOutput;
+  private Metrics metrics;
 
   private final Random random = new Random();
 
-  @Tick(delay = 1L, unit = TimeUnit.MILLISECONDS)
+  @Tick(delay = 1L, unit = TimeUnit.SECONDS)
   public void generate() throws InterruptedException {
-    randomOutput.emit(random.nextInt(10000));
+    metrics.count("count.random", 1);
+    //randomOutput.emit(random.nextInt(10000));
   }
 }
