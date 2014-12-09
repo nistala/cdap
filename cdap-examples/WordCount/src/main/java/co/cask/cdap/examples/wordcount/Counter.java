@@ -28,7 +28,7 @@ import co.cask.cdap.api.metrics.Metrics;
  */
 public class Counter extends AbstractFlowlet {
   @UseDataSet("wordCounts")
-  private KeyValueTable wordCountsTable;
+  private Table wordCountsTable;
   private OutputEmitter<String> wordOutput;
   private Metrics metrics;
   int longestWordLength = 0;

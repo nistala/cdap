@@ -34,19 +34,27 @@ import co.cask.cdap.api.dataset.table.Table;
 import co.cask.cdap.api.dataset.table.TableSplit;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import javax.annotation.Nullable;
 
 /**
  *
  */
 class TableDataset extends AbstractDataset implements Table {
-  public static final Logger LOG = LoggerFactory.getLogger(TableDataset.class);
+  // empty immutable row's column->value map constant
+  // Using ImmutableSortedMap instead of Maps.unmodifiableNavigableMap to avoid conflicts with
+  // Hadoop, which uses an older version of guava without that method.
+  protected static final NavigableMap<byte[], byte[]> EMPTY_ROW_MAP =
+      ImmutableSortedMap.<byte[], byte[]>orderedBy(Bytes.BYTES_COMPARATOR).build();
+
+  private static final Logger LOG = LoggerFactory.getLogger(TableDataset.class);
 
   private final OrderedTable table;
 
