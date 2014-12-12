@@ -120,8 +120,12 @@ public class MetricsRequestExecutor {
             timeValueItor.next();
           }
         }
+        long resultTime = metricsRequest.getStartTime();
 
-        long resultTime = timeValueItor.peek().getTime();
+        if (timeValueItor.hasNext()) {
+          resultTime = timeValueItor.peek().getTime();
+        }
+
         for (int i = 0; i < metricsRequest.getCount(); i++) {
           if (timeValueItor.hasNext() && timeValueItor.peek().getTime() == resultTime) {
             TimeValue value = timeValueItor.next();
@@ -166,7 +170,16 @@ public class MetricsRequestExecutor {
     PeekingIterator<TimeValue> eventsProcessedItor =
       Iterators.peekingIterator(queryTimeSeries(scope, scanQuery, metricsRequest.getInterpolator(),
                                                 metricsRequest.getTimeSeriesResolution().getResolution()));
-    long resultTime = Math.min(tuplesReadItor.peek().getTime(), eventsProcessedItor.peek().getTime());
+    long resultTime = 0;
+    if (tuplesReadItor.hasNext()) {
+      resultTime = tuplesReadItor.peek().getTime();
+    }
+    if (eventsProcessedItor.hasNext() &&  ((resultTime == 0) || (resultTime > eventsProcessedItor.peek().getTime()))) {
+      resultTime = eventsProcessedItor.peek().getTime();
+    }
+    if (resultTime == 0) {
+      resultTime = metricsRequest.getStartTime();
+    }
 
     for (int i = 0; i < metricsRequest.getCount(); i++) {
       long tupleRead = 0;
