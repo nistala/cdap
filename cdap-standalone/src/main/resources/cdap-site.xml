@@ -25,7 +25,7 @@
 
     <property>
         <name>metrics.data.table.retention.resolution.60.seconds</name>
-        <value>7200</value>
+        <value>2592000</value>
         <description>Retention resolution 1 min table (in seconds)</description>
     </property>
 
@@ -37,7 +37,7 @@
 
     <property>
         <name>metrics.data.table.ts.rollTime.60</name>
-        <value>2592000</value>
+        <value>60</value>
         <description>Roll time for a new row in 1 minute MetricsTable</description>
     </property>
 

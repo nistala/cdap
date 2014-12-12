@@ -90,7 +90,7 @@ public final class DefaultMetricsTableFactory implements MetricsTableFactory {
                           cConf.get(MetricsConstants.ConfigKeys.METRICS_TABLE_PREFIX,
                                     MetricsConstants.DEFAULT_METRIC_TABLE_PREFIX) + ".ts." + resolution;
       int ttl =  cConf.getInt(MetricsConstants.ConfigKeys.RETENTION_SECONDS + "." + resolution + ".seconds", -1);
-
+      LOG.info("TTL value for {} is : {}", tableName, ttl);
       DatasetProperties props = ttl > 0 ?
         DatasetProperties.builder().add(OrderedTable.PROPERTY_TTL, ttl).build() : DatasetProperties.EMPTY;
       MetricsTable table = getOrCreateMetricsTable(tableName, props);
