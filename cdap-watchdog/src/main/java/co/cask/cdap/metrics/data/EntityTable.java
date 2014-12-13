@@ -59,12 +59,12 @@ public final class EntityTable {
 
 
   /**
-   * Creates an EntityTable with max id = 65535.
+   * Creates an EntityTable with max id = 16777215.
    *
    * See {@link #EntityTable(MetricsTable, long)}.
    */
   public EntityTable(MetricsTable table) {
-    this(table, 0x10000);
+    this(table, 0x1000000L);
   }
 
   /**
