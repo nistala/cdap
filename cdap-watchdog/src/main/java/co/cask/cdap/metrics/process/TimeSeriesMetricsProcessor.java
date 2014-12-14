@@ -43,6 +43,7 @@ public final class TimeSeriesMetricsProcessor implements MetricsProcessor {
   private static final Logger LOG = LoggerFactory.getLogger(TimeSeriesMetricsProcessor.class);
 
   private final LoadingCache<String, List<TimeSeriesTable>> timeSeriesTables;
+  private List<MetricsRecord> metricsRecords;
 
   @Inject
   public TimeSeriesMetricsProcessor(final MetricsTableFactory tableFactory) {
@@ -50,6 +51,7 @@ public final class TimeSeriesMetricsProcessor implements MetricsProcessor {
                                    .build(new CacheLoader<String, List<TimeSeriesTable>>() {
       @Override
       public List<TimeSeriesTable> load(String key) throws Exception {
+        LOG.info("Creating Multiple Time Resolution Tables");
         return ImmutableList.of(tableFactory.createTimeSeries(key, 1),
                                 tableFactory.createTimeSeries(key, 60),
                                 tableFactory.createTimeSeries(key, 3600));
@@ -61,10 +63,11 @@ public final class TimeSeriesMetricsProcessor implements MetricsProcessor {
   public void process(MetricsScope scope, Iterator<MetricsRecord> records) {
     try {
       List<TimeSeriesTable> listTimeSeriesTables = timeSeriesTables.getUnchecked(scope.name());
-      List<MetricsRecord> metricsRecords = Lists.newArrayList(records);
+      metricsRecords = Lists.newArrayList(records);
       for (TimeSeriesTable table : listTimeSeriesTables) {
         table.save(metricsRecords.iterator());
       }
+      metricsRecords.clear();
     } catch (OperationException e) {
       LOG.error("Failed to write to time series table: {}", e.getMessage(), e);
     }
