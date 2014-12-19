@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package co.cask.cdap.metrics.query;
+package co.cask.cdap.proto;
 
 import co.cask.cdap.metrics.data.TimeValue;
 import com.google.common.collect.ImmutableList;
