@@ -16,6 +16,7 @@
 
 package co.cask.cdap.data2.transaction.queue.hbase;
 
+import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.queue.QueueName;
 import co.cask.cdap.data2.queue.ConsumerConfig;
 import co.cask.cdap.data2.queue.QueueClientFactory;
@@ -36,12 +37,14 @@ public final class ShardedHBaseQueueClientFactory implements QueueClientFactory,
 
   private static final int DEFAULT_WRITE_BUFFER_SIZE = 4 * 1024 * 1024;
 
+  private final CConfiguration cConf;
   private final Configuration hConf;
   private final ShardedHBaseQueueAdmin queueAdmin;
   private final HBaseQueueUtil queueUtil;
 
   @Inject
-  public ShardedHBaseQueueClientFactory(Configuration hConf, QueueAdmin queueAdmin) {
+  public ShardedHBaseQueueClientFactory(CConfiguration cConf, Configuration hConf, QueueAdmin queueAdmin) {
+    this.cConf = cConf;
     this.hConf = hConf;
     this.queueAdmin = (ShardedHBaseQueueAdmin) queueAdmin;
     this.queueUtil = new HBaseQueueUtilFactory().get();
@@ -73,7 +76,7 @@ public final class ShardedHBaseQueueClientFactory implements QueueClientFactory,
     ensureTableExists(queueName);
     HBaseConsumerStateStore stateStore = new HBaseConsumerStateStore(queueName, consumerConfig,
                                                                      createHTable(queueAdmin.getConfigTableName()));
-    return queueUtil.getQueueConsumer(consumerConfig, createHTable(queueAdmin.getActualTableName(queueName)),
+    return queueUtil.getQueueConsumer(cConf, consumerConfig, createHTable(queueAdmin.getActualTableName(queueName)),
                                       queueName, stateStore.getState(), stateStore,
                                       new ShardedHBaseQueueStrategy(queueName, consumerConfig));
   }

@@ -16,6 +16,7 @@
 package co.cask.cdap.data2.transaction.queue;
 
 import co.cask.cdap.api.common.Bytes;
+import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.queue.QueueName;
 import co.cask.cdap.common.utils.ImmutablePair;
 import co.cask.cdap.data2.queue.ConsumerConfig;
@@ -24,14 +25,18 @@ import co.cask.cdap.data2.queue.DequeueStrategy;
 import co.cask.cdap.data2.queue.QueueConsumer;
 import co.cask.tephra.Transaction;
 import co.cask.tephra.TransactionAware;
+import co.cask.tephra.TxConstants;
 import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -43,12 +48,14 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Common queue consumer for persisting engines such as HBase and LevelDB.
  */
 public abstract class AbstractQueueConsumer implements QueueConsumer, TransactionAware, Closeable {
 
+  private static final Logger LOG = LoggerFactory.getLogger(AbstractQueueConsumer.class);
   private static final DequeueResult<byte[]> EMPTY_RESULT = DequeueResult.Empty.result();
 
   // TODO: Make these configurable.
@@ -66,17 +73,22 @@ public abstract class AbstractQueueConsumer implements QueueConsumer, Transactio
     }
   };
 
+  protected final byte[] stateColumnName;
   private final ConsumerConfig consumerConfig;
   private final QueueName queueName;
   private final SortedMap<byte[], SimpleQueueEntry> entryCache;
   private final NavigableMap<byte[], SimpleQueueEntry> consumingEntries;
-  protected final byte[] stateColumnName;
   private final byte[] queueRowPrefix;
+
+  // Maximum amount of time spent in dequeue to avoid transaction timeout.
+  private final long maxDequeueMillis;
+
   protected byte[] startRow;
-  private byte[] scanStartRow;
   protected Transaction transaction;
-  private boolean committed;
   protected int commitCount;
+  private byte[] scanStartRow;
+  private boolean committed;
+
 
   protected abstract boolean claimEntry(byte[] rowKey, byte[] stateContent) throws IOException;
   protected abstract void updateState(Set<byte[]> rowKeys, byte[] stateColumnName, byte[] stateContent)
@@ -85,7 +97,7 @@ public abstract class AbstractQueueConsumer implements QueueConsumer, Transactio
     throws IOException, InterruptedException;
   protected abstract QueueScanner getScanner(byte[] startRow, byte[] stopRow, int numRows) throws IOException;
 
-  protected AbstractQueueConsumer(ConsumerConfig consumerConfig, QueueName queueName) {
+  protected AbstractQueueConsumer(CConfiguration cConf, ConsumerConfig consumerConfig, QueueName queueName) {
     this.consumerConfig = consumerConfig;
     this.queueName = queueName;
     this.entryCache = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
@@ -94,6 +106,13 @@ public abstract class AbstractQueueConsumer implements QueueConsumer, Transactio
     this.startRow = getRowKey(0L, 0);
     this.stateColumnName = Bytes.add(QueueEntryRow.STATE_COLUMN_PREFIX,
                                      Bytes.toBytes(consumerConfig.getGroupId()));
+
+    // Maximum time to spend in dequeue.
+    int dequeuePercent = cConf.getInt(QueueConstants.ConfigKeys.DEQUEUE_TX_PERCENT);
+    Preconditions.checkArgument(dequeuePercent > 0 && dequeuePercent <= 100,
+                                "Invalid value for %s", QueueConstants.ConfigKeys.DEQUEUE_TX_PERCENT);
+    long txTimeout = TimeUnit.SECONDS.toMillis(cConf.getLong(TxConstants.Manager.CFG_TX_TIMEOUT));
+    this.maxDequeueMillis = txTimeout * dequeuePercent / 100;
   }
 
   @Override
@@ -120,7 +139,11 @@ public abstract class AbstractQueueConsumer implements QueueConsumer, Transactio
     if (consumerConfig.getDequeueStrategy() == DequeueStrategy.FIFO && consumerConfig.getGroupSize() > 1) {
       claimedStateValue = encodeStateColumn(ConsumerEntryState.CLAIMED);
     }
-    while (consumingEntries.size() < maxBatchSize && getEntries(consumingEntries, maxBatchSize)) {
+
+    boolean isReachedDequeueTimeLimit = false;
+    Stopwatch stopwatch = new Stopwatch();
+    stopwatch.start();
+    while (consumingEntries.size() < maxBatchSize && getEntries(consumingEntries, maxBatchSize, stopwatch)) {
 
       // ANDREAS: this while loop should stop once getEntries/populateCache reaches the end of the queue. Currently, it
       // will retry as long as it gets at least one entry in every round, even if that is an entry that must be ignored
@@ -140,14 +163,37 @@ public abstract class AbstractQueueConsumer implements QueueConsumer, Transactio
             if (!claimEntry(entry.getRowKey(), claimedStateValue)) {
               iterator.remove();
             }
+
+            if (stopwatch.elapsedMillis() >= maxDequeueMillis) {
+              break;
+            }
           }
         }
+        // Drain the iterator in case of dequeue time limit reached
+        Iterators.advance(iterator, Integer.MAX_VALUE);
+      }
+
+      if (stopwatch.elapsedMillis() >= maxDequeueMillis) {
+        // If time limit reached and yet we don't have enough entries as requested, treat it as dequeue time limit
+        // reached. There can be some false positive (reached the end of queue, yet passed the time limit), but
+        // it's ok since we only use this boolean for logging only and normally it won't be the case as long as
+        // dequeue is completed in relatively short time comparing to the tx timeout.
+        isReachedDequeueTimeLimit = consumingEntries.size() < maxBatchSize;
+        break;
       }
     }
 
     // If nothing get dequeued, return the empty result.
     if (consumingEntries.isEmpty()) {
+      if (isReachedDequeueTimeLimit) {
+        LOG.warn("Unable to dequeue any entry after {}ms.", maxDequeueMillis);
+      }
       return EMPTY_RESULT;
+    }
+
+    if (isReachedDequeueTimeLimit) {
+      LOG.warn("Dequeue time limit of {}ms reached. Requested batch size {}, dequeued {}",
+               maxDequeueMillis, maxBatchSize, consumingEntries.size());
     }
 
     return new SimpleDequeueResult(consumingEntries.values());
@@ -229,17 +275,13 @@ public abstract class AbstractQueueConsumer implements QueueConsumer, Transactio
    * @return The entries instance.
    * @throws java.io.IOException
    */
-  private boolean getEntries(SortedMap<byte[], SimpleQueueEntry> entries, int maxBatchSize) throws IOException {
+  private boolean getEntries(SortedMap<byte[], SimpleQueueEntry> entries,
+                             int maxBatchSize, Stopwatch stopwatch) throws IOException {
     boolean hasEntry = fetchFromCache(entries, maxBatchSize);
 
     // If not enough entries from the cache, try to get more.
-    // ANDREAS: I think this is wrong. If the batch=10, and the cache has 5 entries, but populateCache cannot
-    // fetch more entries, then we have 5 and should return true. But this code will return false.
-    // TERENCE: If there are 5 entries in the cache, the first call to fetchFromCache will return true,
-    // the second call to fetchFromCache from call to populateCache will return false, but
-    // hasEntry = false || true => true, hence returning true.
     if (entries.size() < maxBatchSize) {
-      populateRowCache(entries.keySet(), maxBatchSize);
+      populateRowCache(entries.keySet(), maxBatchSize, stopwatch);
       hasEntry = fetchFromCache(entries, maxBatchSize) || hasEntry;
     }
 
@@ -260,7 +302,7 @@ public abstract class AbstractQueueConsumer implements QueueConsumer, Transactio
     return true;
   }
 
-  private void populateRowCache(Set<byte[]> excludeRows, int maxBatchSize) throws IOException {
+  private void populateRowCache(Set<byte[]> excludeRows, int maxBatchSize, Stopwatch stopwatch) throws IOException {
 
     long readPointer = transaction.getReadPointer();
 
@@ -275,7 +317,6 @@ public abstract class AbstractQueueConsumer implements QueueConsumer, Transactio
     try {
       // Try fill up the cache
       boolean firstScannedRow = true;
-
       while (entryCache.size() < numRows) {
         ImmutablePair<byte[], Map<byte[], byte[]>> entry = scanner.next();
         if (entry == null) {
@@ -324,6 +365,11 @@ public abstract class AbstractQueueConsumer implements QueueConsumer, Transactio
         }
 
         entryCache.put(rowKey, new SimpleQueueEntry(rowKey, dataBytes, stateBytes));
+
+        // Check here to make sure there is at least one entry read to make sure there is some progress
+        if (stopwatch.elapsedMillis() >= maxDequeueMillis) {
+          break;
+        }
       }
     } finally {
       scanner.close();

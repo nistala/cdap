@@ -17,6 +17,7 @@
 package co.cask.cdap.data2.transaction.queue.hbase;
 
 import co.cask.cdap.api.common.Bytes;
+import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.queue.QueueName;
 import co.cask.cdap.data2.queue.ConsumerConfig;
 import co.cask.cdap.data2.transaction.queue.ConsumerEntryState;
@@ -37,10 +38,10 @@ import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
 final class HBase94QueueConsumer extends HBaseQueueConsumer {
   private final Filter processedStateFilter;
 
-  HBase94QueueConsumer(ConsumerConfig consumerConfig, HTable hTable, QueueName queueName,
+  HBase94QueueConsumer(CConfiguration cConf, ConsumerConfig consumerConfig, HTable hTable, QueueName queueName,
                        HBaseConsumerState consumerState, HBaseConsumerStateStore stateStore,
                        HBaseQueueStrategy queueStrategy) {
-    super(consumerConfig, hTable, queueName, consumerState, stateStore, queueStrategy);
+    super(cConf, consumerConfig, hTable, queueName, consumerState, stateStore, queueStrategy);
     this.processedStateFilter = createStateFilter();
   }
 

@@ -18,6 +18,7 @@ package co.cask.cdap.data2.transaction.queue.leveldb;
 import co.cask.cdap.api.common.Bytes;
 import co.cask.cdap.api.dataset.table.Row;
 import co.cask.cdap.api.dataset.table.Scanner;
+import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.queue.QueueName;
 import co.cask.cdap.common.utils.ImmutablePair;
 import co.cask.cdap.data2.dataset2.lib.table.leveldb.KeyValue;
@@ -63,9 +64,9 @@ public final class LevelDBQueueConsumer extends AbstractQueueConsumer {
   private final NavigableMap<byte[], byte[]>
     colMapForClaim = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
 
-  LevelDBQueueConsumer(LevelDBOrderedTableCore tableCore, Object queueLock, ConsumerConfig consumerConfig,
-                       QueueName queueName, QueueEvictor queueEvictor) {
-    super(consumerConfig, queueName);
+  LevelDBQueueConsumer(CConfiguration cConf, LevelDBOrderedTableCore tableCore, Object queueLock,
+                       ConsumerConfig consumerConfig, QueueName queueName, QueueEvictor queueEvictor) {
+    super(cConf, consumerConfig, queueName);
     this.queueEvictor = queueEvictor;
     core = tableCore;
     lock = queueLock;

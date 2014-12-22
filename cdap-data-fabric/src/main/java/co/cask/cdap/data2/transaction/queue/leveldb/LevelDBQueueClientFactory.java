@@ -15,6 +15,7 @@
  */
 package co.cask.cdap.data2.transaction.queue.leveldb;
 
+import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.queue.QueueName;
 import co.cask.cdap.data2.dataset2.lib.table.leveldb.LevelDBOrderedTableCore;
 import co.cask.cdap.data2.dataset2.lib.table.leveldb.LevelDBOrderedTableService;
@@ -42,6 +43,7 @@ public final class LevelDBQueueClientFactory implements QueueClientFactory {
   private static final int MAX_EVICTION_THREAD_POOL_SIZE = 10;
   private static final int EVICTION_THREAD_POOL_KEEP_ALIVE_SECONDS = 60;
 
+  private final CConfiguration cConf;
   private final LevelDBOrderedTableService service;
   private final ExecutorService evictionExecutor;
   private final LevelDBQueueAdmin queueAdmin;
@@ -50,9 +52,10 @@ public final class LevelDBQueueClientFactory implements QueueClientFactory {
   private final ConcurrentMap<String, Object> queueLocks = Maps.newConcurrentMap();
 
   @Inject
-  public LevelDBQueueClientFactory(LevelDBOrderedTableService service,
+  public LevelDBQueueClientFactory(CConfiguration cConf, LevelDBOrderedTableService service,
                                    LevelDBQueueAdmin queueAdmin,
                                    LevelDBStreamAdmin streamAdmin) throws Exception {
+    this.cConf = cConf;
     this.service = service;
     this.evictionExecutor = createEvictionExecutor();
     this.queueAdmin = queueAdmin;
@@ -72,7 +75,8 @@ public final class LevelDBQueueClientFactory implements QueueClientFactory {
     // only the first consumer of each group runs eviction; and only if the number of consumers is known (> 0).
     QueueEvictor evictor = (numGroups <= 0 || consumerConfig.getInstanceId() != 0) ? QueueEvictor.NOOP :
       new LevelDBQueueEvictor(core, queueName, numGroups, evictionExecutor);
-    return new LevelDBQueueConsumer(core, getQueueLock(queueName.toString()), consumerConfig, queueName, evictor);
+    return new LevelDBQueueConsumer(cConf, core, getQueueLock(queueName.toString()),
+                                    consumerConfig, queueName, evictor);
   }
 
   @Override

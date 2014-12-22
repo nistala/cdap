@@ -15,6 +15,7 @@
  */
 package co.cask.cdap.data2.transaction.queue.hbase;
 
+import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.queue.QueueName;
 import co.cask.cdap.data2.queue.ConsumerConfig;
 import co.cask.cdap.data2.transaction.queue.AbstractQueueConsumer;
@@ -61,11 +62,11 @@ abstract class HBaseQueueConsumer extends AbstractQueueConsumer {
    * @param consumerState The persisted state of this consumer.
    * @param stateStore The store for persisting state for this consumer.
    */
-  HBaseQueueConsumer(ConsumerConfig consumerConfig, HTable hTable, QueueName queueName,
+  HBaseQueueConsumer(CConfiguration cConf, ConsumerConfig consumerConfig, HTable hTable, QueueName queueName,
                      HBaseConsumerState consumerState, HBaseConsumerStateStore stateStore,
                      HBaseQueueStrategy queueStrategy) {
     // For HBase, eviction is done at table flush time, hence no QueueEvictor is needed.
-    super(consumerConfig, queueName);
+    super(cConf, consumerConfig, queueName);
     this.hTable = hTable;
     this.stateStore = stateStore;
     this.queueRowPrefix = QueueEntryRow.getQueueRowPrefix(queueName);
