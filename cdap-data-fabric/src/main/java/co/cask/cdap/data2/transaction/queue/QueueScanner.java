@@ -18,15 +18,14 @@ package co.cask.cdap.data2.transaction.queue;
 
 import co.cask.cdap.common.utils.ImmutablePair;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.Map;
 
 /**
  * Interface for queue scan operation.
  */
-public interface QueueScanner {
+public interface QueueScanner extends Closeable {
 
   public ImmutablePair<byte[], Map<byte[], byte[]>> next() throws IOException;
-
-  public void close() throws IOException;
 }

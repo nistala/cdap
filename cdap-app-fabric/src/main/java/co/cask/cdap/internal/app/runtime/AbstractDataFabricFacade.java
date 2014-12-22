@@ -25,6 +25,7 @@ import co.cask.cdap.data2.queue.QueueClientFactory;
 import co.cask.cdap.data2.queue.QueueConsumer;
 import co.cask.cdap.data2.queue.QueueProducer;
 import co.cask.cdap.data2.transaction.queue.QueueMetrics;
+import co.cask.cdap.data2.transaction.queue.hbase.ShardedQueueProducerFactory;
 import co.cask.cdap.data2.transaction.stream.ForwardingStreamConsumer;
 import co.cask.cdap.data2.transaction.stream.StreamConsumer;
 import co.cask.cdap.data2.transaction.stream.StreamConsumerFactory;
@@ -34,13 +35,14 @@ import co.cask.tephra.TransactionContext;
 import co.cask.tephra.TransactionExecutor;
 import co.cask.tephra.TransactionExecutorFactory;
 import co.cask.tephra.TransactionSystemClient;
+import com.google.common.base.Preconditions;
 
 import java.io.IOException;
 
 /**
  * Abstract base class for implementing DataFabricFacade.
  */
-public abstract class AbstractDataFabricFacade implements DataFabricFacade {
+public abstract class AbstractDataFabricFacade implements DataFabricFacade, ShardedQueueProducerFactory {
 
   private final DatasetInstantiator dataSetContext;
   private final QueueClientFactory queueClientFactory;
@@ -94,6 +96,22 @@ public abstract class AbstractDataFabricFacade implements DataFabricFacade {
   @Override
   public QueueProducer createProducer(QueueName queueName, QueueMetrics queueMetrics) throws IOException {
     QueueProducer producer = queueClientFactory.createProducer(queueName, queueMetrics);
+    if (producer instanceof TransactionAware) {
+      dataSetContext.addTransactionAware((TransactionAware) producer);
+    }
+    return producer;
+  }
+
+  @Override
+  public QueueProducer createProducer(QueueName queueName, QueueMetrics queueMetrics,
+                                      Iterable<ConsumerConfig> consumerConfigs) throws IOException {
+    // The underlying queue client factory has to be sharded one.
+    Preconditions.checkState(queueClientFactory instanceof ShardedQueueProducerFactory,
+                             "Sharded queue not supported");
+
+    QueueProducer producer = ((ShardedQueueProducerFactory) queueClientFactory).createProducer(queueName,
+                                                                                               queueMetrics,
+                                                                                               consumerConfigs);
     if (producer instanceof TransactionAware) {
       dataSetContext.addTransactionAware((TransactionAware) producer);
     }

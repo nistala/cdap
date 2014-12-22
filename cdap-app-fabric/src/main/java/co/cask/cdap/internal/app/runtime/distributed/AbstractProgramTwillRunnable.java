@@ -109,8 +109,6 @@ public abstract class AbstractProgramTwillRunnable<T extends ProgramRunner> impl
   private Program program;
   private ProgramOptions programOpts;
   private ProgramController controller;
-  private Configuration hConf;
-  private CConfiguration cConf;
   private ZKClientService zkClientService;
   private KafkaClientService kafkaClientService;
   private MetricsCollectionService metricsCollectionService;
@@ -157,17 +155,17 @@ public abstract class AbstractProgramTwillRunnable<T extends ProgramRunner> impl
       CommandLine cmdLine = parseArgs(context.getApplicationArguments());
 
       // Loads configurations
-      hConf = new Configuration();
+      Configuration hConf = new Configuration();
       hConf.clear();
       hConf.addResource(new File(configs.get("hConf")).toURI().toURL());
 
       UserGroupInformation.setConfiguration(hConf);
 
-      cConf = CConfiguration.create();
+      CConfiguration cConf = CConfiguration.create();
       cConf.clear();
       cConf.addResource(new File(configs.get("cConf")).toURI().toURL());
 
-      injector = Guice.createInjector(createModule(context));
+      injector = Guice.createInjector(createModule(context, cConf, hConf));
 
       zkClientService = injector.getInstance(ZKClientService.class);
       kafkaClientService = injector.getInstance(KafkaClientService.class);
@@ -315,7 +313,7 @@ public abstract class AbstractProgramTwillRunnable<T extends ProgramRunner> impl
   }
 
   // TODO(terence) make this works for different mode
-  protected Module createModule(final TwillContext context) {
+  protected Module createModule(final TwillContext context, CConfiguration cConf, Configuration hConf) {
     return Modules.combine(
       new ConfigModule(cConf, hConf),
       new IOModule(),

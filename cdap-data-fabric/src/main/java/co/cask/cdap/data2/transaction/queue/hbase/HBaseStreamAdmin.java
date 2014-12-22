@@ -43,7 +43,7 @@ public class HBaseStreamAdmin extends HBaseQueueAdmin implements StreamAdmin {
                           CConfiguration cConf,
                           LocationFactory locationFactory,
                           HBaseTableUtil tableUtil) throws IOException {
-    super(hConf, cConf, QueueConstants.QueueType.STREAM, locationFactory, tableUtil);
+    super(hConf, cConf, locationFactory, tableUtil, QueueConstants.QueueType.STREAM);
   }
 
   @Override

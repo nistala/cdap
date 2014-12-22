@@ -73,7 +73,7 @@ public abstract class AbstractStreamFileConsumerFactory implements StreamConsume
     this.streamAdmin = streamAdmin;
     this.stateStoreFactory = stateStoreFactory;
     this.tablePrefix =
-      new DefaultDatasetNamespace(cConf, Namespace.SYSTEM).namespace(QueueConstants.STREAM_TABLE_PREFIX);
+      new DefaultDatasetNamespace(cConf, Namespace.SYSTEM).namespace(QueueConstants.QueueType.STREAM.toString());
     this.queueClientFactory = queueClientFactory;
     this.oldStreamAdmin = oldStreamAdmin;
   }

@@ -62,12 +62,12 @@ public final class HBaseQueueClientFactory implements QueueClientFactory {
 
   @Override
   public QueueConsumer createConsumer(QueueName queueName,
-                                       ConsumerConfig consumerConfig, int numGroups) throws IOException {
+                                      ConsumerConfig consumerConfig, int numGroups) throws IOException {
     HBaseQueueAdmin admin = ensureTableExists(queueName);
     HBaseConsumerStateStore stateStore = new HBaseConsumerStateStore(queueName, consumerConfig,
                                                                      createHTable(admin.getConfigTableName()));
     return queueUtil.getQueueConsumer(consumerConfig, createHTable(admin.getActualTableName(queueName)),
-                                      queueName, stateStore.getState(), stateStore);
+                                      queueName, stateStore.getState(), stateStore, new SaltedHBaseQueueStrategy());
   }
 
   @Override

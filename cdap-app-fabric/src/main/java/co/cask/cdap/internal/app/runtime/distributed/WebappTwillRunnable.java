@@ -15,6 +15,7 @@
  */
 package co.cask.cdap.internal.app.runtime.distributed;
 
+import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.internal.app.runtime.webapp.ExplodeJarHttpHandler;
 import co.cask.cdap.internal.app.runtime.webapp.JarHttpHandler;
 import co.cask.cdap.internal.app.runtime.webapp.WebappHttpHandlerFactory;
@@ -23,6 +24,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Module;
 import com.google.inject.assistedinject.FactoryModuleBuilder;
 import com.google.inject.util.Modules;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.twill.api.TwillContext;
 
 /**
@@ -40,8 +42,8 @@ final class WebappTwillRunnable extends AbstractProgramTwillRunnable<WebappProgr
   }
 
   @Override
-  protected Module createModule(TwillContext context) {
-    return Modules.combine(super.createModule(context),
+  protected Module createModule(TwillContext context, CConfiguration cConf, Configuration hConf) {
+    return Modules.combine(super.createModule(context, cConf, hConf),
                            new AbstractModule() {
                              @Override
                              protected void configure() {

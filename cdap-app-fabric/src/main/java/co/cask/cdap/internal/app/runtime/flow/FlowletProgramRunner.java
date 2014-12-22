@@ -59,7 +59,9 @@ import co.cask.cdap.data2.queue.DequeueStrategy;
 import co.cask.cdap.data2.queue.QueueClientFactory;
 import co.cask.cdap.data2.queue.QueueConsumer;
 import co.cask.cdap.data2.queue.QueueProducer;
+import co.cask.cdap.data2.transaction.queue.QueueConstants;
 import co.cask.cdap.data2.transaction.queue.QueueMetrics;
+import co.cask.cdap.data2.transaction.queue.hbase.ShardedQueueProducerFactory;
 import co.cask.cdap.data2.transaction.stream.StreamConsumer;
 import co.cask.cdap.internal.app.queue.QueueReaderFactory;
 import co.cask.cdap.internal.app.queue.RoundRobinQueueReader;
@@ -123,6 +125,7 @@ public final class FlowletProgramRunner implements ProgramRunner {
 
   private static final Logger LOG = LoggerFactory.getLogger(FlowletProgramRunner.class);
 
+  private final CConfiguration cConf;
   private final SchemaGenerator schemaGenerator;
   private final DatumWriterFactory datumWriterFactory;
   private final DataFabricFacadeFactory dataFabricFacadeFactory;
@@ -131,17 +134,17 @@ public final class FlowletProgramRunner implements ProgramRunner {
   private final MetricsCollectionService metricsCollectionService;
   private final DiscoveryServiceClient discoveryServiceClient;
   private final DatasetFramework dsFramework;
-  private final CConfiguration configuration;
 
   @Inject
-  public FlowletProgramRunner(SchemaGenerator schemaGenerator,
+  public FlowletProgramRunner(CConfiguration cConf,
+                              SchemaGenerator schemaGenerator,
                               DatumWriterFactory datumWriterFactory,
                               DataFabricFacadeFactory dataFabricFacadeFactory, StreamCoordinator streamCoordinator,
                               QueueReaderFactory queueReaderFactory,
                               MetricsCollectionService metricsCollectionService,
                               DiscoveryServiceClient discoveryServiceClient,
-                              DatasetFramework dsFramework,
-                              CConfiguration configuration) {
+                              DatasetFramework dsFramework) {
+    this.cConf = cConf;
     this.schemaGenerator = schemaGenerator;
     this.datumWriterFactory = datumWriterFactory;
     this.dataFabricFacadeFactory = dataFabricFacadeFactory;
@@ -149,7 +152,6 @@ public final class FlowletProgramRunner implements ProgramRunner {
     this.queueReaderFactory = queueReaderFactory;
     this.metricsCollectionService = metricsCollectionService;
     this.discoveryServiceClient = discoveryServiceClient;
-    this.configuration = configuration;
     this.dsFramework = dsFramework;
   }
 
@@ -209,7 +211,7 @@ public final class FlowletProgramRunner implements ProgramRunner {
                                                flowletDef.getDatasets(),
                                                options.getUserArguments(), flowletDef.getFlowletSpec(),
                                                metricsCollectionService, discoveryServiceClient,
-                                               dsFramework, configuration);
+                                               dsFramework, cConf);
 
       // Creates tx related objects
       DataFabricFacade dataFabricFacade = disableTransaction ?
@@ -229,12 +231,15 @@ public final class FlowletProgramRunner implements ProgramRunner {
       Thread.currentThread().setContextClassLoader(FlowletProgramRunner.class.getClassLoader());
 
       // Inject DataSet, OutputEmitter, Metric fields
+      boolean shardedQueue = cConf.getBoolean(QueueConstants.ConfigKeys.SHARDED_QUEUE, false)
+                                && (dataFabricFacade instanceof ShardedQueueProducerFactory);
       Reflections.visit(flowlet, TypeToken.of(flowlet.getClass()),
                         new PropertyFieldSetter(flowletDef.getFlowletSpec().getProperties()),
                         new DataSetFieldSetter(flowletContext),
                         new MetricsFieldSetter(flowletContext.getMetrics()),
-                        new OutputEmitterFieldSetter(outputEmitterFactory(flowletContext, flowletName,
-                                                                          dataFabricFacade, queueSpecs)));
+                        new OutputEmitterFieldSetter(outputEmitterFactory(
+                          program, flowSpec, flowletContext, flowletName, dataFabricFacade, queueSpecs, shardedQueue
+                        )));
 
       ImmutableList.Builder<ConsumerSupplier<?>> queueConsumerSupplierBuilder = ImmutableList.builder();
       Collection<ProcessSpecification<?>> processSpecs =
@@ -380,6 +385,11 @@ public final class FlowletProgramRunner implements ProgramRunner {
    * @return A new instance of {@link ConsumerConfig}.
    */
   private ConsumerConfig getConsumerConfig(BasicFlowletContext flowletContext, Method method) {
+    return getConsumerConfig(flowletContext.getGroupId(), flowletContext.getInstanceId(),
+                             flowletContext.getInstanceCount(), method);
+  }
+
+  private ConsumerConfig getConsumerConfig(long groupId, int instanceId, int instanceCount, Method method) {
     // Determine input queue partition type
     HashPartition hashPartition = method.getAnnotation(HashPartition.class);
     RoundRobin roundRobin = method.getAnnotation(RoundRobin.class);
@@ -397,8 +407,7 @@ public final class FlowletProgramRunner implements ProgramRunner {
       strategy = DequeueStrategy.ROUND_ROBIN;
     }
 
-    return new ConsumerConfig(flowletContext.getGroupId(), flowletContext.getInstanceId(),
-                              flowletContext.getInstanceCount(), strategy, hashKey);
+    return new ConsumerConfig(groupId, instanceId, instanceCount, strategy, hashKey);
   }
 
   /**
@@ -443,10 +452,13 @@ public final class FlowletProgramRunner implements ProgramRunner {
     };
   }
 
-  private OutputEmitterFactory outputEmitterFactory(final BasicFlowletContext flowletContext,
+  private OutputEmitterFactory outputEmitterFactory(final Program program,
+                                                    final FlowSpecification flowSpec,
+                                                    final BasicFlowletContext flowletContext,
                                                     final String flowletName,
                                                     final QueueClientFactory queueClientFactory,
-                                                    final Table<Node, String, Set<QueueSpecification>> queueSpecs) {
+                                                    final Table<Node, String, Set<QueueSpecification>> queueSpecs,
+                                                    final boolean shardedQueue) {
     return new OutputEmitterFactory() {
       @Override
       public <T> OutputEmitter<T> create(String outputName, TypeToken<T> type) {
@@ -459,7 +471,7 @@ public final class FlowletProgramRunner implements ProgramRunner {
 
               final String queueMetricsName = "process.events.out";
               final String queueMetricsTag = queueSpec.getQueueName().getSimpleName();
-              QueueProducer producer = queueClientFactory.createProducer(queueSpec.getQueueName(), new QueueMetrics() {
+              QueueMetrics queueMetrics = new QueueMetrics() {
                 @Override
                 public void emitEnqueue(int count) {
                   flowletContext.getProgramMetrics().increment(queueMetricsName, count, queueMetricsTag);
@@ -469,7 +481,15 @@ public final class FlowletProgramRunner implements ProgramRunner {
                 public void emitEnqueueBytes(int bytes) {
                   // no-op
                 }
-              });
+              };
+
+              QueueProducer producer;
+              if (shardedQueue) {
+                producer = createShardedQueueProducer(program, flowSpec, queueSpecs, queueClientFactory,
+                                                      queueSpec.getQueueName(), queueMetrics);
+              } else {
+                producer = queueClientFactory.createProducer(queueSpec.getQueueName(), queueMetrics);
+              }
               return new DatumOutputEmitter<T>(producer, schema, datumWriterFactory.create(type, schema));
             }
           }
@@ -482,6 +502,85 @@ public final class FlowletProgramRunner implements ProgramRunner {
         }
       }
     };
+  }
+
+  private QueueProducer createShardedQueueProducer(Program program, FlowSpecification flowSpec,
+                                                   Table<Node, String, Set<QueueSpecification>> queueSpecs,
+                                                   QueueClientFactory queueClientFactory,
+                                                   QueueName queueName, QueueMetrics queueMetrics) throws Exception {
+
+    List<ConsumerConfig> consumerConfigs = Lists.newArrayList();
+
+    // Get all the consumers of this queue.
+    for (String flowletId : flowSpec.getFlowlets().keySet()) {
+      for (QueueSpecification queueSpec : Iterables.concat(queueSpecs.column(flowletId).values())) {
+        if (queueSpec.getQueueName().equals(queueName)) {
+          // Inspect the flowlet consumer
+          FlowletDefinition flowletDefinition = flowSpec.getFlowlets().get(flowletId);
+          addConsumerConfig(program, queueSpec, flowletDefinition, consumerConfigs);
+        }
+      }
+    }
+
+    LOG.info("Create sharded queue producer for queue {} with configs {}", queueName, consumerConfigs);
+    return ((ShardedQueueProducerFactory) queueClientFactory).createProducer(queueName, queueMetrics, consumerConfigs);
+  }
+
+  private void addConsumerConfig(Program program, QueueSpecification queueSpec, FlowletDefinition flowletDefinition,
+                                 Collection<ConsumerConfig> consumerConfigs) throws Exception {
+
+    String flowletId = flowletDefinition.getFlowletSpec().getName();
+    Class<?> flowletClass = program.getClassLoader().loadClass(flowletDefinition.getFlowletSpec().getClassName());
+    TypeToken<?> flowletType = TypeToken.of(flowletClass);
+
+    Set<FlowletMethod> seenMethods = Sets.newHashSet();
+
+    // Walk up the hierarchy of flowlet class to get all ProcessInput and Tick methods
+    for (TypeToken<?> type : flowletType.getTypes().classes()) {
+      if (type.getRawType().equals(Object.class)) {
+        break;
+      }
+
+      // Extracts all process and tick methods
+      for (Method method : type.getRawType().getDeclaredMethods()) {
+        if (!seenMethods.add(new FlowletMethod(method, flowletType))) {
+          // The method is already seen. It can only happen if a children class override a parent class method and
+          // is visting the parent method, since the method visiting order is always from the leaf class walking
+          // up the class hierarchy.
+          continue;
+        }
+
+        ProcessInput processInputAnnotation = method.getAnnotation(ProcessInput.class);
+        if (processInputAnnotation == null) {
+          // Consumer has to be process method
+          continue;
+        }
+
+        Set<String> inputNames = Sets.newHashSet(processInputAnnotation.value());
+        if (inputNames.isEmpty()) {
+          // If there is no input name, it would be ANY_INPUT
+          inputNames.add(FlowletDefinition.ANY_INPUT);
+        }
+        // If batch mode then generate schema for Iterator's parameter type
+        TypeToken<?> dataType = flowletType.resolveType(method.getGenericParameterTypes()[0]);
+
+        if (getBatchSize(method) != null) {
+          if (dataType.getRawType().equals(Iterator.class)) {
+            Preconditions.checkArgument(dataType.getType() instanceof ParameterizedType,
+                                        "Only ParameterizedType is supported for batch Iterator.");
+            dataType = flowletType.resolveType(((ParameterizedType) dataType.getType()).getActualTypeArguments()[0]);
+          }
+        }
+
+        Schema schema = schemaGenerator.generate(dataType.getType());
+        if (queueSpec.getInputSchema().equals(schema)
+          && (inputNames.contains(queueSpec.getQueueName().getSimpleName())
+          || inputNames.contains(FlowletDefinition.ANY_INPUT))) {
+          consumerConfigs.add(getConsumerConfig(FlowUtils.generateConsumerGroupId(program, flowletId), 0,
+                                                flowletDefinition.getInstances(), method));
+        }
+      }
+    }
   }
 
   private ProcessMethodFactory processMethodFactory(final Flowlet flowlet) {

@@ -18,14 +18,18 @@ package co.cask.cdap.data2.transaction.queue.hbase;
 
 import co.cask.cdap.common.queue.QueueName;
 import co.cask.cdap.data2.queue.ConsumerConfig;
-import org.apache.hadoop.hbase.client.HTable;
+import co.cask.cdap.data2.queue.QueueProducer;
+import co.cask.cdap.data2.transaction.queue.QueueMetrics;
+
+import java.io.IOException;
 
 /**
+ * Interface for creating sharded queue producer.
  *
+ * TODO: It is temporary for sharded queue testing.
  */
-public abstract class HBaseQueueUtil {
-  public abstract HBaseQueueConsumer getQueueConsumer(ConsumerConfig consumerConfig, HTable hTable,
-                                                      QueueName queueName, HBaseConsumerState consumerState,
-                                                      HBaseConsumerStateStore stateStore,
-                                                      HBaseQueueStrategy queueStrategy);
+public interface ShardedQueueProducerFactory {
+
+  QueueProducer createProducer(QueueName queueName, QueueMetrics queueMetrics,
+                               Iterable<ConsumerConfig> consumerConfigs) throws IOException;
 }

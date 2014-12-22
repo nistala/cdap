@@ -21,13 +21,10 @@ import co.cask.cdap.data.Namespace;
 import co.cask.cdap.data2.datafabric.DefaultDatasetNamespace;
 import co.cask.cdap.data2.dataset2.lib.table.inmemory.InMemoryOrderedTable;
 import co.cask.cdap.data2.dataset2.lib.table.inmemory.InMemoryOrderedTableService;
-import co.cask.cdap.data2.dataset2.lib.table.leveldb.LevelDBOrderedTableCore;
-import co.cask.cdap.data2.dataset2.lib.table.leveldb.LevelDBOrderedTableService;
 import co.cask.cdap.data2.transaction.queue.QueueConstants;
 import co.cask.cdap.data2.transaction.stream.StreamConfig;
 import co.cask.cdap.data2.transaction.stream.StreamConsumerStateStore;
 import co.cask.cdap.data2.transaction.stream.StreamConsumerStateStoreFactory;
-import co.cask.cdap.data2.transaction.stream.leveldb.LevelDBStreamConsumerStateStore;
 import com.google.inject.Inject;
 
 import java.io.IOException;
@@ -44,7 +41,7 @@ public final class InMemoryStreamConsumerStateStoreFactory implements StreamCons
   InMemoryStreamConsumerStateStoreFactory(CConfiguration conf, InMemoryOrderedTableService tableService) {
     this.tableService = tableService;
     this.tableName = new DefaultDatasetNamespace(conf, Namespace.SYSTEM)
-      .namespace(QueueConstants.STREAM_TABLE_PREFIX + ".state.store");
+      .namespace(QueueConstants.QueueType.STREAM + ".state.store");
   }
 
   @Override

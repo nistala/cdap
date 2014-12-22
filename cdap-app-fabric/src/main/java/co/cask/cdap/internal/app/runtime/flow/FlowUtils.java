@@ -26,8 +26,11 @@ import co.cask.cdap.data2.transaction.queue.QueueAdmin;
 import co.cask.cdap.data2.transaction.stream.StreamAdmin;
 import co.cask.cdap.internal.app.queue.SimpleQueueSpecificationGenerator;
 import co.cask.cdap.proto.Id;
+import co.cask.cdap.proto.ProgramType;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -62,6 +65,29 @@ public final class FlowUtils {
                   .putString(program.getApplicationId())
                   .putString(program.getId())
                   .putString(flowletId).hash().asLong();
+  }
+
+  public static Set<String> getConsumerFlowlets(Program program, QueueName queueName) {
+    Preconditions.checkArgument(program.getType() == ProgramType.FLOW);
+
+    FlowSpecification flowSpec = program.getSpecification().getFlows().get(program.getName());
+
+    // Gather all queues specifications
+    Table<QueueSpecificationGenerator.Node, String, Set<QueueSpecification>> queueSpecs
+      = new SimpleQueueSpecificationGenerator(program.getId().getApplication()).create(flowSpec);
+
+    ImmutableSet.Builder<String> result = ImmutableSet.builder();
+
+    // Go through all flowlets, find the one that has the matching queue name as the source.
+    for (String flowletId : flowSpec.getFlowlets().keySet()) {
+      for (QueueSpecification queueSpec : Iterables.concat(queueSpecs.column(flowletId).values())) {
+        if (queueSpec.getQueueName().equals(queueName)) {
+          result.add(flowletId);
+        }
+      }
+    }
+
+    return result.build();
   }
 
   /**

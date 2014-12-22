@@ -41,7 +41,7 @@ public final class LevelDBStreamConsumerStateStoreFactory implements StreamConsu
   LevelDBStreamConsumerStateStoreFactory(CConfiguration conf, LevelDBOrderedTableService tableService) {
     this.tableService = tableService;
     this.tableName = new DefaultDatasetNamespace(conf, Namespace.SYSTEM)
-      .namespace(QueueConstants.STREAM_TABLE_PREFIX + ".state.store");
+      .namespace(QueueConstants.QueueType.STREAM.toString() + ".state.store");
 
   }
 
