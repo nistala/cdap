@@ -120,8 +120,7 @@ final class SparkRuntimeService extends AbstractExecutionThreadService {
           Location dependencyJar = buildDependencyJar(context, SparkContextConfig.getHConf());
           LOG.info("Built dependency jar at {}", dependencyJar.toURI().toString());
           try {
-            File tmpDir = new File(new File(cConf.get(Constants.CFG_LOCAL_DATA_DIR)),
-                                         cConf.get(Constants.AppFabric.TEMP_DIR)).getAbsoluteFile();
+            File tmpDir = new File(cConf.get(Constants.AppFabric.TEMP_DIR)).getAbsoluteFile();
             
             LOG.info("The Metrics temp dir is: " + tmpDir.toString());
             
