@@ -16,7 +16,15 @@
 package co.cask.cdap.internal.app.runtime.distributed;
 
 import co.cask.cdap.internal.app.runtime.spark.SparkProgramRunner;
+import com.google.inject.AbstractModule;
+import com.google.inject.Module;
+import com.google.inject.util.Modules;
 import org.apache.hadoop.mapred.YarnClientProtocolProvider;
+import org.apache.twill.api.TwillContext;
+import org.apache.twill.filesystem.LocalLocationFactory;
+import org.apache.twill.filesystem.LocationFactory;
+
+import java.io.File;
 
 /**
  * Wraps {@link SparkProgramRunner} to be run via Twill
@@ -32,5 +40,17 @@ final class SparkTwillRunnable extends AbstractProgramTwillRunnable<SparkProgram
   @Override
   protected Class<SparkProgramRunner> getProgramClass() {
     return SparkProgramRunner.class;
+  }
+
+  @Override
+  protected Module createModule(TwillContext context) {
+    Module module = super.createModule(context);
+    return Modules.override(module).with(new AbstractModule() {
+
+      @Override
+      protected void configure() {
+        bind(LocationFactory.class).toInstance(new LocalLocationFactory(new File(System.getProperty("user.dir"))));
+      }
+    });
   }
 }
