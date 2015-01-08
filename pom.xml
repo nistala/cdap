@@ -170,6 +170,7 @@
     <module>cdap-archetypes</module>
     <module>cdap-test</module>
     <module>cdap-integration-test</module>
+    <module>cdap-conversion</module>
   </modules>
 
   <dependencyManagement>
