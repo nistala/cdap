@@ -35,14 +35,14 @@ public interface WorkflowAction extends Runnable {
   /**
    * Provides a specification for this {@link WorkflowAction}.
    *
-   * @return An instance of {@link WorkflowSpecification}.
+   * @return An instance of {@link WorkflowSpecification}
    */
   WorkflowActionSpecification configure();
 
   /**
    * Initializes a {@link WorkflowAction}. This method is called before the {@link #run()} method.
    *
-   * @param context Context object containing runtime information for this action.
+   * @param context Context object containing runtime information for this action
    * @throws Exception If there is any error during initialization. When an exception is thrown, the execution of
    *         this action is treated as failure of the {@link Workflow}.
    *

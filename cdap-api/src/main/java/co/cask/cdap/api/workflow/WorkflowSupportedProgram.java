@@ -17,7 +17,7 @@
 package co.cask.cdap.api.workflow;
 
 /**
- * An Enum of supported Programs in {@link Workflow}
+ * An Enum of Programs supported in {@link Workflow Workflows}.
  */
 
 public enum WorkflowSupportedProgram {

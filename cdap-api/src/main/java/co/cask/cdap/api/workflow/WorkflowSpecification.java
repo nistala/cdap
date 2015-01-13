@@ -50,7 +50,7 @@ import java.util.Set;
  * Specification for a {@link Workflow} -- an instance of this class is created by the {@link Builder} class.
  *
  * <p>
- * Example WorkflowSpecification for a scheduled workflow:
+ * Example WorkflowSpecification for a scheduled Workflow:
  *
  *  <pre>
  *    <code>
@@ -78,8 +78,9 @@ public interface WorkflowSpecification extends SchedulableProgramSpecification {
   Map<String, SparkSpecification> getSparks();
 
   /**
-   * Builder for adding the first action to the workflow.
-   * @param <T> Type of the next builder object.
+   * Builder for adding the first action to the Workflow.
+   *
+   * @param <T> Type of the next builder object
    */
   public interface FirstAction<T> {
 
@@ -97,8 +98,9 @@ public interface WorkflowSpecification extends SchedulableProgramSpecification {
   }
 
   /**
-   * Builder for adding more actions to the workflow.
-   * @param <T> Type of the next builder object.
+   * Builder for adding more actions to the Workflow.
+   *
+   * @param <T> Type of the next builder object
    */
   public interface MoreAction<T> {
 
@@ -116,8 +118,9 @@ public interface WorkflowSpecification extends SchedulableProgramSpecification {
   }
 
   /**
-   * Builder for setting up the schedule of the workflow.
-   * @param <T> Type of the next builder object.
+   * Builder for setting up the schedule of the Workflow.
+   *
+   * @param <T> Type of the next builder object
    */
   public interface ScheduleSetter<T> {
     T addSchedule(Schedule schedule);
@@ -157,16 +160,17 @@ public interface WorkflowSpecification extends SchedulableProgramSpecification {
     }
 
     /**
-     * Adds a {@link MapReduce} job to this workflow.
-     * @param mapReduce The map reduce job to add.
-     * @return A {@link MapReduceSpecification} used for the given MapReduce job.
+     * Adds a {@link MapReduce} to this Workflow.
+     *
+     * @param mapReduce The MapReduce to add
+     * @return A {@link MapReduceSpecification} used for the given MapReduce
      */
     private MapReduceSpecification addWorkflowMapReduce(MapReduce mapReduce) {
       WorkflowMapReduceConfigurer configurer = new WorkflowMapReduceConfigurer(mapReduce);
       mapReduce.configure(configurer);
       MapReduceSpecification mapReduceSpec = configurer.createSpecification();
 
-      // Rename the MapReduce job based on the step in the workflow.
+      // Rename the MapReduce based on the step in the Workflow
       final String mapReduceName = String.format("%s_%s", name, mapReduceSpec.getName());
       mapReduceSpec = new ForwardingMapReduceSpecification(mapReduceSpec) {
         @Override
@@ -175,28 +179,28 @@ public interface WorkflowSpecification extends SchedulableProgramSpecification {
         }
       };
 
-      // Add the MapReduce job and the MapReduce actionto this workflow.
+      // Add the MapReduce job and the MapReduce actionto this Workflow
       mapReduces.put(mapReduceName, mapReduceSpec);
       return mapReduceSpec;
     }
 
     /**
-     * Adds a {@link Spark} job to this workflow.
+     * Adds a {@link Spark} program to this Workflow.
      *
-     * @param spark The Spark job to add.
-     * @return A {@link SparkSpecification} used for the given Spark job.
+     * @param spark the Spark program to add
+     * @return A {@link SparkSpecification} used for the given Spark program
      */
     private SparkSpecification addWorkflowSpark(Spark spark) {
       WorkflowSparkConfigurer configurer = new WorkflowSparkConfigurer(spark);
       spark.configure(configurer);
       SparkSpecification sparkSpec = configurer.createSpecification();
 
-      // Rename the spark job based on the step in the workflow.
+      // Rename the spark job based on the step in the Workflow
       final String sparkName = String.format("%s_%s", name, sparkSpec.getName());
       sparkSpec = new SparkSpecification(sparkSpec.getClassName(), sparkName, sparkSpec.getDescription(),
                                          sparkSpec.getMainClassName(), sparkSpec.getProperties());
 
-      // Add the spark job and the spark action to this workflow.
+      // Add the spark job and the spark action to this Workflow
       sparks.put(sparkName, sparkSpec);
       return sparkSpec;
     }
@@ -327,7 +331,7 @@ public interface WorkflowSpecification extends SchedulableProgramSpecification {
     private Builder() {
     }
 
-    // TODO (CDAP-450): Temporary. Remove when move workflow to use Configurer to configure
+    // TODO (CDAP-450): Temporary. Remove when move Workflow to use Configurer to configure
     private static final class WorkflowMapReduceConfigurer implements MapReduceConfigurer {
       private final String className;
       private String name;

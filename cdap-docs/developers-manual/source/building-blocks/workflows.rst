@@ -63,3 +63,26 @@ the Workflow::
 
 - For an example of use of **a Workflow,** see the :ref:`Purchase
   <examples-purchase>` example.
+
+Workflow Actions
+
+Workflows consist of one or more Actions. If a Workflow consists of only one Action,
+it can be configured using the .onlyWith method. Otherwise, configure a Workflow using 
+
+
+The lifecycle of a WorkflowAction is:
+
+ try {
+   initialize(WorkflowContext)
+   Runnable.run()
+   // Success
+ } catch (Exception e) {
+   // Failure
+ } finally {
+   destroy()
+ }
+ 
+ 
+ The initialize method receives a copy of the WorkflowContext, containing runtime information for this Action.
+ 
+ The destroy method is called after the Runnable.run() method completes and it can be used for resource cleanup.

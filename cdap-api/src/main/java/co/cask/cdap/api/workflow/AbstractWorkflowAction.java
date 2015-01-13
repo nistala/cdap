@@ -64,6 +64,6 @@ public abstract class AbstractWorkflowAction implements WorkflowAction {
    * @return A descriptive message about this {@link WorkflowAction}.
    */
   protected String getDescription() {
-    return String.format("WorkFlowAction of %s.", getName());
+    return String.format("WorkflowAction of %s.", getName());
   }
 }

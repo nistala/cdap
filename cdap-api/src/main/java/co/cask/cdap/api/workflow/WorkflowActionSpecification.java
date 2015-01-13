@@ -36,17 +36,17 @@ import java.util.Map;
 public interface WorkflowActionSpecification extends PropertyProvider {
 
   /**
-   * @return Class name of the workflow action.
+   * @return Class name of the workflow action
    */
   String getClassName();
 
   /**
-   * @return Name of the workflow action.
+   * @return Name of the workflow action
    */
   String getName();
 
   /**
-   * @return Description of the workflow action.
+   * @return Description of the workflow action
    */
   String getDescription();
 

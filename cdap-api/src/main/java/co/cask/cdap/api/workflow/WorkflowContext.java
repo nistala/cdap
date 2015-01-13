@@ -37,14 +37,14 @@ public interface WorkflowContext {
    * the {@link Callable} returns the {@link RuntimeContext} of the program or {@code null} if
    * no such context exists.
    * <p/>
-   * <p> An Exception is thrown from the {@link Callable#call()} method if the program fails </p>
+   * <p> An Exception is thrown from the {@link Callable#call()} method if the program fails.</p>
    *
-   * @throws IllegalArgumentException if no program with the specified name is defined in the workflow
+   * @throws IllegalArgumentException if no program with the specified name is defined in the Workflow
    */
   Callable<RuntimeContext> getProgramRunner(String name);
 
   /**
-   * @return A map of the argument's key and value.
+   * @return A map of the argument's key and value
    */
   Map<String, String> getRuntimeArguments();
 }
