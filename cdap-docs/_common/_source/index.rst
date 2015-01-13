@@ -54,7 +54,7 @@ on the installation, monitoring and diagnosing fully distributed CDAP in a Hadoo
   - **Testing and Debugging:** Test framework, tools and procedures for debugging, and packaging your completed application
   - **Ingesting Data:** Different techniques for ingesting data into CDAP
   - **Advanced Topics:** Data exploration of datasets and best practices for CDAP development
-  - **Troubleshooting:** Selected examples of potential **problems and possible resolutions
+  - **Troubleshooting:** Selected examples of potential problems and possible resolutions
 
 .. |admin-manual| replace:: **Administration Manual:**
 .. _admin-manual: admin-manual/index.html
