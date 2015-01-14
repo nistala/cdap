@@ -19,7 +19,7 @@ package co.cask.cdap.data2.dataset2.lib.table.inmemory;
 import co.cask.cdap.api.common.Bytes;
 import co.cask.cdap.api.dataset.table.ConflictDetection;
 import co.cask.cdap.api.dataset.table.Scanner;
-import co.cask.cdap.data2.dataset2.lib.table.ordered.BufferingOrderedTable;
+import co.cask.cdap.data2.dataset2.lib.table.ordered.BufferingTable;
 import co.cask.cdap.data2.dataset2.lib.table.ordered.Update;
 import co.cask.tephra.Transaction;
 import com.google.common.collect.Maps;
@@ -32,16 +32,16 @@ import javax.annotation.Nullable;
 /**
  *
  */
-public class InMemoryOrderedTable extends BufferingOrderedTable {
+public class InMemoryTable extends BufferingTable {
   private static final long NO_TX_VERSION = 0L;
 
   private Transaction tx;
 
-  public InMemoryOrderedTable(String name) {
+  public InMemoryTable(String name) {
     this(name, ConflictDetection.ROW);
   }
 
-  public InMemoryOrderedTable(String name, ConflictDetection level) {
+  public InMemoryTable(String name, ConflictDetection level) {
     super(name, level);
   }
 
@@ -52,7 +52,7 @@ public class InMemoryOrderedTable extends BufferingOrderedTable {
   }
 
   @Override
-  public void increment(byte[] row, byte[][] columns, long[] amounts) throws Exception {
+  public void increment(byte[] row, byte[][] columns, long[] amounts) {
     // for in-memory use, no need to do fancy read-less increments
     incrementAndGet(row, columns, amounts);
   }

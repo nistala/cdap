@@ -20,7 +20,7 @@ import co.cask.cdap.api.dataset.DatasetProperties;
 import co.cask.cdap.api.dataset.DatasetSpecification;
 import co.cask.cdap.api.dataset.lib.AbstractDatasetDefinition;
 import co.cask.cdap.api.dataset.table.ConflictDetection;
-import co.cask.cdap.api.dataset.table.OrderedTable;
+import co.cask.cdap.api.dataset.table.Table;
 import com.google.inject.Inject;
 
 import java.io.IOException;
@@ -30,7 +30,7 @@ import java.util.Map;
  *
  */
 public class LevelDBOrderedTableDefinition
-  extends AbstractDatasetDefinition<OrderedTable, LevelDBOrderedTableAdmin> {
+  extends AbstractDatasetDefinition<Table, LevelDBOrderedTableAdmin> {
 
   @Inject
   private LevelDBOrderedTableService service;
@@ -47,11 +47,11 @@ public class LevelDBOrderedTableDefinition
   }
 
   @Override
-  public OrderedTable getDataset(DatasetSpecification spec,
+  public Table getDataset(DatasetSpecification spec,
                                         Map<String, String> arguments, ClassLoader classLoader) throws IOException {
     ConflictDetection conflictDetection =
       ConflictDetection.valueOf(spec.getProperty("conflict.level", ConflictDetection.ROW.name()));
-    return new LevelDBOrderedTable(spec.getName(), conflictDetection, service);
+    return new LevelDBTable(spec.getName(), conflictDetection, service);
   }
 
   @Override

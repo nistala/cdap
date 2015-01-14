@@ -19,7 +19,7 @@ package co.cask.cdap.data2.dataset2.lib.table.hbase;
 import co.cask.cdap.api.common.Bytes;
 import co.cask.cdap.api.dataset.table.ConflictDetection;
 import co.cask.cdap.api.dataset.table.Scanner;
-import co.cask.cdap.data2.dataset2.lib.table.ordered.BufferingOrderedTable;
+import co.cask.cdap.data2.dataset2.lib.table.ordered.BufferingTable;
 import co.cask.cdap.data2.dataset2.lib.table.ordered.IncrementValue;
 import co.cask.cdap.data2.dataset2.lib.table.ordered.PutValue;
 import co.cask.cdap.data2.dataset2.lib.table.ordered.Update;
@@ -52,8 +52,8 @@ import javax.annotation.Nullable;
 // todo: do periodic flush when certain threshold is reached
 // todo: extract separate "no delete inside tx" table?
 // todo: consider writing & reading using HTable to do in multi-threaded way
-public class HBaseOrderedTable extends BufferingOrderedTable {
-  private static final Logger LOG = LoggerFactory.getLogger(HBaseOrderedTable.class);
+public class HBaseTable extends BufferingTable {
+  private static final Logger LOG = LoggerFactory.getLogger(HBaseTable.class);
 
   public static final String DELTA_WRITE = "d";
   private final HTable hTable;
@@ -63,7 +63,7 @@ public class HBaseOrderedTable extends BufferingOrderedTable {
 
   private final TransactionCodec txCodec;
 
-  public HBaseOrderedTable(String name, ConflictDetection level, Configuration hConf, boolean enableReadlessIncrements)
+  public HBaseTable(String name, ConflictDetection level, Configuration hConf, boolean enableReadlessIncrements)
     throws IOException {
     super(name, level, enableReadlessIncrements);
 

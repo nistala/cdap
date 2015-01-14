@@ -20,7 +20,7 @@ import co.cask.cdap.api.dataset.DatasetProperties;
 import co.cask.cdap.api.dataset.DatasetSpecification;
 import co.cask.cdap.api.dataset.lib.AbstractDatasetDefinition;
 import co.cask.cdap.api.dataset.table.ConflictDetection;
-import co.cask.cdap.api.dataset.table.OrderedTable;
+import co.cask.cdap.api.dataset.table.Table;
 
 import java.io.IOException;
 import java.util.Map;
@@ -29,7 +29,7 @@ import java.util.Map;
  *
  */
 public class InMemoryOrderedTableDefinition
-  extends AbstractDatasetDefinition<OrderedTable, InMemoryOrderedTableAdmin> {
+  extends AbstractDatasetDefinition<Table, InMemoryOrderedTableAdmin> {
 
   public InMemoryOrderedTableDefinition(String name) {
     super(name);
@@ -43,11 +43,11 @@ public class InMemoryOrderedTableDefinition
   }
 
   @Override
-  public OrderedTable getDataset(DatasetSpecification spec,
+  public Table getDataset(DatasetSpecification spec,
                                  Map<String, String> arguments, ClassLoader classLoader) {
     ConflictDetection conflictDetection =
       ConflictDetection.valueOf(spec.getProperty("conflict.level", ConflictDetection.ROW.name()));
-    return new InMemoryOrderedTable(spec.getName(), conflictDetection);
+    return new InMemoryTable(spec.getName(), conflictDetection);
   }
 
   @Override

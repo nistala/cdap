@@ -37,7 +37,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import javax.annotation.Nullable;
 
 /**
- * Holds all in-memory tables for {@link InMemoryOrderedTable}.
+ * Holds all in-memory tables for {@link InMemoryTable}.
  */
 // todo: use locks instead of synchronize
 // todo: consider using SortedMap instead of NavigableMap in APIs

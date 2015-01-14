@@ -20,7 +20,7 @@ import co.cask.cdap.api.dataset.DatasetProperties;
 import co.cask.cdap.api.dataset.DatasetSpecification;
 import co.cask.cdap.api.dataset.lib.AbstractDatasetDefinition;
 import co.cask.cdap.api.dataset.table.ConflictDetection;
-import co.cask.cdap.api.dataset.table.OrderedTable;
+import co.cask.cdap.api.dataset.table.Table;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.data2.util.hbase.HBaseTableUtil;
 import com.google.inject.Inject;
@@ -34,7 +34,7 @@ import java.util.Map;
  *
  */
 public class HBaseOrderedTableDefinition
-  extends AbstractDatasetDefinition<OrderedTable, HBaseOrderedTableAdmin> {
+  extends AbstractDatasetDefinition<Table, HBaseOrderedTableAdmin> {
 
   @Inject
   private Configuration hConf;
@@ -58,14 +58,14 @@ public class HBaseOrderedTableDefinition
   }
 
   @Override
-  public OrderedTable getDataset(DatasetSpecification spec,
+  public Table getDataset(DatasetSpecification spec,
                                  Map<String, String> arguments, ClassLoader classLoader) throws IOException {
     ConflictDetection conflictDetection =
       ConflictDetection.valueOf(spec.getProperty("conflict.level", ConflictDetection.ROW.name()));
     // NOTE: ttl property is applied on server-side in CPs
     // check if read-less increment operations are supported
     boolean supportsIncrements = HBaseOrderedTableAdmin.supportsReadlessIncrements(spec);
-    return new HBaseOrderedTable(spec.getName(), conflictDetection, hConf, supportsIncrements);
+    return new HBaseTable(spec.getName(), conflictDetection, hConf, supportsIncrements);
   }
 
   @Override
