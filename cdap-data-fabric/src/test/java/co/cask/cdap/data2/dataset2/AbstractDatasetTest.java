@@ -26,7 +26,7 @@ import co.cask.cdap.common.guice.ConfigModule;
 import co.cask.cdap.common.guice.LocationRuntimeModule;
 import co.cask.cdap.data2.dataset2.lib.file.FileSetModule;
 import co.cask.cdap.data2.dataset2.lib.table.CoreDatasetsModule;
-import co.cask.cdap.data2.dataset2.module.lib.inmemory.InMemoryOrderedTableModule;
+import co.cask.cdap.data2.dataset2.module.lib.inmemory.InMemoryTableModule;
 import co.cask.tephra.DefaultTransactionExecutor;
 import co.cask.tephra.TransactionAware;
 import co.cask.tephra.TransactionExecutor;
@@ -69,7 +69,7 @@ public class AbstractDatasetTest {
         return registry;
       }
     });
-    framework.addModule("inMemory", new InMemoryOrderedTableModule());
+    framework.addModule("inMemory", new InMemoryTableModule());
     framework.addModule("core", new CoreDatasetsModule());
     framework.addModule("fileSet", new FileSetModule());
   }

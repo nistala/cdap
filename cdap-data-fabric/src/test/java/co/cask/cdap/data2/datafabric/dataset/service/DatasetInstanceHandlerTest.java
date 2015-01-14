@@ -23,7 +23,7 @@ import co.cask.cdap.api.dataset.table.Get;
 import co.cask.cdap.api.dataset.table.Put;
 import co.cask.cdap.api.dataset.table.Table;
 import co.cask.cdap.data2.dataset2.lib.table.CoreDatasetsModule;
-import co.cask.cdap.data2.dataset2.module.lib.inmemory.InMemoryOrderedTableModule;
+import co.cask.cdap.data2.dataset2.module.lib.inmemory.InMemoryTableModule;
 import co.cask.cdap.proto.DatasetInstanceConfiguration;
 import co.cask.cdap.proto.DatasetModuleMeta;
 import co.cask.common.http.HttpRequest;
@@ -154,7 +154,7 @@ public class DatasetInstanceHandlerTest extends DatasetServiceTestBase {
 
   @Test
   public void testCreateDelete() throws Exception {
-    deployModule("default-orderedTable", InMemoryOrderedTableModule.class);
+    deployModule("default-orderedTable", InMemoryTableModule.class);
     deployModule("default-core", CoreDatasetsModule.class);
 
     // cannot create instance with same name again

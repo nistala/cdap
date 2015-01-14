@@ -37,7 +37,7 @@ import co.cask.cdap.data2.dataset2.lib.file.FileSetModule;
 import co.cask.cdap.data2.dataset2.lib.hbase.AbstractHBaseDataSetAdmin;
 import co.cask.cdap.data2.dataset2.lib.table.CoreDatasetsModule;
 import co.cask.cdap.data2.dataset2.lib.table.hbase.HBaseTableAdmin;
-import co.cask.cdap.data2.dataset2.module.lib.hbase.HBaseOrderedTableModule;
+import co.cask.cdap.data2.dataset2.module.lib.hbase.HBaseTableModule;
 import co.cask.cdap.data2.transaction.queue.QueueAdmin;
 import co.cask.cdap.data2.transaction.queue.hbase.HBaseQueueAdmin;
 import co.cask.cdap.data2.util.hbase.HBaseTableUtil;
@@ -204,7 +204,7 @@ public class Main {
     DatasetFramework datasetFramework =
       new NamespacedDatasetFramework(new InMemoryDatasetFramework(registryFactory),
                                      new DefaultDatasetNamespace(cConf, Namespace.SYSTEM));
-    datasetFramework.addModule("orderedTable", new HBaseOrderedTableModule());
+    datasetFramework.addModule("orderedTable", new HBaseTableModule());
     datasetFramework.addModule("core", new CoreDatasetsModule());
     datasetFramework.addModule("fileSet", new FileSetModule());
 

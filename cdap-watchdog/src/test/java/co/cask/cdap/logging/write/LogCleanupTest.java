@@ -23,7 +23,7 @@ import co.cask.cdap.common.logging.LoggingContext;
 import co.cask.cdap.data2.datafabric.dataset.InMemoryDefinitionRegistryFactory;
 import co.cask.cdap.data2.dataset2.DatasetFramework;
 import co.cask.cdap.data2.dataset2.InMemoryDatasetFramework;
-import co.cask.cdap.data2.dataset2.module.lib.inmemory.InMemoryOrderedTableModule;
+import co.cask.cdap.data2.dataset2.module.lib.inmemory.InMemoryTableModule;
 import co.cask.cdap.logging.context.FlowletLoggingContext;
 import co.cask.cdap.logging.save.LogSaverTableUtil;
 import co.cask.tephra.TransactionManager;
@@ -76,7 +76,7 @@ public class LogCleanupTest {
   @Test
   public void testCleanup() throws Exception {
     DatasetFramework dsFramework = new InMemoryDatasetFramework(new InMemoryDefinitionRegistryFactory());
-    dsFramework.addModule("table", new InMemoryOrderedTableModule());
+    dsFramework.addModule("table", new InMemoryTableModule());
 
     CConfiguration cConf = CConfiguration.create();
 

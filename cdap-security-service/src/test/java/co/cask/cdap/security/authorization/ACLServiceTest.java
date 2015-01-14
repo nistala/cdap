@@ -31,7 +31,7 @@ import co.cask.cdap.data2.dataset2.InMemoryDatasetFramework;
 import co.cask.cdap.data2.dataset2.lib.table.ACLTableModule;
 import co.cask.cdap.data2.dataset2.lib.table.CoreDatasetsModule;
 import co.cask.cdap.data2.dataset2.module.lib.inmemory.InMemoryMetricsTableModule;
-import co.cask.cdap.data2.dataset2.module.lib.inmemory.InMemoryOrderedTableModule;
+import co.cask.cdap.data2.dataset2.module.lib.inmemory.InMemoryTableModule;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.twill.discovery.DiscoveryService;
@@ -59,7 +59,7 @@ public class ACLServiceTest {
       }
     };
     Map<String, DatasetModule> defaultModules = ImmutableMap.of(
-      "orderedTable-memory", new InMemoryOrderedTableModule(),
+      "orderedTable-memory", new InMemoryTableModule(),
       "metricsTable-memory", new InMemoryMetricsTableModule(),
       "core", new CoreDatasetsModule(),
       "acl", new ACLTableModule());

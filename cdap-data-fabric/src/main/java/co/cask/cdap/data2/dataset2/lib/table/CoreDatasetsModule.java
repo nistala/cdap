@@ -45,11 +45,7 @@ public class CoreDatasetsModule implements DatasetModule {
 
   @Override
   public void register(DatasetDefinitionRegistry registry) {
-    DatasetDefinition<Table, DatasetAdmin> orderedTableDef = registry.get("orderedTable");
-
-    DatasetDefinition<Table, DatasetAdmin> tableDef = new TableDefinition("table", orderedTableDef);
-    registry.add(tableDef);
-    registry.add(new TableDefinition(Table.class.getName(), orderedTableDef));
+    DatasetDefinition<Table, DatasetAdmin> tableDef = registry.get("table");
 
     DatasetDefinition<KeyValueTable, DatasetAdmin> kvTableDef = new KeyValueTableDefinition("keyValueTable", tableDef);
     registry.add(kvTableDef);

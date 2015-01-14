@@ -24,7 +24,7 @@ import co.cask.cdap.common.logging.LoggingContextAccessor;
 import co.cask.cdap.data2.datafabric.dataset.InMemoryDefinitionRegistryFactory;
 import co.cask.cdap.data2.dataset2.DatasetFramework;
 import co.cask.cdap.data2.dataset2.InMemoryDatasetFramework;
-import co.cask.cdap.data2.dataset2.module.lib.inmemory.InMemoryOrderedTableModule;
+import co.cask.cdap.data2.dataset2.module.lib.inmemory.InMemoryTableModule;
 import co.cask.cdap.logging.KafkaTestBase;
 import co.cask.cdap.logging.LoggingConfiguration;
 import co.cask.cdap.logging.appender.LogAppender;
@@ -59,7 +59,7 @@ public class TestKafkaLogging extends KafkaTestBase {
   @BeforeClass
   public static void init() throws Exception {
     dsFramework = new InMemoryDatasetFramework(new InMemoryDefinitionRegistryFactory());
-    dsFramework.addModule("table", new InMemoryOrderedTableModule());
+    dsFramework.addModule("table", new InMemoryTableModule());
 
     Configuration txConf = HBaseConfiguration.create();
     TransactionManager txManager = new TransactionManager(txConf);

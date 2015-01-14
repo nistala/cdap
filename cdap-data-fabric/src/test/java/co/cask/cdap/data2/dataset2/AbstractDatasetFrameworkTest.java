@@ -21,10 +21,9 @@ import co.cask.cdap.api.dataset.DatasetAdmin;
 import co.cask.cdap.api.dataset.DatasetDefinition;
 import co.cask.cdap.api.dataset.DatasetProperties;
 import co.cask.cdap.api.dataset.DatasetSpecification;
-import co.cask.cdap.api.dataset.table.OrderedTable;
 import co.cask.cdap.api.dataset.table.Table;
 import co.cask.cdap.data2.dataset2.lib.table.CoreDatasetsModule;
-import co.cask.cdap.data2.dataset2.module.lib.inmemory.InMemoryOrderedTableModule;
+import co.cask.cdap.data2.dataset2.module.lib.inmemory.InMemoryTableModule;
 import co.cask.tephra.DefaultTransactionExecutor;
 import co.cask.tephra.TransactionAware;
 import co.cask.tephra.TransactionExecutor;
@@ -46,7 +45,7 @@ public abstract class AbstractDatasetFrameworkTest {
     String moduleName = "inMemory";
 
     Assert.assertFalse(framework.hasType("orderedTable"));
-    framework.addModule(moduleName, new InMemoryOrderedTableModule());
+    framework.addModule(moduleName, new InMemoryTableModule());
     Assert.assertTrue(framework.hasType("orderedTable"));
 
     Assert.assertFalse(framework.hasInstance("my_table"));
@@ -57,7 +56,7 @@ public abstract class AbstractDatasetFrameworkTest {
     // Doing some admin and data ops
     DatasetAdmin admin = framework.getAdmin("my_table", null);
     Assert.assertNotNull(admin);
-    final OrderedTable table = framework.getDataset("my_table", DatasetDefinition.NO_ARGUMENTS, null);
+    final Table table = framework.getDataset("my_table", DatasetDefinition.NO_ARGUMENTS, null);
     Assert.assertNotNull(table);
 
     TransactionExecutor txnl = new DefaultTransactionExecutor(new MinimalTxSystemClient(), (TransactionAware) table);
@@ -91,7 +90,7 @@ public abstract class AbstractDatasetFrameworkTest {
     // Configuring Dataset types
     DatasetFramework framework = getFramework();
 
-    framework.addModule("inMemory", new InMemoryOrderedTableModule());
+    framework.addModule("inMemory", new InMemoryTableModule());
     framework.addModule("core", new CoreDatasetsModule());
     Assert.assertFalse(framework.hasType(SimpleKVTable.class.getName()));
     framework.addModule("keyValue", new SingleTypeModule(SimpleKVTable.class));
@@ -117,7 +116,7 @@ public abstract class AbstractDatasetFrameworkTest {
     // Configuring Dataset types
     DatasetFramework framework = getFramework();
 
-    framework.addModule("inMemory", new InMemoryOrderedTableModule());
+    framework.addModule("inMemory", new InMemoryTableModule());
     framework.addModule("core", new CoreDatasetsModule());
     framework.addModule("keyValue", new SingleTypeModule(SimpleKVTable.class));
     Assert.assertFalse(framework.hasType(DoubleWrappedKVTable.class.getName()));
@@ -174,19 +173,18 @@ public abstract class AbstractDatasetFrameworkTest {
     // Adding modules
     DatasetFramework framework = getFramework();
 
-    framework.addModule("inMemory", new InMemoryOrderedTableModule());
+    framework.addModule("inMemory", new InMemoryTableModule());
     framework.addModule("core", new CoreDatasetsModule());
-    Assert.assertTrue(framework.hasType(OrderedTable.class.getName()));
     Assert.assertTrue(framework.hasType(Table.class.getName()));
 
     // Creating instances
-    framework.addInstance(OrderedTable.class.getName(), "my_table", DatasetProperties.EMPTY);
+    framework.addInstance(Table.class.getName(), "my_table", DatasetProperties.EMPTY);
     Assert.assertTrue(framework.hasInstance("my_table"));
     DatasetSpecification spec = framework.getDatasetSpec("my_table");
     Assert.assertNotNull(spec);
     Assert.assertEquals("my_table", spec.getName());
-    Assert.assertEquals(OrderedTable.class.getName(), spec.getType());
-    framework.addInstance(OrderedTable.class.getName(), "my_table2", DatasetProperties.EMPTY);
+    Assert.assertEquals(Table.class.getName(), spec.getType());
+    framework.addInstance(Table.class.getName(), "my_table2", DatasetProperties.EMPTY);
     Assert.assertTrue(framework.hasInstance("my_table2"));
 
     // cleanup
@@ -197,7 +195,6 @@ public abstract class AbstractDatasetFrameworkTest {
       // expected
     }
     // types are still there
-    Assert.assertTrue(framework.hasType(OrderedTable.class.getName()));
     Assert.assertTrue(framework.hasType(Table.class.getName()));
 
     framework.deleteAllInstances();
@@ -209,7 +206,6 @@ public abstract class AbstractDatasetFrameworkTest {
 
     // now it should susceed
     framework.deleteAllModules();
-    Assert.assertFalse(framework.hasType(OrderedTable.class.getName()));
     Assert.assertFalse(framework.hasType(Table.class.getName()));
   }
 
