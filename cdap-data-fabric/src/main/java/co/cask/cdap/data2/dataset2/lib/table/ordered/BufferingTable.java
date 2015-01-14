@@ -433,38 +433,41 @@ public abstract class BufferingTable extends AbstractTable implements MeteredDat
     // * updating in-memory store
     // * returning updated values as result
     // NOTE: there is more efficient way to do it, but for now we want more simple implementation, not over-optimizing
+    Map<byte[], byte[]> rowMap;
     try {
-      Map<byte[], byte[]> rowMap = getRowMap(row, columns);
-      byte[][] updatedValues = new byte[columns.length][];
-
-      NavigableMap<byte[], byte[]> result = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
-      for (int i = 0; i < columns.length; i++) {
-        byte[] column = columns[i];
-        byte[] val = rowMap.get(column);
-        // converting to long
-        long longVal;
-        if (val == null) {
-          longVal = 0L;
-        } else {
-          if (val.length != Bytes.SIZEOF_LONG) {
-            throw new NumberFormatException("Attempted to increment a value that is not convertible to long," +
-                                              " row: " + Bytes.toStringBinary(row) +
-                                              " column: " + Bytes.toStringBinary(column));
-          }
-          longVal = Bytes.toLong(val);
-        }
-        longVal += amounts[i];
-        updatedValues[i] = Bytes.toBytes(longVal);
-        result.put(column, updatedValues[i]);
-      }
-
-      put(row, columns, updatedValues);
-
-      return new Result(row, result);
+      rowMap = getRowMap(row, columns);
     } catch (Exception e) {
-      LOG.debug("incrementAndGet failed for table: " + getTransactionAwareName() + ", row: " + Bytes.toStringBinary(row), e);
+      LOG.debug("incrementAndGet failed for table: " + getTransactionAwareName() +
+          ", row: " + Bytes.toStringBinary(row), e);
       throw new DataSetException("incrementAndGet failed", e);
     }
+
+    byte[][] updatedValues = new byte[columns.length][];
+
+    NavigableMap<byte[], byte[]> result = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
+    for (int i = 0; i < columns.length; i++) {
+      byte[] column = columns[i];
+      byte[] val = rowMap.get(column);
+      // converting to long
+      long longVal;
+      if (val == null) {
+        longVal = 0L;
+      } else {
+        if (val.length != Bytes.SIZEOF_LONG) {
+          throw new NumberFormatException("Attempted to increment a value that is not convertible to long," +
+                                            " row: " + Bytes.toStringBinary(row) +
+                                            " column: " + Bytes.toStringBinary(column));
+        }
+        longVal = Bytes.toLong(val);
+      }
+      longVal += amounts[i];
+      updatedValues[i] = Bytes.toBytes(longVal);
+      result.put(column, updatedValues[i]);
+    }
+
+    put(row, columns, updatedValues);
+
+    return new Result(row, result);
   }
 
   @Override
@@ -497,7 +500,8 @@ public abstract class BufferingTable extends AbstractTable implements MeteredDat
         return true;
       }
     } catch (Exception e) {
-      LOG.debug("compareAndSwap failed for table: " + getTransactionAwareName() + ", row: " + Bytes.toStringBinary(row), e);
+      LOG.debug("compareAndSwap failed for table: " + getTransactionAwareName() +
+          ", row: " + Bytes.toStringBinary(row), e);
       throw new DataSetException("compareAndSwap failed", e);
     }
 
