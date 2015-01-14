@@ -19,7 +19,7 @@ package co.cask.cdap.data2.dataset2.module.lib.hbase;
 import co.cask.cdap.api.dataset.module.DatasetDefinitionRegistry;
 import co.cask.cdap.api.dataset.module.DatasetModule;
 import co.cask.cdap.api.dataset.table.OrderedTable;
-import co.cask.cdap.data2.dataset2.lib.table.hbase.HBaseOrderedTableDefinition;
+import co.cask.cdap.data2.dataset2.lib.table.hbase.HBaseTableDefinition;
 
 /**
  * Registers HBase-backed implementations of the basic datasets
@@ -27,8 +27,8 @@ import co.cask.cdap.data2.dataset2.lib.table.hbase.HBaseOrderedTableDefinition;
 public class HBaseOrderedTableModule implements DatasetModule {
   @Override
   public void register(DatasetDefinitionRegistry registry) {
-    registry.add(new HBaseOrderedTableDefinition("orderedTable"));
+    registry.add(new HBaseTableDefinition("orderedTable"));
     // so that it can be resolved via @Dataset
-    registry.add(new HBaseOrderedTableDefinition(OrderedTable.class.getName()));
+    registry.add(new HBaseTableDefinition(OrderedTable.class.getName()));
   }
 }

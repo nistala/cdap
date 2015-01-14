@@ -19,7 +19,7 @@ package co.cask.cdap.data2.dataset2.module.lib.inmemory;
 import co.cask.cdap.api.dataset.module.DatasetDefinitionRegistry;
 import co.cask.cdap.api.dataset.module.DatasetModule;
 import co.cask.cdap.api.dataset.table.OrderedTable;
-import co.cask.cdap.data2.dataset2.lib.table.inmemory.InMemoryOrderedTableDefinition;
+import co.cask.cdap.data2.dataset2.lib.table.inmemory.InMemoryTableDefinition;
 
 /**
  * Registers in-memory implementations of the basic datasets
@@ -27,8 +27,8 @@ import co.cask.cdap.data2.dataset2.lib.table.inmemory.InMemoryOrderedTableDefini
 public class InMemoryOrderedTableModule implements DatasetModule {
   @Override
   public void register(DatasetDefinitionRegistry registry) {
-    registry.add(new InMemoryOrderedTableDefinition("orderedTable"));
+    registry.add(new InMemoryTableDefinition("orderedTable"));
     // so that it can be resolved via @Dataset
-    registry.add(new InMemoryOrderedTableDefinition(OrderedTable.class.getName()));
+    registry.add(new InMemoryTableDefinition(OrderedTable.class.getName()));
   }
 }

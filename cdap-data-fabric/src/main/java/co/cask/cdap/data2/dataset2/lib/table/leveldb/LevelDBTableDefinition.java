@@ -14,18 +14,14 @@
  * the License.
  */
 
-package co.cask.cdap.data2.dataset2.lib.table.hbase;
+package co.cask.cdap.data2.dataset2.lib.table.leveldb;
 
 import co.cask.cdap.api.dataset.DatasetProperties;
 import co.cask.cdap.api.dataset.DatasetSpecification;
 import co.cask.cdap.api.dataset.lib.AbstractDatasetDefinition;
 import co.cask.cdap.api.dataset.table.ConflictDetection;
 import co.cask.cdap.api.dataset.table.Table;
-import co.cask.cdap.common.conf.CConfiguration;
-import co.cask.cdap.data2.util.hbase.HBaseTableUtil;
 import com.google.inject.Inject;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.twill.filesystem.LocationFactory;
 
 import java.io.IOException;
 import java.util.Map;
@@ -33,20 +29,13 @@ import java.util.Map;
 /**
  *
  */
-public class HBaseOrderedTableDefinition
-  extends AbstractDatasetDefinition<Table, HBaseOrderedTableAdmin> {
+public class LevelDBTableDefinition
+  extends AbstractDatasetDefinition<Table, LevelDBTableAdmin> {
 
   @Inject
-  private Configuration hConf;
-  @Inject
-  private HBaseTableUtil hBaseTableUtil;
-  @Inject
-  private LocationFactory locationFactory;
-  // todo: datasets should not depend on cdap configuration!
-  @Inject
-  private CConfiguration conf;
+  private LevelDBTableService service;
 
-  public HBaseOrderedTableDefinition(String name) {
+  public LevelDBTableDefinition(String name) {
     super(name);
   }
 
@@ -59,17 +48,14 @@ public class HBaseOrderedTableDefinition
 
   @Override
   public Table getDataset(DatasetSpecification spec,
-                                 Map<String, String> arguments, ClassLoader classLoader) throws IOException {
+                                        Map<String, String> arguments, ClassLoader classLoader) throws IOException {
     ConflictDetection conflictDetection =
       ConflictDetection.valueOf(spec.getProperty("conflict.level", ConflictDetection.ROW.name()));
-    // NOTE: ttl property is applied on server-side in CPs
-    // check if read-less increment operations are supported
-    boolean supportsIncrements = HBaseOrderedTableAdmin.supportsReadlessIncrements(spec);
-    return new HBaseTable(spec.getName(), conflictDetection, hConf, supportsIncrements);
+    return new LevelDBTable(spec.getName(), conflictDetection, service);
   }
 
   @Override
-  public HBaseOrderedTableAdmin getAdmin(DatasetSpecification spec, ClassLoader classLoader) throws IOException {
-    return new HBaseOrderedTableAdmin(spec, hConf, hBaseTableUtil, conf, locationFactory);
+  public LevelDBTableAdmin getAdmin(DatasetSpecification spec, ClassLoader classLoader) throws IOException {
+    return new LevelDBTableAdmin(spec, service);
   }
 }

@@ -96,9 +96,9 @@ public class HBaseTableTest extends BufferingTableTest<BufferingTable> {
   }
 
   @Override
-  protected HBaseOrderedTableAdmin getTableAdmin(String name, DatasetProperties props) throws IOException {
-    DatasetSpecification spec = new HBaseOrderedTableDefinition("foo").configure(name, props);
-    return new HBaseOrderedTableAdmin(spec, testHBase.getConfiguration(), hBaseTableUtil,
+  protected HBaseTableAdmin getTableAdmin(String name, DatasetProperties props) throws IOException {
+    DatasetSpecification spec = new HBaseTableDefinition("foo").configure(name, props);
+    return new HBaseTableAdmin(spec, testHBase.getConfiguration(), hBaseTableUtil,
                                       CConfiguration.create(), new LocalLocationFactory(tmpFolder.newFolder()));
   }
 
@@ -183,12 +183,12 @@ public class HBaseTableTest extends BufferingTableTest<BufferingTable> {
     // setup a table with increments disabled and with it enabled
     String disableTableName = "incr-disable";
     String enabledTableName = "incr-enable";
-    HBaseOrderedTableAdmin disabledAdmin = getTableAdmin(disableTableName, DatasetProperties.EMPTY);
+    HBaseTableAdmin disabledAdmin = getTableAdmin(disableTableName, DatasetProperties.EMPTY);
     disabledAdmin.create();
 
     DatasetProperties props =
       DatasetProperties.builder().add(Table.PROPERTY_READLESS_INCREMENT, "true").build();
-    HBaseOrderedTableAdmin enabledAdmin = getTableAdmin(enabledTableName, props);
+    HBaseTableAdmin enabledAdmin = getTableAdmin(enabledTableName, props);
     enabledAdmin.create();
 
     try {

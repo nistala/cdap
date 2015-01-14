@@ -14,59 +14,49 @@
  * the License.
  */
 
-package co.cask.cdap.data2.dataset2.lib.table.leveldb;
+package co.cask.cdap.data2.dataset2.lib.table.inmemory;
 
 import co.cask.cdap.api.dataset.DatasetAdmin;
-import co.cask.cdap.api.dataset.DatasetSpecification;
 
 import java.io.IOException;
 
 /**
  *
  */
-public class LevelDBOrderedTableAdmin implements DatasetAdmin {
-
-  private final LevelDBOrderedTableService service;
+public class InMemoryTableAdmin implements DatasetAdmin {
   private final String name;
 
-  public LevelDBOrderedTableAdmin(DatasetSpecification spec, LevelDBOrderedTableService service) throws IOException {
-    this.service = service;
-    this.name = spec.getName();
+  public InMemoryTableAdmin(String name) {
+    this.name = name;
   }
 
   @Override
-  public boolean exists() throws IOException {
-    try {
-      service.getTable(name);
-      return true;
-    } catch (Exception e) {
-      return false;
-    }
+  public boolean exists() {
+    return InMemoryTableService.exists(name);
   }
 
   @Override
-  public void create() throws IOException {
-    service.ensureTableExists(name);
+  public void create() {
+    InMemoryTableService.create(name);
   }
 
   @Override
-  public void drop() throws IOException {
-    service.dropTable(name);
+  public void truncate() {
+    InMemoryTableService.truncate(name);
   }
 
   @Override
-  public void truncate() throws IOException {
-    drop();
-    create();
+  public void drop() {
+    InMemoryTableService.drop(name);
   }
 
   @Override
-  public void upgrade() throws IOException {
+  public void upgrade() {
     // no-op
   }
 
   @Override
   public void close() throws IOException {
-    // no-op
+    // NOTHING to do
   }
 }

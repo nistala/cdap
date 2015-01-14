@@ -103,20 +103,20 @@ public class HBaseTable extends BufferingTable {
           Update val = column.getValue();
           if (val instanceof IncrementValue) {
             incrementPut = getIncrementalPut(incrementPut, row.getKey());
-            incrementPut.add(HBaseOrderedTableAdmin.DATA_COLUMN_FAMILY, column.getKey(), tx.getWritePointer(),
+            incrementPut.add(HBaseTableAdmin.DATA_COLUMN_FAMILY, column.getKey(), tx.getWritePointer(),
                              Bytes.toBytes(((IncrementValue) val).getValue()));
           } else if (val instanceof PutValue) {
-            put.add(HBaseOrderedTableAdmin.DATA_COLUMN_FAMILY, column.getKey(), tx.getWritePointer(),
+            put.add(HBaseTableAdmin.DATA_COLUMN_FAMILY, column.getKey(), tx.getWritePointer(),
                     wrapDeleteIfNeeded(((PutValue) val).getValue()));
           }
         } else {
           Update val = column.getValue();
           if (val instanceof IncrementValue) {
             incrementPut = getIncrementalPut(incrementPut, row.getKey());
-            incrementPut.add(HBaseOrderedTableAdmin.DATA_COLUMN_FAMILY, column.getKey(),
+            incrementPut.add(HBaseTableAdmin.DATA_COLUMN_FAMILY, column.getKey(),
                              Bytes.toBytes(((IncrementValue) val).getValue()));
           } else if (val instanceof PutValue) {
-            put.add(HBaseOrderedTableAdmin.DATA_COLUMN_FAMILY, column.getKey(), ((PutValue) val).getValue());
+            put.add(HBaseTableAdmin.DATA_COLUMN_FAMILY, column.getKey(), ((PutValue) val).getValue());
           }
         }
       }
@@ -154,9 +154,9 @@ public class HBaseTable extends BufferingTable {
         // we want support tx and non-tx modes
         if (tx != null) {
           // TODO: hijacking timestamp... bad
-          delete.deleteColumn(HBaseOrderedTableAdmin.DATA_COLUMN_FAMILY, column.getKey(), tx.getWritePointer());
+          delete.deleteColumn(HBaseTableAdmin.DATA_COLUMN_FAMILY, column.getKey(), tx.getWritePointer());
         } else {
-          delete.deleteColumn(HBaseOrderedTableAdmin.DATA_COLUMN_FAMILY, column.getKey());
+          delete.deleteColumn(HBaseTableAdmin.DATA_COLUMN_FAMILY, column.getKey());
         }
       }
       deletes.add(delete);
@@ -181,7 +181,7 @@ public class HBaseTable extends BufferingTable {
   @Override
   protected Scanner scanPersisted(byte[] startRow, byte[] stopRow) throws Exception {
     Scan scan = new Scan();
-    scan.addFamily(HBaseOrderedTableAdmin.DATA_COLUMN_FAMILY);
+    scan.addFamily(HBaseTableAdmin.DATA_COLUMN_FAMILY);
     // todo: should be configurable
     // NOTE: by default we assume scanner is used in mapreduce job, hence no cache blocks
     scan.setCacheBlocks(false);
@@ -204,10 +204,10 @@ public class HBaseTable extends BufferingTable {
     Get get = new Get(row);
     // todo: uncomment when doing caching fetching data in-memory
     // get.setCacheBlocks(false);
-    get.addFamily(HBaseOrderedTableAdmin.DATA_COLUMN_FAMILY);
+    get.addFamily(HBaseTableAdmin.DATA_COLUMN_FAMILY);
     if (columns != null) {
       for (byte[] column : columns) {
-        get.addColumn(HBaseOrderedTableAdmin.DATA_COLUMN_FAMILY, column);
+        get.addColumn(HBaseTableAdmin.DATA_COLUMN_FAMILY, column);
       }
     }
 
@@ -215,7 +215,7 @@ public class HBaseTable extends BufferingTable {
     if (tx == null) {
       get.setMaxVersions(1);
       Result result = hTable.get(get);
-      return result.isEmpty() ? EMPTY_ROW_MAP : result.getFamilyMap(HBaseOrderedTableAdmin.DATA_COLUMN_FAMILY);
+      return result.isEmpty() ? EMPTY_ROW_MAP : result.getFamilyMap(HBaseTableAdmin.DATA_COLUMN_FAMILY);
     }
 
     txCodec.addToOperation(get, tx);
@@ -231,7 +231,7 @@ public class HBaseTable extends BufferingTable {
 
     // note: server-side filters all everything apart latest visible for us, so we can flatten it here
     NavigableMap<byte[], NavigableMap<Long, byte[]>> versioned =
-      result.getMap().get(HBaseOrderedTableAdmin.DATA_COLUMN_FAMILY);
+      result.getMap().get(HBaseTableAdmin.DATA_COLUMN_FAMILY);
 
     NavigableMap<byte[], byte[]> rowMap = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
     for (Map.Entry<byte[], NavigableMap<Long, byte[]>> column : versioned.entrySet()) {

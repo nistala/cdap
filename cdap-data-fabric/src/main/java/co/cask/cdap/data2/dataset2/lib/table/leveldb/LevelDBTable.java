@@ -36,14 +36,14 @@ import javax.annotation.Nullable;
  */
 public class LevelDBTable extends BufferingTable {
 
-  private final LevelDBOrderedTableCore core;
+  private final LevelDBTableCore core;
   private Transaction tx;
   private long persistedVersion;
 
-  public LevelDBTable(String tableName, ConflictDetection level, LevelDBOrderedTableService service)
+  public LevelDBTable(String tableName, ConflictDetection level, LevelDBTableService service)
     throws IOException {
     super(tableName, level);
-    this.core = new LevelDBOrderedTableCore(tableName, service);
+    this.core = new LevelDBTableCore(tableName, service);
   }
 
   // TODO this is the same for all OcTableClient implementations -> promote to base class

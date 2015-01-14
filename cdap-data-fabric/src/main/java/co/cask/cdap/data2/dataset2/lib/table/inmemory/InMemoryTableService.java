@@ -41,7 +41,7 @@ import javax.annotation.Nullable;
  */
 // todo: use locks instead of synchronize
 // todo: consider using SortedMap instead of NavigableMap in APIs
-public class InMemoryOrderedTableService {
+public class InMemoryTableService {
   private static Map<String, ConcurrentNavigableMap<byte[], NavigableMap<byte[], NavigableMap<Long, Update>>>> tables =
     Maps.newHashMap();
 

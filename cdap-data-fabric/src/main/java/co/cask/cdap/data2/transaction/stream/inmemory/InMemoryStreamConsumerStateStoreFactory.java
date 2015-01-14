@@ -20,7 +20,7 @@ import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.data.Namespace;
 import co.cask.cdap.data2.datafabric.DefaultDatasetNamespace;
 import co.cask.cdap.data2.dataset2.lib.table.inmemory.InMemoryTable;
-import co.cask.cdap.data2.dataset2.lib.table.inmemory.InMemoryOrderedTableService;
+import co.cask.cdap.data2.dataset2.lib.table.inmemory.InMemoryTableService;
 import co.cask.cdap.data2.transaction.queue.QueueConstants;
 import co.cask.cdap.data2.transaction.stream.StreamConfig;
 import co.cask.cdap.data2.transaction.stream.StreamConsumerStateStore;
@@ -33,12 +33,12 @@ import java.io.IOException;
  * Factory for creating {@link StreamConsumerStateStore} in memory.
  */
 public final class InMemoryStreamConsumerStateStoreFactory implements StreamConsumerStateStoreFactory {
-  private final InMemoryOrderedTableService tableService;
+  private final InMemoryTableService tableService;
   private final String tableName;
   private InMemoryTable table;
 
   @Inject
-  InMemoryStreamConsumerStateStoreFactory(CConfiguration conf, InMemoryOrderedTableService tableService) {
+  InMemoryStreamConsumerStateStoreFactory(CConfiguration conf, InMemoryTableService tableService) {
     this.tableService = tableService;
     this.tableName = new DefaultDatasetNamespace(conf, Namespace.SYSTEM)
       .namespace(QueueConstants.STREAM_TABLE_PREFIX + ".state.store");

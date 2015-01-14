@@ -24,7 +24,7 @@ import co.cask.cdap.common.metrics.MetricsScope;
 import co.cask.cdap.data.Namespace;
 import co.cask.cdap.data2.datafabric.DefaultDatasetNamespace;
 import co.cask.cdap.data2.dataset2.DatasetNamespace;
-import co.cask.cdap.data2.dataset2.lib.table.leveldb.LevelDBOrderedTableService;
+import co.cask.cdap.data2.dataset2.lib.table.leveldb.LevelDBTableService;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.inject.Inject;
@@ -45,14 +45,14 @@ public class LevelDBDatasetMetricsReporter extends AbstractScheduledService impl
   private final int reportIntervalInSec;
 
   private final MetricsCollectionService metricsService;
-  private final LevelDBOrderedTableService ldbService;
+  private final LevelDBTableService ldbService;
   private final DatasetNamespace userDsNamespace;
 
   private ScheduledExecutorService executor;
 
   @Inject
   public LevelDBDatasetMetricsReporter(MetricsCollectionService metricsService,
-                                       LevelDBOrderedTableService ldbService,
+                                       LevelDBTableService ldbService,
                                        CConfiguration conf) {
     this.metricsService = metricsService;
     this.ldbService = ldbService;
@@ -85,14 +85,14 @@ public class LevelDBDatasetMetricsReporter extends AbstractScheduledService impl
   }
 
   private void reportStats() throws Exception {
-    Map<String, LevelDBOrderedTableService.TableStats> tableStats = ldbService.getTableStats();
+    Map<String, LevelDBTableService.TableStats> tableStats = ldbService.getTableStats();
     if (tableStats.size() > 0) {
       report(tableStats);
     }
   }
 
-  private void report(Map<String, LevelDBOrderedTableService.TableStats> datasetStat) {
-    for (Map.Entry<String, LevelDBOrderedTableService.TableStats> statEntry : datasetStat.entrySet()) {
+  private void report(Map<String, LevelDBTableService.TableStats> datasetStat) {
+    for (Map.Entry<String, LevelDBTableService.TableStats> statEntry : datasetStat.entrySet()) {
       String datasetName = userDsNamespace.fromNamespaced(statEntry.getKey());
       if (datasetName == null) {
         // not a user dataset

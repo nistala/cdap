@@ -44,7 +44,7 @@ public class LevelDBTableTest extends BufferingTableTest<LevelDBTable> {
   @ClassRule
   public static TemporaryFolder tmpFolder = new TemporaryFolder();
 
-  static LevelDBOrderedTableService service;
+  static LevelDBTableService service;
   static Injector injector = null;
 
   @BeforeClass
@@ -56,7 +56,7 @@ public class LevelDBTableTest extends BufferingTableTest<LevelDBTable> {
       new LocationRuntimeModule().getStandaloneModules(),
       new DataFabricLevelDBModule(),
       new TransactionMetricsModule());
-    service = injector.getInstance(LevelDBOrderedTableService.class);
+    service = injector.getInstance(LevelDBTableService.class);
   }
 
   @Override
@@ -67,10 +67,10 @@ public class LevelDBTableTest extends BufferingTableTest<LevelDBTable> {
   }
 
   @Override
-  protected LevelDBOrderedTableAdmin getTableAdmin(String name, DatasetProperties ignored) throws IOException {
+  protected LevelDBTableAdmin getTableAdmin(String name, DatasetProperties ignored) throws IOException {
     DatasetSpecification spec =
-      new LevelDBOrderedTableDefinition("foo").configure(name, DatasetProperties.EMPTY);
-    return new LevelDBOrderedTableAdmin(spec, service);
+      new LevelDBTableDefinition("foo").configure(name, DatasetProperties.EMPTY);
+    return new LevelDBTableAdmin(spec, service);
   }
 
   @Test
@@ -81,7 +81,7 @@ public class LevelDBTableTest extends BufferingTableTest<LevelDBTable> {
 
     // create a table and verify it is in the list of tables
     for (String tableName : tableNames) {
-      LevelDBOrderedTableAdmin admin = getTableAdmin(tableName, DatasetProperties.EMPTY);
+      LevelDBTableAdmin admin = getTableAdmin(tableName, DatasetProperties.EMPTY);
       admin.create();
       Assert.assertTrue(admin.exists());
     }

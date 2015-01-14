@@ -28,10 +28,10 @@ import java.util.Map;
 /**
  *
  */
-public class InMemoryOrderedTableDefinition
-  extends AbstractDatasetDefinition<Table, InMemoryOrderedTableAdmin> {
+public class InMemoryTableDefinition
+  extends AbstractDatasetDefinition<Table, InMemoryTableAdmin> {
 
-  public InMemoryOrderedTableDefinition(String name) {
+  public InMemoryTableDefinition(String name) {
     super(name);
   }
 
@@ -51,8 +51,8 @@ public class InMemoryOrderedTableDefinition
   }
 
   @Override
-  public InMemoryOrderedTableAdmin getAdmin(DatasetSpecification spec, ClassLoader classLoader) throws IOException {
+  public InMemoryTableAdmin getAdmin(DatasetSpecification spec, ClassLoader classLoader) throws IOException {
     // todo: or pass the full spec?
-    return new InMemoryOrderedTableAdmin(spec.getName());
+    return new InMemoryTableAdmin(spec.getName());
   }
 }

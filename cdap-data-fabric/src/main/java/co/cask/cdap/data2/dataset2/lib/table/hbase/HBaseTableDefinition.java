@@ -14,14 +14,18 @@
  * the License.
  */
 
-package co.cask.cdap.data2.dataset2.lib.table.leveldb;
+package co.cask.cdap.data2.dataset2.lib.table.hbase;
 
 import co.cask.cdap.api.dataset.DatasetProperties;
 import co.cask.cdap.api.dataset.DatasetSpecification;
 import co.cask.cdap.api.dataset.lib.AbstractDatasetDefinition;
 import co.cask.cdap.api.dataset.table.ConflictDetection;
 import co.cask.cdap.api.dataset.table.Table;
+import co.cask.cdap.common.conf.CConfiguration;
+import co.cask.cdap.data2.util.hbase.HBaseTableUtil;
 import com.google.inject.Inject;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.twill.filesystem.LocationFactory;
 
 import java.io.IOException;
 import java.util.Map;
@@ -29,13 +33,20 @@ import java.util.Map;
 /**
  *
  */
-public class LevelDBOrderedTableDefinition
-  extends AbstractDatasetDefinition<Table, LevelDBOrderedTableAdmin> {
+public class HBaseTableDefinition
+  extends AbstractDatasetDefinition<Table, HBaseTableAdmin> {
 
   @Inject
-  private LevelDBOrderedTableService service;
+  private Configuration hConf;
+  @Inject
+  private HBaseTableUtil hBaseTableUtil;
+  @Inject
+  private LocationFactory locationFactory;
+  // todo: datasets should not depend on cdap configuration!
+  @Inject
+  private CConfiguration conf;
 
-  public LevelDBOrderedTableDefinition(String name) {
+  public HBaseTableDefinition(String name) {
     super(name);
   }
 
@@ -48,14 +59,17 @@ public class LevelDBOrderedTableDefinition
 
   @Override
   public Table getDataset(DatasetSpecification spec,
-                                        Map<String, String> arguments, ClassLoader classLoader) throws IOException {
+                                 Map<String, String> arguments, ClassLoader classLoader) throws IOException {
     ConflictDetection conflictDetection =
       ConflictDetection.valueOf(spec.getProperty("conflict.level", ConflictDetection.ROW.name()));
-    return new LevelDBTable(spec.getName(), conflictDetection, service);
+    // NOTE: ttl property is applied on server-side in CPs
+    // check if read-less increment operations are supported
+    boolean supportsIncrements = HBaseTableAdmin.supportsReadlessIncrements(spec);
+    return new HBaseTable(spec.getName(), conflictDetection, hConf, supportsIncrements);
   }
 
   @Override
-  public LevelDBOrderedTableAdmin getAdmin(DatasetSpecification spec, ClassLoader classLoader) throws IOException {
-    return new LevelDBOrderedTableAdmin(spec, service);
+  public HBaseTableAdmin getAdmin(DatasetSpecification spec, ClassLoader classLoader) throws IOException {
+    return new HBaseTableAdmin(spec, hConf, hBaseTableUtil, conf, locationFactory);
   }
 }

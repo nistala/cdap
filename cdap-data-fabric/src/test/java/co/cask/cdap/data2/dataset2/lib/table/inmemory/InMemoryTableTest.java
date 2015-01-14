@@ -32,6 +32,6 @@ public class InMemoryTableTest extends BufferingTableTest<InMemoryTable> {
 
   @Override
   protected DatasetAdmin getTableAdmin(String name, DatasetProperties ignored) throws Exception {
-    return new InMemoryOrderedTableAdmin(name);
+    return new InMemoryTableAdmin(name);
   }
 }
