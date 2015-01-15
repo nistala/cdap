@@ -21,6 +21,7 @@ import co.cask.cdap.api.dataset.DatasetAdmin;
 import co.cask.cdap.api.dataset.DatasetDefinition;
 import co.cask.cdap.api.dataset.DatasetProperties;
 import co.cask.cdap.api.dataset.DatasetSpecification;
+import co.cask.cdap.api.dataset.table.OrderedTable;
 import co.cask.cdap.api.dataset.table.Table;
 import co.cask.cdap.data2.dataset2.lib.table.CoreDatasetsModule;
 import co.cask.cdap.data2.dataset2.module.lib.inmemory.InMemoryTableModule;
@@ -44,13 +45,13 @@ public abstract class AbstractDatasetFrameworkTest {
     DatasetFramework framework = getFramework();
     String moduleName = "inMemory";
 
-    Assert.assertFalse(framework.hasType("orderedTable"));
+    Assert.assertFalse(framework.hasType("table"));
     framework.addModule(moduleName, new InMemoryTableModule());
-    Assert.assertTrue(framework.hasType("orderedTable"));
+    Assert.assertTrue(framework.hasType("table"));
 
     Assert.assertFalse(framework.hasInstance("my_table"));
     // Creating instance
-    framework.addInstance("orderedTable", "my_table", DatasetProperties.EMPTY);
+    framework.addInstance("table", "my_table", DatasetProperties.EMPTY);
     Assert.assertTrue(framework.hasInstance("my_table"));
 
     // Doing some admin and data ops
@@ -91,7 +92,9 @@ public abstract class AbstractDatasetFrameworkTest {
     DatasetFramework framework = getFramework();
 
     framework.addModule("inMemory", new InMemoryTableModule());
+    Assert.assertFalse(framework.hasType(OrderedTable.class.getName()));
     framework.addModule("core", new CoreDatasetsModule());
+    Assert.assertTrue(framework.hasType(OrderedTable.class.getName()));
     Assert.assertFalse(framework.hasType(SimpleKVTable.class.getName()));
     framework.addModule("keyValue", new SingleTypeModule(SimpleKVTable.class));
     Assert.assertTrue(framework.hasType(SimpleKVTable.class.getName()));
