@@ -628,6 +628,28 @@ public class ProgramLifecycleHttpHandlerTest extends AppFabricTestBase {
     Assert.assertEquals(200, deleteQueues(TEST_NAMESPACE1, WORDCOUNT_APP_NAME, WORDCOUNT_FLOW_NAME));
   }
 
+  private void setAndTestRuntimeArgs(String namespace, String appId, String runnableType, String runnableId,
+                              Map<String, String> args)
+    throws Exception {
+    HttpResponse response;
+    String argString = GSON.toJson(args, new TypeToken<Map<String, String>>() {
+    }.getType());
+    String versionedRuntimeArgsUrl = getVersionedAPIPath("apps/" + appId + "/" + runnableType + "/" + runnableId +
+                                                           "/runtimeargs", Constants.Gateway.API_VERSION_3_TOKEN,
+                                                         namespace);
+    response = doPut(versionedRuntimeArgsUrl, argString);
+
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    response = doGet(versionedRuntimeArgsUrl);
+
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    Map<String, String> argsRead = GSON.fromJson(EntityUtils.toString(response.getEntity()),
+                                                 new TypeToken<Map<String, String>>() {
+                                                 }.getType());
+
+    Assert.assertEquals(args.size(), argsRead.size());
+  }
+
   @Category(XSlowTests.class)
   @Test
   public void testWorkflowSchedules() throws Exception {
@@ -648,6 +670,12 @@ public class ProgramLifecycleHttpHandlerTest extends AppFabricTestBase {
 //    Assert.assertEquals(200, getWorkflowCurrentStatus(TEST_NAMESPACE2, APP_WITH_SCHEDULE_APP_NAME,
 //                                                      APP_WITH_SCHEDULE_WORKFLOW_NAME));
 
+    Map<String, String> runtimeArguments = Maps.newHashMap();
+    runtimeArguments.put("someKey", "someWorkflowValue");
+    runtimeArguments.put("workflowKey", "workflowValue");
+
+    setAndTestRuntimeArgs(TEST_NAMESPACE2, APP_WITH_SCHEDULE_APP_NAME, ProgramType.WORKFLOW.getCategoryName(),
+                          APP_WITH_SCHEDULE_WORKFLOW_NAME, runtimeArguments);
 
     // get schedules
     List<ScheduleSpecification> schedules = getSchedules(TEST_NAMESPACE2, APP_WITH_SCHEDULE_APP_NAME,
@@ -663,7 +691,8 @@ public class ProgramLifecycleHttpHandlerTest extends AppFabricTestBase {
     Assert.assertNotNull(nextRunTime);
     Assert.assertTrue(nextRunTime > current);
 
-    String runsUrl = getRunsUrl(TEST_NAMESPACE2, APP_WITH_SCHEDULE_APP_NAME, APP_WITH_SCHEDULE_WORKFLOW_NAME);
+    String runsUrl = getRunsUrl(TEST_NAMESPACE2, APP_WITH_SCHEDULE_APP_NAME, APP_WITH_SCHEDULE_WORKFLOW_NAME,
+                                "completed");
     scheduleHistoryCheck(5, runsUrl, 0);
 
     //Check schedule status
@@ -704,6 +733,11 @@ public class ProgramLifecycleHttpHandlerTest extends AppFabricTestBase {
 
     //check paused state
     scheduleStatusCheck(5, statusUrl, "SUSPENDED");
+
+    runsUrl = getRunsUrl(TEST_NAMESPACE2, APP_WITH_SCHEDULE_APP_NAME, APP_WITH_SCHEDULE_WORKFLOW_NAME,
+                                "failed");
+
+    int failed = getRuns(runsUrl);
 
     TimeUnit.SECONDS.sleep(2); //wait till any running jobs just before suspend call completes.
   }
@@ -882,8 +916,8 @@ public class ProgramLifecycleHttpHandlerTest extends AppFabricTestBase {
     return history.size();
   }
 
-  private String getRunsUrl(String namespace, String appName, String workflow) {
-    String runsUrl = String.format("apps/%s/workflows/%s/runs?status=completed", appName, workflow);
+  private String getRunsUrl(String namespace, String appName, String workflow, String status) {
+    String runsUrl = String.format("apps/%s/workflows/%s/runs?status=%s", appName, workflow, status);
     return getVersionedAPIPath(runsUrl, Constants.Gateway.API_VERSION_3_TOKEN, namespace);
   }
 

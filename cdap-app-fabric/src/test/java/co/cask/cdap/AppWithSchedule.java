@@ -18,14 +18,16 @@ package co.cask.cdap;
 
 import co.cask.cdap.api.app.AbstractApplication;
 import co.cask.cdap.api.dataset.lib.ObjectStores;
-import co.cask.cdap.api.schedule.Schedule;
 import co.cask.cdap.api.workflow.AbstractWorkflow;
 import co.cask.cdap.api.workflow.AbstractWorkflowAction;
 import co.cask.cdap.internal.io.UnsupportedTypeException;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
+import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -41,7 +43,13 @@ public class AppWithSchedule extends AbstractApplication {
       ObjectStores.createObjectStore(getConfigurer(), "input", String.class);
       ObjectStores.createObjectStore(getConfigurer(), "output", String.class);
       addWorkflow(new SampleWorkflow());
-      scheduleWorkflow("SampleSchedule", "0/1 * * * * ?", "SampleWorkflow");
+
+      Map<String, String> scheduleProperties = Maps.newHashMap();
+      scheduleProperties.put("oneKey", "oneValue");
+      scheduleProperties.put("anotherKey", "anotherValue");
+      scheduleProperties.put("someKey", "someValue");
+
+      scheduleWorkflow("SampleSchedule", "0/1 * * * * ?", "SampleWorkflow", scheduleProperties);
     } catch (UnsupportedTypeException e) {
       throw Throwables.propagate(e);
     }
@@ -70,8 +78,20 @@ public class AppWithSchedule extends AbstractApplication {
       LOG.info("Ran dummy action");
       try {
         TimeUnit.MILLISECONDS.sleep(500);
+        LOG.info("KEY:" + getContext().getRuntimeArguments().get("oneKey") + " VALUE:" + "oneValue");
+        LOG.info("KEY:" + getContext().getRuntimeArguments().get("anotherKey") + " VALUE:" + "anotherValue");
+        LOG.info("KEY:" + getContext().getRuntimeArguments().get("someKey") + " VALUE:" + "someWorkflowValue");
+        LOG.info("KEY:" + getContext().getRuntimeArguments().get("workflowKey") + " VALUE:" + "workflowValue");
+
+        Preconditions.checkArgument(getContext().getRuntimeArguments().get("oneKey").equals("oneValue1"));
+        Preconditions.checkArgument(getContext().getRuntimeArguments().get("anotherKey").equals("anotherValue"));
+        Preconditions.checkArgument(getContext().getRuntimeArguments().get("someKey").equals("someWorkflowValue"));
+        Preconditions.checkArgument(getContext().getRuntimeArguments().get("workflowKey").equals("workflowValue"));
       } catch (InterruptedException e) {
         LOG.info("Interrupted");
+      } catch (IllegalArgumentException e) {
+        String s = "Error in the property values:" + e.getMessage();
+        throw new RuntimeException(s);
       }
     }
   }
