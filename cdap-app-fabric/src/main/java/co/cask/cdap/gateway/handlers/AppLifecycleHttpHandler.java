@@ -78,6 +78,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 import com.google.gson.Gson;
 import com.google.inject.Inject;
@@ -104,6 +105,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import javax.ws.rs.DELETE;
@@ -301,9 +303,10 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
    * Create an adapter.
    */
   @PUT
-  @Path("/adapters")
+  @Path("/adapters/{adapter-name}")
   public void createAdapter(HttpRequest request, HttpResponder responder,
-                            @PathParam("namespace-id") String namespaceId) {
+                            @PathParam("namespace-id") String namespaceId,
+                            @PathParam("adapter-name") String adapterName) {
 
     try {
       if (!namespaceExists(namespaceId)) {
@@ -313,12 +316,14 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
         return;
       }
 
-      AdapterSpecification spec = parseBody(request, AdapterSpecification.class);
+      AdapterConfig config = parseBody(request, AdapterConfig.class);
+
+      //TODO: Fix source and sink type
+      AdapterSpecification spec = getAdapterSpec(config, adapterName, Source.Type.STREAM, Sink.Type.DATASET);
       if (spec == null) {
         responder.sendString(HttpResponseStatus.BAD_REQUEST, "AdapterSpecification could not be parsed");
         return;
       }
-      String adapterName = spec.getName();
 
       // TODO: Verify if the Adapter is a valid adapter by reading the mapping.
       String adapterType = spec.getType();
@@ -989,5 +994,34 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
 
   private static ApplicationRecord makeAppRecord(ApplicationSpecification appSpec) {
     return new ApplicationRecord("App", appSpec.getName(), appSpec.getName(), appSpec.getDescription());
+  }
+
+  private static final class AdapterConfig {
+    private String type;
+    private Map<String, String> properties;
+
+    private Source source;
+    private Sink sink;
+
+    private static final class Source {
+      private String name;
+      private Map<String, String> properties;
+    }
+
+    private static final class Sink {
+      private String name;
+      private Map<String, String> properties;
+    }
+  }
+
+  private AdapterSpecification getAdapterSpec(AdapterConfig config, String name,
+                                              Source.Type sourceType, Sink.Type sinkType) {
+    Set<Source> sources = Sets.newHashSet();
+    Set<Sink> sinks = Sets.newHashSet();
+
+    sources.add(new Source(config.source.name, sourceType, config.source.properties));
+    sinks.add(new Sink(config.sink.name, sinkType, config.sink.properties));
+
+    return new AdapterSpecification(name, config.type, config.properties, sources, sinks);
   }
 }
