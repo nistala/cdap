@@ -654,7 +654,8 @@ public class ProgramLifecycleHttpHandlerTest extends AppFabricTestBase {
   @Category(XSlowTests.class)
   @Test
   public void testWorkflowRuns() throws Exception {
-    HttpResponse response = deploy(WorkflowAppWithErrorRuns.class, Constants.Gateway.API_VERSION_3_TOKEN, TEST_NAMESPACE2);
+    HttpResponse response = deploy(WorkflowAppWithErrorRuns.class, Constants.Gateway.API_VERSION_3_TOKEN,
+                                   TEST_NAMESPACE2);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
 
     String runsUrl = getRunsUrl(TEST_NAMESPACE2, "WorkflowAppWithErrorRuns", "WorkflowWithErrorRuns",
