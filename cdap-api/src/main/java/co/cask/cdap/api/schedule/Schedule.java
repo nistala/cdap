@@ -16,6 +16,8 @@
 
 package co.cask.cdap.api.schedule;
 
+import com.google.common.base.Objects;
+
 /**
  * Defines a cron-based schedule for running a program. 
  */
@@ -52,5 +54,35 @@ public class Schedule {
    */
   public String getCronEntry() {
     return cronEntry;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    Schedule that = (Schedule) o;
+
+    return Objects.equal(this.name, that.name) &&
+      Objects.equal(this.description, that.description) &&
+      Objects.equal(this.cronEntry, that.cronEntry);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(name, description, cronEntry);
+  }
+
+  @Override
+  public String toString() {
+    return Objects.toStringHelper(this)
+      .add("name", name)
+      .add("description", description)
+      .add("cronEntry", cronEntry)
+      .toString();
   }
 }
