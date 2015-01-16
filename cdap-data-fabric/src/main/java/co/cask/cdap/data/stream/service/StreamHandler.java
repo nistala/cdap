@@ -32,7 +32,7 @@ import co.cask.cdap.data2.transaction.stream.StreamConfig;
 import co.cask.cdap.explore.client.ExploreFacade;
 import co.cask.cdap.gateway.auth.Authenticator;
 import co.cask.cdap.gateway.handlers.AuthenticatedHttpHandler;
-import co.cask.cdap.internal.io.SchemaTypeAdapter;
+import co.cask.cdap.api.data.schema.SchemaTypeAdapter;
 import co.cask.cdap.proto.StreamProperties;
 import co.cask.http.HandlerContext;
 import co.cask.http.HttpHandler;

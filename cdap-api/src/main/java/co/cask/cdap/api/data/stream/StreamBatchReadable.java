@@ -25,7 +25,7 @@ import co.cask.cdap.api.data.schema.Schema;
 import co.cask.cdap.api.flow.flowlet.StreamEvent;
 import co.cask.cdap.api.mapreduce.MapReduceContext;
 import co.cask.cdap.api.stream.StreamEventDecoder;
-import co.cask.cdap.internal.io.SchemaTypeAdapter;
+import co.cask.cdap.api.data.schema.SchemaTypeAdapter;
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;

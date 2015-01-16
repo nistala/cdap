@@ -14,7 +14,7 @@
  * the License.
  */
 
-package co.cask.cdap.conversion;
+package co.cask.cdap.conversion.app;
 
 import co.cask.cdap.api.schedule.Schedule;
 import co.cask.cdap.api.workflow.Workflow;

@@ -24,7 +24,7 @@ import co.cask.cdap.common.utils.OSDetector;
 import co.cask.cdap.data.stream.StreamCoordinator;
 import co.cask.cdap.data.stream.StreamFileOffset;
 import co.cask.cdap.data.stream.StreamUtils;
-import co.cask.cdap.internal.io.SchemaTypeAdapter;
+import co.cask.cdap.api.data.schema.SchemaTypeAdapter;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;

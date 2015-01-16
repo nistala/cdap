@@ -662,7 +662,7 @@ public final class Schema {
     StringBuilder builder = new StringBuilder();
     JsonWriter writer = new JsonWriter(CharStreams.asWriter(builder));
     try {
-      new co.cask.cdap.internal.io.SchemaTypeAdapter().write(writer, this);
+      new SchemaTypeAdapter().write(writer, this);
       writer.close();
       return builder.toString();
     } catch (IOException e) {

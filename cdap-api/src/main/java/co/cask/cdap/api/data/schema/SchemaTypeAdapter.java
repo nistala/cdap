@@ -14,7 +14,7 @@
  * the License.
  */
 
-package co.cask.cdap.internal.io;
+package co.cask.cdap.api.data.schema;
 
 import co.cask.cdap.api.data.schema.Schema;
 import com.google.common.collect.ImmutableList;
@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Class for serialize/deserialize Schema object to/from json through {@link com.google.gson.Gson Gson}.
+ * Class for serializing/deserializing a Schema object to/from json through {@link com.google.gson.Gson Gson}.
  * <p>
  *  Expected usage:
  *

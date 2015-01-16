@@ -14,18 +14,21 @@
  * the License.
  */
 
-package co.cask.cdap.conversion;
+package co.cask.cdap.conversion.app;
 
 import co.cask.cdap.api.Resources;
-import co.cask.cdap.api.common.Bytes;
+import co.cask.cdap.api.data.format.FormatSpecification;
+import co.cask.cdap.api.data.format.StructuredRecord;
+import co.cask.cdap.api.data.schema.SchemaTypeAdapter;
 import co.cask.cdap.api.data.stream.StreamBatchReadable;
 import co.cask.cdap.api.dataset.lib.FileSet;
-import co.cask.cdap.api.flow.flowlet.StreamEvent;
 import co.cask.cdap.api.mapreduce.AbstractMapReduce;
 import co.cask.cdap.api.mapreduce.MapReduceContext;
+import co.cask.cdap.conversion.avro.Converter;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.generic.GenericRecordBuilder;
 import org.apache.avro.mapred.AvroKey;
 import org.apache.avro.mapreduce.AvroJob;
 import org.apache.hadoop.io.LongWritable;
@@ -45,6 +48,9 @@ import java.util.concurrent.TimeUnit;
  * in avro format.
  */
 public class StreamConversionMapReduce extends AbstractMapReduce {
+  private static final Gson GSON = new GsonBuilder()
+    .registerTypeAdapter(co.cask.cdap.api.data.schema.Schema.class, new SchemaTypeAdapter())
+    .create();
   private static final Logger LOG = LoggerFactory.getLogger(StreamConversionMapReduce.class);
   public static final String SCHEMA_KEY = "cdap.stream.conversion.output.schema";
   public static final String STREAM_NAME = "cdap.stream.conversion.stream.name";
@@ -55,6 +61,7 @@ public class StreamConversionMapReduce extends AbstractMapReduce {
   // assumes the schema of the output dataset is appropriately named.
   public static final String HEADERS = "cdap.stream.conversion.headers";
   public static final String MAPPER_MEMORY = "cdap.stream.conversion.mapper.memorymb";
+  public static final String FORMAT_SPEC = "cdap.stream.conversion.format.spec";
   private String jobTime;
   private Location filesetLocation;
   private Location jobOutputLocation;
@@ -89,7 +96,9 @@ public class StreamConversionMapReduce extends AbstractMapReduce {
     long runFrequency = Long.parseLong(getRequiredArg(runtimeArgs, RUN_FREQUENCY_MS));
     jobTime = String.valueOf(TimeUnit.SECONDS.convert(logicalStartTime, TimeUnit.MILLISECONDS));
     String streamName = getRequiredArg(runtimeArgs, STREAM_NAME);
-    StreamBatchReadable.useStreamInput(context, streamName, logicalStartTime - runFrequency, logicalStartTime);
+    FormatSpecification formatSpec = GSON.fromJson(getRequiredArg(runtimeArgs, FORMAT_SPEC), FormatSpecification.class);
+    StreamBatchReadable.useStreamInput(context, streamName, logicalStartTime - runFrequency, logicalStartTime,
+                                       formatSpec);
 
     String filesetName = getRequiredArg(runtimeArgs, FILESET_NAME);
     FileSet fileSet = context.getDataset(filesetName);
@@ -98,8 +107,8 @@ public class StreamConversionMapReduce extends AbstractMapReduce {
     // Incompatibilities will surface here and cause the job to fail.
     // TODO: support output formats other than avro
     String schemaStr = fileSet.getOutputFormatConfiguration().get("schema");
-    job.getConfiguration().set(SCHEMA_KEY, schemaStr);
     Schema schema = new Schema.Parser().parse(schemaStr);
+    job.getConfiguration().set(SCHEMA_KEY, schemaStr);
     AvroJob.setOutputKeySchema(job, schema);
     // set the headers that should be included for each event
     String headersStr = runtimeArgs.get(HEADERS);
@@ -107,7 +116,7 @@ public class StreamConversionMapReduce extends AbstractMapReduce {
       job.getConfiguration().set(HEADERS, runtimeArgs.get(HEADERS));
     }
 
-    // each job will output to it's logical start time so that concurrent jobs don't step on each other.
+    // each job will output to its logical start time so that concurrent jobs don't step on each other.
     // the assumption here is that multiple runs will not have the same logical start time.
     // TODO: set the output path here instead of assuming it is set in the runtime args by whatever
     //       is running this program. Requires some way of setting runtime args in this method (or some other method)
@@ -154,31 +163,23 @@ public class StreamConversionMapReduce extends AbstractMapReduce {
    * Mapper that reads events from a stream and writes them out as Avro.
    */
   public static class StreamConversionMapper extends
-    Mapper<LongWritable, StreamEvent, AvroKey<GenericRecord>, NullWritable> {
+    Mapper<LongWritable, StructuredRecord, AvroKey<GenericRecord>, NullWritable> {
     private Schema schema;
     private String[] headers;
+    private Converter converter;
 
     @Override
     protected void setup(Context context) throws IOException, InterruptedException {
       schema = new Schema.Parser().parse(context.getConfiguration().get(SCHEMA_KEY));
       String headersStr = context.getConfiguration().get(HEADERS);
       headers = headersStr == null ? new String[0] : headersStr.split(",");
+      converter = new Converter(schema, headers);
     }
 
     @Override
-    public void map(LongWritable timestamp, StreamEvent streamEvent, Context context)
+    public void map(LongWritable timestamp, StructuredRecord streamEvent, Context context)
       throws IOException, InterruptedException {
-      // TODO: replace with stream event -> avro record conversion
-      GenericRecordBuilder recordBuilder = new GenericRecordBuilder(schema)
-        .set("ts", streamEvent.getTimestamp())
-        .set("body", Bytes.toString(streamEvent.getBody()));
-      Map<String, String> eventHeaders = streamEvent.getHeaders();
-      if (eventHeaders != null) {
-        for (String header : headers) {
-          recordBuilder.set(header, eventHeaders.get(header));
-        }
-      }
-      GenericRecord record = recordBuilder.build();
+      GenericRecord record = converter.convert(streamEvent, timestamp.get());
       context.write(new AvroKey<GenericRecord>(record), NullWritable.get());
     }
   }

@@ -28,7 +28,7 @@ import co.cask.cdap.data.stream.decoder.FormatStreamEventDecoder;
 import co.cask.cdap.data.stream.decoder.IdentityStreamEventDecoder;
 import co.cask.cdap.data.stream.decoder.StringStreamEventDecoder;
 import co.cask.cdap.data.stream.decoder.TextStreamEventDecoder;
-import co.cask.cdap.internal.io.SchemaTypeAdapter;
+import co.cask.cdap.api.data.schema.SchemaTypeAdapter;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.gson.Gson;

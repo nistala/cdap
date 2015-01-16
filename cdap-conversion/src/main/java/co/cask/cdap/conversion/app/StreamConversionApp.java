@@ -14,13 +14,13 @@
  * the License.
  */
 
-package co.cask.cdap.conversion;
+package co.cask.cdap.conversion.app;
 
 import co.cask.cdap.api.app.AbstractApplication;
+import co.cask.cdap.api.data.schema.Schema;
 import co.cask.cdap.api.dataset.lib.FileSet;
 import co.cask.cdap.api.dataset.lib.FileSetProperties;
-import co.cask.cdap.internal.io.Schema;
-import co.cask.cdap.internal.io.SchemaTypeAdapter;
+import co.cask.cdap.api.data.schema.SchemaTypeAdapter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.avro.mapreduce.AvroKeyInputFormat;
@@ -41,7 +41,7 @@ public class StreamConversionApp extends AbstractApplication {
       Schema.Field.of("ts", Schema.of(Schema.Type.LONG)),
       Schema.Field.of("header1", Schema.unionOf(Schema.of(Schema.Type.NULL), Schema.of(Schema.Type.STRING))),
       Schema.Field.of("header2", Schema.unionOf(Schema.of(Schema.Type.NULL), Schema.of(Schema.Type.STRING))),
-      Schema.Field.of("body", Schema.of(Schema.Type.STRING)));
+      Schema.Field.of("data", Schema.of(Schema.Type.STRING)));
     addWorkflow(new StreamConversionWorkflow());
     // this should not be in the app.  But there is no way to pass in the name of the dataset at runtime...
     // do this to get an outline of the app in place then change it after the framework can support runtime datasets.
