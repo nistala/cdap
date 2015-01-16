@@ -78,20 +78,14 @@ public class AppWithSchedule extends AbstractApplication {
       LOG.info("Ran dummy action");
       try {
         TimeUnit.MILLISECONDS.sleep(500);
-        LOG.info("KEY:" + getContext().getRuntimeArguments().get("oneKey") + " VALUE:" + "oneValue");
-        LOG.info("KEY:" + getContext().getRuntimeArguments().get("anotherKey") + " VALUE:" + "anotherValue");
-        LOG.info("KEY:" + getContext().getRuntimeArguments().get("someKey") + " VALUE:" + "someWorkflowValue");
-        LOG.info("KEY:" + getContext().getRuntimeArguments().get("workflowKey") + " VALUE:" + "workflowValue");
 
-        Preconditions.checkArgument(getContext().getRuntimeArguments().get("oneKey").equals("oneValue1"));
+        Preconditions.checkArgument(getContext().getRuntimeArguments().get("oneKey").equals("oneValue"));
         Preconditions.checkArgument(getContext().getRuntimeArguments().get("anotherKey").equals("anotherValue"));
         Preconditions.checkArgument(getContext().getRuntimeArguments().get("someKey").equals("someWorkflowValue"));
         Preconditions.checkArgument(getContext().getRuntimeArguments().get("workflowKey").equals("workflowValue"));
+
       } catch (InterruptedException e) {
         LOG.info("Interrupted");
-      } catch (IllegalArgumentException e) {
-        String s = "Error in the property values:" + e.getMessage();
-        throw new RuntimeException(s);
       }
     }
   }

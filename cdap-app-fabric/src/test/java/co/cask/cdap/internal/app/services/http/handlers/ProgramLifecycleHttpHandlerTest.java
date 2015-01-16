@@ -23,6 +23,7 @@ import co.cask.cdap.AppWithWorkflow;
 import co.cask.cdap.DummyAppWithTrackingTable;
 import co.cask.cdap.SleepingWorkflowApp;
 import co.cask.cdap.WordCountApp;
+import co.cask.cdap.WorkflowAppWithErrorRuns;
 import co.cask.cdap.api.schedule.ScheduleSpecification;
 import co.cask.cdap.app.runtime.ProgramController;
 import co.cask.cdap.common.conf.Constants;
@@ -628,7 +629,7 @@ public class ProgramLifecycleHttpHandlerTest extends AppFabricTestBase {
     Assert.assertEquals(200, deleteQueues(TEST_NAMESPACE1, WORDCOUNT_APP_NAME, WORDCOUNT_FLOW_NAME));
   }
 
-  private void setAndTestRuntimeArgs(String namespace, String appId, String runnableType, String runnableId,
+  private void setRuntimeArgs(String namespace, String appId, String runnableType, String runnableId,
                               Map<String, String> args)
     throws Exception {
     HttpResponse response;
@@ -648,6 +649,27 @@ public class ProgramLifecycleHttpHandlerTest extends AppFabricTestBase {
                                                  }.getType());
 
     Assert.assertEquals(args.size(), argsRead.size());
+  }
+
+  @Category(XSlowTests.class)
+  @Test
+  public void testWorkflowRuns() throws Exception {
+    HttpResponse response = deploy(WorkflowAppWithErrorRuns.class, Constants.Gateway.API_VERSION_3_TOKEN, TEST_NAMESPACE2);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+
+    String runsUrl = getRunsUrl(TEST_NAMESPACE2, "WorkflowAppWithErrorRuns", "WorkflowWithErrorRuns",
+                                "completed");
+    scheduleHistoryCheck(5, runsUrl, 0);
+
+    Map<String, String> runtimeArguments = Maps.newHashMap();
+    runtimeArguments.put("ThrowError", "true");
+
+    setRuntimeArgs(TEST_NAMESPACE2, "WorkflowAppWithErrorRuns", ProgramType.WORKFLOW.getCategoryName(),
+                   "WorkflowWithErrorRuns", runtimeArguments);
+
+    runsUrl = getRunsUrl(TEST_NAMESPACE2, "WorkflowAppWithErrorRuns", "WorkflowWithErrorRuns",
+                         "failed");
+    scheduleHistoryCheck(5, runsUrl, 0);
   }
 
   @Category(XSlowTests.class)
@@ -674,7 +696,7 @@ public class ProgramLifecycleHttpHandlerTest extends AppFabricTestBase {
     runtimeArguments.put("someKey", "someWorkflowValue");
     runtimeArguments.put("workflowKey", "workflowValue");
 
-    setAndTestRuntimeArgs(TEST_NAMESPACE2, APP_WITH_SCHEDULE_APP_NAME, ProgramType.WORKFLOW.getCategoryName(),
+    setRuntimeArgs(TEST_NAMESPACE2, APP_WITH_SCHEDULE_APP_NAME, ProgramType.WORKFLOW.getCategoryName(),
                           APP_WITH_SCHEDULE_WORKFLOW_NAME, runtimeArguments);
 
     // get schedules
@@ -734,12 +756,14 @@ public class ProgramLifecycleHttpHandlerTest extends AppFabricTestBase {
     //check paused state
     scheduleStatusCheck(5, statusUrl, "SUSPENDED");
 
-    runsUrl = getRunsUrl(TEST_NAMESPACE2, APP_WITH_SCHEDULE_APP_NAME, APP_WITH_SCHEDULE_WORKFLOW_NAME,
-                                "failed");
-
-    int failed = getRuns(runsUrl);
-
     TimeUnit.SECONDS.sleep(2); //wait till any running jobs just before suspend call completes.
+
+    runsUrl = getRunsUrl(TEST_NAMESPACE2, APP_WITH_SCHEDULE_APP_NAME, APP_WITH_SCHEDULE_WORKFLOW_NAME,
+                         "failed");
+
+    Assert.assertEquals(0, getRuns(runsUrl));
+
+
   }
 
   @Test
