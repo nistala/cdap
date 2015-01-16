@@ -16,6 +16,7 @@
 
 package co.cask.cdap.app.store;
 
+import co.cask.cdap.adapter.AdapterSpecification;
 import co.cask.cdap.api.ProgramSpecification;
 import co.cask.cdap.api.data.stream.StreamSpecification;
 import co.cask.cdap.api.schedule.SchedulableProgramType;
@@ -352,4 +353,45 @@ public interface Store {
    * @return a list of all registered namespaces
    */
   List<NamespaceMeta> listNamespaces();
+
+  /**
+   * Adds adapter spec to the store. Will overwrite the existing spec.
+   *
+   * @param id Namespace id
+   * @param adapterSpecification specification of the adapter
+   */
+  void addAdapter(Id.Namespace id, AdapterSpecification adapterSpecification);
+
+  /**
+   * Fetch the adapter identified by the name in a give namespace.
+   *
+   * @param id  Namespace id.
+   * @param name Adapter name
+   * @return an instance of {@link AdapterSpecification}.
+   */
+  AdapterSpecification getAdapter(Id.Namespace id, String name);
+
+  /**
+   * Fetch all the adapters in a given namespace.
+   *
+   * @param id Namespace id.
+   * @return {@link Collection} of Adapter Specification.
+   */
+  Collection<AdapterSpecification> getAllAdapters(Id.Namespace id);
+
+  /**
+   * Remove the adapter specified by the name in a given namespace.
+   *
+   * @param id Namespace id.
+   * @param name Adapter name.
+   */
+  void removeAdapter(Id.Namespace id, String name);
+
+  /**
+   * Remove all the adapters in a given namespace.
+   *
+   * @param id Namespace id.
+   */
+  void removeAllAdapters(Id.Namespace id);
+
 }

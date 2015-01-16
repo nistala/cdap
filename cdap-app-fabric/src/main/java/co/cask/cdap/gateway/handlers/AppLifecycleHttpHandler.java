@@ -16,7 +16,12 @@
 
 package co.cask.cdap.gateway.handlers;
 
+import co.cask.cdap.adapter.AdapterSpecification;
+import co.cask.cdap.adapter.Sink;
+import co.cask.cdap.adapter.Source;
 import co.cask.cdap.api.ProgramSpecification;
+import co.cask.cdap.api.dataset.DatasetProperties;
+import co.cask.cdap.api.dataset.lib.FileSet;
 import co.cask.cdap.api.flow.FlowSpecification;
 import co.cask.cdap.api.flow.FlowletConnection;
 import co.cask.cdap.api.schedule.SchedulableProgramType;
@@ -42,8 +47,13 @@ import co.cask.cdap.common.metrics.MetricsScope;
 import co.cask.cdap.common.queue.QueueName;
 import co.cask.cdap.common.utils.DirUtils;
 import co.cask.cdap.config.PreferencesStore;
+import co.cask.cdap.data.Namespace;
 import co.cask.cdap.data2.OperationException;
+import co.cask.cdap.data2.datafabric.DefaultDatasetNamespace;
+import co.cask.cdap.data2.dataset2.DatasetFramework;
+import co.cask.cdap.data2.dataset2.NamespacedDatasetFramework;
 import co.cask.cdap.data2.transaction.queue.QueueAdmin;
+import co.cask.cdap.data2.transaction.stream.StreamAdmin;
 import co.cask.cdap.data2.transaction.stream.StreamConsumerFactory;
 import co.cask.cdap.gateway.auth.Authenticator;
 import co.cask.cdap.gateway.handlers.util.AbstractAppFabricHttpHandler;
@@ -51,6 +61,8 @@ import co.cask.cdap.internal.UserErrors;
 import co.cask.cdap.internal.UserMessages;
 import co.cask.cdap.internal.app.deploy.ProgramTerminator;
 import co.cask.cdap.internal.app.deploy.pipeline.ApplicationWithPrograms;
+import co.cask.cdap.internal.app.runtime.AdapterInfo;
+import co.cask.cdap.internal.app.runtime.AdapterInfoService;
 import co.cask.cdap.internal.app.runtime.flow.FlowUtils;
 import co.cask.cdap.internal.app.runtime.schedule.Scheduler;
 import co.cask.cdap.proto.ApplicationRecord;
@@ -60,20 +72,24 @@ import co.cask.cdap.proto.ProgramType;
 import co.cask.cdap.proto.ProgramTypes;
 import co.cask.http.BodyConsumer;
 import co.cask.http.HttpResponder;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 import com.google.gson.Gson;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.ning.http.client.SimpleAsyncHttpClient;
+import org.apache.commons.lang.StringUtils;
 import org.apache.twill.api.RunId;
 import org.apache.twill.discovery.Discoverable;
 import org.apache.twill.discovery.DiscoveryServiceClient;
@@ -82,6 +98,7 @@ import org.apache.twill.filesystem.LocationFactory;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
+import org.quartz.DateBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,6 +110,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import javax.ws.rs.DELETE;
@@ -167,6 +185,11 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
   private final DiscoveryServiceClient discoveryServiceClient;
 
   private final PreferencesStore preferencesStore;
+  private final DatasetFramework datasetFramework;
+
+  private final StreamAdmin streamAdmin;
+
+  private final AdapterInfoService adapterInfoService;
 
   @Inject
   public AppLifecycleHttpHandler(Authenticator authenticator, CConfiguration configuration,
@@ -174,7 +197,9 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
                                  LocationFactory locationFactory, Scheduler scheduler,
                                  ProgramRuntimeService runtimeService, StoreFactory storeFactory,
                                  StreamConsumerFactory streamConsumerFactory, QueueAdmin queueAdmin,
-                                 DiscoveryServiceClient discoveryServiceClient, PreferencesStore preferencesStore) {
+                                 DiscoveryServiceClient discoveryServiceClient, PreferencesStore preferencesStore,
+                                 DatasetFramework datasetFramework, StreamAdmin streamAdmin,
+                                 AdapterInfoService adapterInfoService) {
     super(authenticator);
     this.configuration = configuration;
     this.managerFactory = managerFactory;
@@ -188,6 +213,10 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
     this.queueAdmin = queueAdmin;
     this.discoveryServiceClient = discoveryServiceClient;
     this.preferencesStore = preferencesStore;
+    this.datasetFramework =
+      new NamespacedDatasetFramework(datasetFramework, new DefaultDatasetNamespace(configuration, Namespace.USER));
+    this.streamAdmin = streamAdmin;
+    this.adapterInfoService = adapterInfoService;
   }
 
   /**
@@ -224,6 +253,246 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
       return null;
     }
   }
+
+  //TODO: improved docs
+
+  /**
+   * Retrieves a list of adapters
+   */
+  @GET
+  @Path("/adapters")
+  public void listAdapters(HttpRequest request, HttpResponder responder,
+                           @PathParam("namespace-id") String namespaceId) {
+    responder.sendJson(HttpResponseStatus.OK, store.getAllAdapters(Id.Namespace.from(namespaceId)));
+  }
+
+  /**
+   * Retrieves an adapter
+   */
+  @GET
+  @Path("/adapters/{adapterId}")
+  public void getAdapter(HttpRequest request, HttpResponder responder,
+                         @PathParam("namespace-id") String namespaceId,
+                         @PathParam("adapterId") String adapterId) {
+    AdapterSpecification adapterSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterId);
+    if (adapterSpec == null) {
+      responder.sendString(HttpResponseStatus.NOT_FOUND,
+                           String.format("Adapter not found: %s.%s", namespaceId, adapterId));
+      return;
+    }
+    responder.sendJson(HttpResponseStatus.OK, adapterSpec);
+  }
+
+  /**
+   * Deletes an adapter
+   */
+  @DELETE
+  @Path("/adapters/{adapterId}")
+  public void deleteAdapter(HttpRequest request, HttpResponder responder,
+                            @PathParam("namespace-id") String namespaceId,
+                            @PathParam("adapterId") String adapterId) {
+    AdapterSpecification adapterSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterId);
+    if (adapterSpec == null) {
+      responder.sendString(HttpResponseStatus.NOT_FOUND,
+                           String.format("Adapter not found: %s.%s", namespaceId, adapterId));
+      return;
+    }
+    // TODO: Update application specification
+    scheduler.deleteSchedules(Id.Program.from(namespaceId, "appId", "programId"), ProgramType.WORKFLOW);
+    store.removeAdapter(Id.Namespace.from(namespaceId), adapterId);
+    responder.sendStatus(HttpResponseStatus.OK);
+  }
+
+
+  /**
+   * Create an adapter.
+   */
+  @PUT
+  @Path("/adapters/{adapter-name}")
+  public void createAdapter(HttpRequest request, HttpResponder responder,
+                            @PathParam("namespace-id") String namespaceId,
+                            @PathParam("adapter-name") String adapterName) {
+
+    try {
+      if (!namespaceExists(namespaceId)) {
+        String errorMessage = String.format("Create adapter failed - namespace '%s' does not exist.", namespaceId);
+        LOG.warn(errorMessage);
+        responder.sendString(HttpResponseStatus.NOT_FOUND, errorMessage);
+        return;
+      }
+
+      AdapterConfig config = parseBody(request, AdapterConfig.class);
+
+      //TODO: Fix source and sink type
+      AdapterSpecification spec = getAdapterSpec(config, adapterName, Source.Type.STREAM, Sink.Type.DATASET);
+      if (spec == null) {
+        responder.sendString(HttpResponseStatus.BAD_REQUEST, "AdapterSpecification could not be parsed");
+        return;
+      }
+
+      // TODO: Verify if the Adapter is a valid adapter by reading the mapping.
+      String adapterType = spec.getType();
+      AdapterInfo adapterInfo = adapterInfoService.getAdapter(adapterType);
+      if (adapterInfo == null) {
+        responder.sendString(HttpResponseStatus.NOT_FOUND, "Adapter type not found");
+        return;
+      }
+
+      // Setup Sources and Sinks prior to application deploy
+      // ensure all sources exist
+      for (Source source : spec.getSources()) {
+        if (Source.Type.STREAM.equals(source.getType())) {
+          if (!streamAdmin.exists(source.getName())) {
+            String errMessage = String.format("stream instance %s does not exist during create of adapter: %s",
+                                              source.getName(), spec);
+            LOG.debug(errMessage);
+            throw new IllegalStateException(errMessage);
+
+          }
+        } else {
+          throw new IllegalArgumentException(String.format("Unknown Source type: %s", source.getType()));
+        }
+      }
+      // create sinks if not exist
+      for (Sink sink : spec.getSinks()) {
+        if (Sink.Type.DATASET.equals(sink.getType())) {
+          String datasetName = sink.getName();
+          if (!datasetFramework.hasInstance(datasetName)) {
+            //TODO: This should come from a property.
+            datasetFramework.addInstance(FileSet.class.getName(), datasetName, DatasetProperties.EMPTY);
+          } else {
+            LOG.debug("Dataset instance {} already existed during create of adapter: {}", datasetName, spec);
+          }
+        } else {
+          throw new IllegalArgumentException(String.format("Unknown Sink type: %s", sink.getType()));
+        }
+      }
+
+      // Check to see if the App is already deployed
+      ApplicationSpecification applicationSpec = store.getApplication(Id.Application.from(namespaceId, adapterName));
+      if (applicationSpec == null) {
+        // Deploy the application, by copying the jar to tmp location and moving it (atomically) after the copy.
+        Location archiveDirectory = locationFactory.create(this.archiveDir).append(namespaceId);
+        Locations.mkdirsIfNotExists(archiveDirectory);
+        Location archive = archiveDirectory.append(adapterName);
+
+        // Copy jar content to a temporary location
+        Location tmpLocation = archive.getTempFile(".tmp");
+        // TODO: Get the jar location.
+        Files.copy(adapterInfo.getFile(), Locations.newOutputSupplier(tmpLocation));
+        // Files.copy(location, Locations.newOutputSupplier(tmpLocation));
+        try {
+          // Finally, move archive to final location
+          if (tmpLocation.renameTo(archive) == null) {
+            throw new IOException(String.format("Could not move archive from location: %s, to location: %s",
+                                                tmpLocation.toURI(), archive.toURI()));
+          }
+        } catch (IOException e) {
+          // In case copy to temporary file failed, or rename failed
+          tmpLocation.delete();
+          throw e;
+        }
+        deploy(namespaceId, adapterType, archive);
+      }
+
+
+      // We need this information, in order to know if/what to schedule
+      String appId = adapterType;
+      String programId = adapterInfo.getScheduleProgramId();
+      ProgramType programType = adapterInfo.getScheduleProgramType();
+      Id.Program scheduledProgramId = Id.Program.from(namespaceId, appId, programId);
+
+
+      // If the adapter already exists, remove existing schedule to replace with the new one.
+      AdapterSpecification existingSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterName);
+      if (existingSpec != null) {
+        // TODO: Remove the schedule.
+        String debugMessage = String.format("Existing adapter found while create: %s.%s",
+                                            namespaceId, existingSpec);
+        LOG.debug(debugMessage);
+      }
+      //TODO: Schedule new programs once the API is available.
+
+      store.addAdapter(Id.Namespace.from(namespaceId), spec);
+
+      responder.sendString(HttpResponseStatus.OK, String.format("Adapter: %s is created", adapterName));
+    } catch (IOException e) {
+      responder.sendString(HttpResponseStatus.BAD_REQUEST, "AdapterSpecification could not be parsed");
+    } catch (OperationException e) {
+      // TODO: Remove the catch clause after operation Exception is removed from Store. CDAP-1165
+      responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+    } catch (Exception e) {
+      LOG.error("Failed to deploy adapter", e);
+      responder.sendString(HttpResponseStatus.BAD_REQUEST, e.getMessage());
+    }
+  }
+
+  //TODO: move this method elsewhere!
+
+  /**
+   * Converts a frequency expression into cronExpression that is usable by quartz.
+   * Supports frequency expressions with the following resolutions: minutes, hours, days.
+   * Example conversions:
+   * '10m' -> '*{@literal /}10 * * * ?'
+   * '3d' -> '0 0 *{@literal /}3 * ?'
+   *
+   * @return a chron expression
+   */
+  @VisibleForTesting
+  public static String toCronExpr(String frequency) {
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(frequency));
+    // remove all whitespace
+    frequency = frequency.replaceAll("\\s+", "");
+    Preconditions.checkArgument(frequency.length() >= 0);
+
+    frequency = frequency.toLowerCase();
+
+    String value = frequency.substring(0, frequency.length() - 1);
+    Preconditions.checkArgument(StringUtils.isNumeric(value));
+    Integer parsedValue = Integer.valueOf(value);
+    Preconditions.checkArgument(parsedValue > 0);
+
+    String everyN = String.format("*/%s", value);
+    char lastChar = frequency.charAt(frequency.length() - 1);
+    switch (lastChar) {
+      case 'm':
+        DateBuilder.validateMinute(parsedValue);
+        return String.format("%s * * * ?", everyN);
+      case 'h':
+        DateBuilder.validateHour(parsedValue);
+        return String.format("0 %s * * ?", everyN);
+      case 'd':
+        DateBuilder.validateDayOfMonth(parsedValue);
+        return String.format("0 0 %s * ?", everyN);
+    }
+    throw new IllegalArgumentException(String.format("Time unit not supported: %s", lastChar));
+  }
+
+
+  @POST
+  @Path("/adapters/{adapterId}/{action}")
+  public void startStopAdapter(HttpRequest request, HttpResponder responder,
+                               @PathParam("namespace-id") String namespaceId,
+                               @PathParam("adapterId") String adapterId,
+                               @PathParam("action") String action) {
+    AdapterSpecification adapterSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterId);
+    if (adapterSpec == null) {
+      responder.sendString(HttpResponseStatus.NOT_FOUND,
+                           String.format("Adapter not found: %s.%s", namespaceId, adapterId));
+      return;
+    }
+    // TODO:  Need to revise this. scheduleId should have  more info that name.
+    String scheduleId = String.format("schedule.%s", adapterSpec.getName());
+    if ("start".equals(action)) {
+      scheduler.resumeSchedule(scheduleId);
+    } else if ("stop".equals(action)) {
+      scheduler.suspendSchedule(scheduleId);
+    } else {
+      responder.sendString(HttpResponseStatus.BAD_REQUEST,
+                           String.format("Invalid adapter action: %s. Possible actions are: 'start', 'stop'.", action));
+    }
+  }
+
 
   /**
    * Returns a list of applications associated with a namespace.
@@ -739,5 +1008,34 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
 
   private static ApplicationRecord makeAppRecord(ApplicationSpecification appSpec) {
     return new ApplicationRecord("App", appSpec.getName(), appSpec.getName(), appSpec.getDescription());
+  }
+
+  private static final class AdapterConfig {
+    private String type;
+    private Map<String, String> properties;
+
+    private Source source;
+    private Sink sink;
+
+    private static final class Source {
+      private String name;
+      private Map<String, String> properties;
+    }
+
+    private static final class Sink {
+      private String name;
+      private Map<String, String> properties;
+    }
+  }
+
+  private AdapterSpecification getAdapterSpec(AdapterConfig config, String name,
+                                              Source.Type sourceType, Sink.Type sinkType) {
+    Set<Source> sources = Sets.newHashSet();
+    Set<Sink> sinks = Sets.newHashSet();
+
+    sources.add(new Source(config.source.name, sourceType, config.source.properties));
+    sinks.add(new Sink(config.sink.name, sinkType, config.sink.properties));
+
+    return new AdapterSpecification(name, config.type, config.properties, sources, sinks);
   }
 }

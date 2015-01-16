@@ -1,5 +1,5 @@
 /*
- * Copyright © 2014 Cask Data, Inc.
+ * Copyright © 2015 Cask Data, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -13,19 +13,18 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package co.cask.cdap.metrics.collect;
 
-import co.cask.cdap.metrics.transport.MetricValue;
+package co.cask.cdap.common.io;
+
+import java.io.IOException;
 
 /**
- * A MetricsEmitter is a class that is able to emit {@link MetricValue}.
+ * Package local interface to help abstract logic of getting stream size.
  */
-public interface MetricsEmitter {
+interface StreamSizeProvider {
 
   /**
-   * Emits metric for the given timestamp.
-   * @param timestamp The timestamp for the metrics.
-   * @return A {@link MetricValue} representing metrics for the given timestamp.
+   * Returns size of the stream in bytes or -1 if the size is unknown.
    */
-  MetricValue emit(long timestamp);
+  long size() throws IOException;
 }

@@ -16,6 +16,7 @@
 
 package co.cask.cdap.internal.app.store;
 
+import co.cask.cdap.adapter.AdapterSpecification;
 import co.cask.cdap.api.ProgramSpecification;
 import co.cask.cdap.api.data.stream.StreamSpecification;
 import co.cask.cdap.api.dataset.DatasetAdmin;
@@ -783,6 +784,60 @@ public class DefaultStore implements Store {
       @Override
       public List<NamespaceMeta> apply(AppMds input) throws Exception {
         return input.apps.listNamespaces();
+      }
+    });
+  }
+
+
+  @Override
+  public void addAdapter(final Id.Namespace id, final AdapterSpecification adapterSpecification) {
+    txnl.executeUnchecked(new TransactionExecutor.Function<AppMds, Void>() {
+      @Override
+      public Void apply(AppMds mds) throws Exception {
+        mds.apps.writeAdapter(id, adapterSpecification);
+        return null;
+      }
+    });
+  }
+
+  @Override
+  public AdapterSpecification getAdapter(final Id.Namespace id, final String name) {
+    return txnl.executeUnchecked(new TransactionExecutor.Function<AppMds, AdapterSpecification>() {
+      @Override
+      public AdapterSpecification apply(AppMds mds) throws Exception {
+        return mds.apps.getAdapter(id, name);
+      }
+    });
+  }
+
+  @Override
+  public Collection<AdapterSpecification> getAllAdapters(final Id.Namespace id) {
+    return txnl.executeUnchecked(new TransactionExecutor.Function<AppMds, Collection<AdapterSpecification>>() {
+      @Override
+      public Collection<AdapterSpecification> apply(AppMds mds) throws Exception {
+        return mds.apps.getAllAdapters(id);
+      }
+    });
+  }
+
+  @Override
+  public void removeAdapter(final Id.Namespace id, final String name) {
+    txnl.executeUnchecked(new TransactionExecutor.Function<AppMds, Void>() {
+      @Override
+      public Void apply(AppMds mds) throws Exception {
+        mds.apps.deleteAdapter(id, name);
+        return null;
+      }
+    });
+  }
+
+  @Override
+  public void removeAllAdapters(final Id.Namespace id) {
+    txnl.executeUnchecked(new TransactionExecutor.Function<AppMds, Void>() {
+      @Override
+      public Void apply(AppMds mds) throws Exception {
+        mds.apps.deleteAllAdapters(id);
+        return null;
       }
     });
   }

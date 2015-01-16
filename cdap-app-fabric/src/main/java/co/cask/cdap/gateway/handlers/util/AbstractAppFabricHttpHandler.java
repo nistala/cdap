@@ -16,6 +16,7 @@
 
 package co.cask.cdap.gateway.handlers.util;
 
+import co.cask.cdap.adapter.AdapterSpecification;
 import co.cask.cdap.api.ProgramSpecification;
 import co.cask.cdap.api.schedule.SchedulableProgramType;
 import co.cask.cdap.api.schedule.ScheduleSpecification;
