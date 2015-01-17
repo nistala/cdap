@@ -82,6 +82,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -362,7 +363,7 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
           String datasetName = sink.getName();
           if (!datasetFramework.hasInstance(datasetName)) {
             //TODO: This should come from a property.
-            datasetFramework.addInstance(FileSet.class.getName(), datasetName, DatasetProperties.EMPTY);
+            datasetFramework.addInstance(FileSet.class.getName(), datasetName, DatasetProperties.builder().addAll(sink.getProperties()).build());
             LOG.debug("Dataset instance {} created during create of adapter: {}", datasetName, spec);
           } else {
             LOG.debug("Dataset instance {} already existed during create of adapter: {}", datasetName, spec);
@@ -410,8 +411,15 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
       String cronEntry = toCronExpr(spec.getProperties().get("frequency"));
       ScheduleProgramInfo scheduleProgramInfo = new ScheduleProgramInfo(programType, programId);
       //TODO: populate this (runtime args)
-      Map<String, String> properties = ImmutableMap.of("testKey", "testVal");
+      Map<String, String> properties =
+        ImmutableMap.of("source.name", spec.getSources().iterator().next().getName(),
+                        "source.properties", GSON.toJson(spec.getSinks().iterator().next().getProperties()),
+                        "sink.name", spec.getSinks().iterator().next().getName(),
+                        "sink.properties", GSON.toJson(spec.getSources().iterator().next().getProperties()),
+                        "properties", GSON.toJson(spec.getProperties()));
+//      streamAdmin.getConfig(spec.getSources().iterator().next().getName()).getFormat()
 
+      Iterators.get(spec.getSources().iterator(), 0);
 
       // If the adapter already exists, remove existing schedule to replace with the new one.
       AdapterSpecification existingSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterName);
