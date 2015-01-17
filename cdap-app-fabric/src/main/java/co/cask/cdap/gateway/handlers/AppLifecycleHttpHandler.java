@@ -266,14 +266,14 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
    * Retrieves an adapter
    */
   @GET
-  @Path("/adapters/{adapterId}")
+  @Path("/adapters/{adapter-name}")
   public void getAdapter(HttpRequest request, HttpResponder responder,
                          @PathParam("namespace-id") String namespaceId,
-                         @PathParam("adapterId") String adapterId) {
-    AdapterSpecification adapterSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterId);
+                         @PathParam("adapter-name") String adapterName) {
+    AdapterSpecification adapterSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterName);
     if (adapterSpec == null) {
       responder.sendString(HttpResponseStatus.NOT_FOUND,
-                           String.format("Adapter not found: %s.%s", namespaceId, adapterId));
+                           String.format("Adapter not found: %s.%s", namespaceId, adapterName));
       return;
     }
     responder.sendJson(HttpResponseStatus.OK, adapterSpec);
@@ -283,19 +283,19 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
    * Deletes an adapter
    */
   @DELETE
-  @Path("/adapters/{adapterId}")
+  @Path("/adapters/{adapter-name}")
   public void deleteAdapter(HttpRequest request, HttpResponder responder,
                             @PathParam("namespace-id") String namespaceId,
-                            @PathParam("adapterId") String adapterId) {
-    AdapterSpecification adapterSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterId);
+                            @PathParam("adapter-name") String adapterName) {
+    AdapterSpecification adapterSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterName);
     if (adapterSpec == null) {
       responder.sendString(HttpResponseStatus.NOT_FOUND,
-                           String.format("Adapter not found: %s.%s", namespaceId, adapterId));
+                           String.format("Adapter not found: %s.%s", namespaceId, adapterName));
       return;
     }
     // TODO: Update application specification
     scheduler.deleteSchedules(Id.Program.from(namespaceId, "appId", "programId"), ProgramType.WORKFLOW);
-    store.removeAdapter(Id.Namespace.from(namespaceId), adapterId);
+    store.removeAdapter(Id.Namespace.from(namespaceId), adapterName);
     responder.sendStatus(HttpResponseStatus.OK);
   }
 
@@ -466,15 +466,15 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
 
 
   @POST
-  @Path("/adapters/{adapterId}/{action}")
+  @Path("/adapters/{adapter-id}/{action}")
   public void startStopAdapter(HttpRequest request, HttpResponder responder,
                                @PathParam("namespace-id") String namespaceId,
-                               @PathParam("adapterId") String adapterId,
+                               @PathParam("adapter-id") String adapterName,
                                @PathParam("action") String action) {
-    AdapterSpecification adapterSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterId);
+    AdapterSpecification adapterSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterName);
     if (adapterSpec == null) {
       responder.sendString(HttpResponseStatus.NOT_FOUND,
-                           String.format("Adapter not found: %s.%s", namespaceId, adapterId));
+                           String.format("Adapter not found: %s.%s", namespaceId, adapterName));
       return;
     }
     // TODO:  Need to revise this. scheduleId should have  more info that name.
