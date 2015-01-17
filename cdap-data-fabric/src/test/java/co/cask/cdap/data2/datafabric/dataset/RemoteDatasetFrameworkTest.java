@@ -16,7 +16,9 @@
 
 package co.cask.cdap.data2.datafabric.dataset;
 
+import co.cask.cdap.api.dataset.DatasetAdmin;
 import co.cask.cdap.api.dataset.module.DatasetModule;
+import co.cask.cdap.api.dataset.table.OrderedTable;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.CConfigurationUtil;
 import co.cask.cdap.common.conf.Constants;
@@ -33,6 +35,7 @@ import co.cask.cdap.data2.datafabric.dataset.type.LocalDatasetTypeClassLoaderFac
 import co.cask.cdap.data2.dataset2.AbstractDatasetFrameworkTest;
 import co.cask.cdap.data2.dataset2.DatasetFramework;
 import co.cask.cdap.data2.dataset2.InMemoryDatasetFramework;
+import co.cask.cdap.data2.dataset2.lib.table.CoreDatasetsModule;
 import co.cask.cdap.data2.dataset2.module.lib.inmemory.InMemoryOrderedTableModule;
 import co.cask.cdap.data2.metrics.DatasetMetricsReporter;
 import co.cask.cdap.explore.client.DiscoveryExploreClient;
@@ -107,6 +110,7 @@ public class RemoteDatasetFrameworkTest extends AbstractDatasetFrameworkTest {
     InMemoryDatasetFramework mdsFramework =
       new InMemoryDatasetFramework(new InMemoryDefinitionRegistryFactory(),
                                    ImmutableMap.of("memoryTable", new InMemoryOrderedTableModule()));
+    mdsFramework.addModule("core", new CoreDatasetsModule());
     MDSDatasetsRegistry mdsDatasetsRegistry = new MDSDatasetsRegistry(txSystemClient, mdsFramework, cConf);
 
     service = new DatasetService(cConf,
