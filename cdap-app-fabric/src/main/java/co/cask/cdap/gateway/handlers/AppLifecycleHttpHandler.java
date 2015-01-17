@@ -323,7 +323,7 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
       }
 
       // Validate the adapter
-      String adapterType = config.getType();
+      String adapterType = config.type;
       AdapterInfoService.AdapterInfo adapterInfo = adapterInfoService.getAdapter(adapterType);
       if (adapterInfo == null) {
         responder.sendString(HttpResponseStatus.NOT_FOUND, String.format("Adapter type %s not found", adapterType));
@@ -357,7 +357,7 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
             //TODO: This should come from a property.
             datasetFramework.addInstance(FileSet.class.getName(), datasetName, DatasetProperties.EMPTY);
           } else {
-            LOG.debug("Dataset instance {} already existed during create of adapter: {}", datasetName, spec);
+            LOG.debug("Dataset instance {} already exists {}", datasetName, spec);
           }
         } else {
           throw new IllegalArgumentException(String.format("Unknown Sink type: %s", sink.getType()));

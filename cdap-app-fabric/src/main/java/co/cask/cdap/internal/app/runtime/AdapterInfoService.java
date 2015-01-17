@@ -104,7 +104,6 @@ public class AdapterInfoService extends AbstractIdleService {
       } catch (IOException e) {
         LOG.warn(String.format("Unable to read adapter jar %s", file.getAbsolutePath()));
       }
-
     }
     return builder.build();
   }
