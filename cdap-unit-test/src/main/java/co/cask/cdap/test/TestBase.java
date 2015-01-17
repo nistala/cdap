@@ -42,6 +42,7 @@ import co.cask.cdap.data.runtime.DataFabricModules;
 import co.cask.cdap.data.runtime.DataSetServiceModules;
 import co.cask.cdap.data.runtime.DataSetsModules;
 import co.cask.cdap.data.runtime.LocationStreamFileWriterFactory;
+import co.cask.cdap.data.stream.StreamAdminModules;
 import co.cask.cdap.data.stream.StreamFileWriterFactory;
 import co.cask.cdap.data.stream.service.LocalStreamFileJanitorService;
 import co.cask.cdap.data.stream.service.StreamFileJanitorService;
@@ -299,7 +300,7 @@ public class TestBase {
   }
 
   private static Module createDataFabricModule(final CConfiguration cConf) {
-    return Modules.override(new DataFabricModules().getInMemoryModules())
+    return Modules.override(new DataFabricModules().getInMemoryModules(), new StreamAdminModules().getInMemoryModules())
       .with(new AbstractModule() {
 
         @Override
@@ -429,10 +430,15 @@ public class TestBase {
     @SuppressWarnings("unchecked")
     final T dataSet = (T) datasetFramework.getDataset(datasetInstanceName, new HashMap<String, String>(), null);
     try {
-      TransactionAware txAwareDataset = (TransactionAware) dataSet;
-      final TransactionContext txContext =
-        new TransactionContext(txSystemClient, Lists.newArrayList(txAwareDataset));
-      txContext.start();
+      final TransactionContext txContext;
+      // not every dataset is TransactionAware. FileSets for example, are not transactional.
+      if (dataSet instanceof TransactionAware) {
+        TransactionAware txAwareDataset = (TransactionAware) dataSet;
+        txContext = new TransactionContext(txSystemClient, Lists.newArrayList(txAwareDataset));
+        txContext.start();
+      } else {
+        txContext = null;
+      }
       return new DataSetManager<T>() {
         @Override
         public T get() {
@@ -442,8 +448,10 @@ public class TestBase {
         @Override
         public void flush() {
           try {
-            txContext.finish();
-            txContext.start();
+            if (txContext != null) {
+              txContext.finish();
+              txContext.start();
+            }
           } catch (TransactionFailureException e) {
             throw Throwables.propagate(e);
           }

@@ -61,7 +61,6 @@ import co.cask.cdap.internal.UserErrors;
 import co.cask.cdap.internal.UserMessages;
 import co.cask.cdap.internal.app.deploy.ProgramTerminator;
 import co.cask.cdap.internal.app.deploy.pipeline.ApplicationWithPrograms;
-import co.cask.cdap.internal.app.runtime.AdapterInfo;
 import co.cask.cdap.internal.app.runtime.AdapterInfoService;
 import co.cask.cdap.internal.app.runtime.flow.FlowUtils;
 import co.cask.cdap.internal.app.runtime.schedule.Scheduler;
@@ -272,14 +271,14 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
    * Retrieves an adapter
    */
   @GET
-  @Path("/adapters/{adapterId}")
+  @Path("/adapters/{adapter-name}")
   public void getAdapter(HttpRequest request, HttpResponder responder,
                          @PathParam("namespace-id") String namespaceId,
-                         @PathParam("adapterId") String adapterId) {
-    AdapterSpecification adapterSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterId);
+                         @PathParam("adapter-name") String adapterName) {
+    AdapterSpecification adapterSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterName);
     if (adapterSpec == null) {
       responder.sendString(HttpResponseStatus.NOT_FOUND,
-                           String.format("Adapter not found: %s.%s", namespaceId, adapterId));
+                           String.format("Adapter not found: %s.%s", namespaceId, adapterName));
       return;
     }
     responder.sendJson(HttpResponseStatus.OK, adapterSpec);
@@ -289,20 +288,21 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
    * Deletes an adapter
    */
   @DELETE
-  @Path("/adapters/{adapterId}")
+  @Path("/adapters/{adapter-name}")
   public void deleteAdapter(HttpRequest request, HttpResponder responder,
                             @PathParam("namespace-id") String namespaceId,
-                            @PathParam("adapterId") String adapterId) {
-    AdapterSpecification adapterSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterId);
+                            @PathParam("adapter-name") String adapterName) {
+    AdapterSpecification adapterSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterName);
     if (adapterSpec == null) {
       responder.sendString(HttpResponseStatus.NOT_FOUND,
-                           String.format("Adapter not found: %s.%s", namespaceId, adapterId));
+                           String.format("Adapter not found: %s.%s", namespaceId, adapterName));
       return;
     }
-    AdapterInfo adapterInfo = adapterInfoService.getAdapter(adapterSpec.getType());
+    AdapterInfoService.AdapterInfo adapterInfo = adapterInfoService.getAdapter(adapterSpec.getType());
+    String adapterId = adapterSpec.getName();
     deleteSchedule(scheduler, store, Id.Program.from(namespaceId, adapterSpec.getType(),
                                                      adapterInfo.getScheduleProgramId()),
-                   adapterInfo.getScheduleProgramType(), String.format("%s", adapterId));
+                   SchedulableProgramType.valueOf(adapterInfo.getScheduleProgramType().toString()), String.format("%s", adapterId));
     store.removeAdapter(Id.Namespace.from(namespaceId), adapterId);
     responder.sendStatus(HttpResponseStatus.OK);
   }
@@ -319,28 +319,28 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
 
     try {
       if (!namespaceExists(namespaceId)) {
-        String errorMessage = String.format("Create adapter failed - namespace '%s' does not exist.", namespaceId);
-        LOG.warn(errorMessage);
-        responder.sendString(HttpResponseStatus.NOT_FOUND, errorMessage);
+        responder.sendString(HttpResponseStatus.NOT_FOUND,
+                             String.format("Create adapter failed - namespace '%s' does not exist.", namespaceId));
         return;
       }
 
       AdapterConfig config = parseBody(request, AdapterConfig.class);
 
-      //TODO: Fix source and sink type
-      AdapterSpecification spec = getAdapterSpec(config, adapterName, Source.Type.STREAM, Sink.Type.DATASET);
-      if (spec == null) {
-        responder.sendString(HttpResponseStatus.BAD_REQUEST, "AdapterSpecification could not be parsed");
+      if (config == null) {
+        responder.sendString(HttpResponseStatus.BAD_REQUEST, "Adapter configuration could not be parsed");
         return;
       }
 
-      // TODO: Verify if the Adapter is a valid adapter by reading the mapping.
-      String adapterType = spec.getType();
-      AdapterInfo adapterInfo = adapterInfoService.getAdapter(adapterType);
+      // Validate the adapter
+      String adapterType = config.type;
+      AdapterInfoService.AdapterInfo adapterInfo = adapterInfoService.getAdapter(adapterType);
       if (adapterInfo == null) {
-        responder.sendString(HttpResponseStatus.NOT_FOUND, "Adapter type not found");
+        responder.sendString(HttpResponseStatus.NOT_FOUND, String.format("Adapter type %s not found", adapterType));
         return;
       }
+
+      AdapterSpecification spec = getAdapterSpec(config, adapterName,
+                                                 adapterInfo.getSourceType(), adapterInfo.getSinkType());
 
       // Setup Sources and Sinks prior to application deploy
       // ensure all sources exist
@@ -357,6 +357,7 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
           throw new IllegalArgumentException(String.format("Unknown Source type: %s", source.getType()));
         }
       }
+
       // create sinks if not exist
       for (Sink sink : spec.getSinks()) {
         if (Sink.Type.DATASET.equals(sink.getType())) {
@@ -383,9 +384,8 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
 
         // Copy jar content to a temporary location
         Location tmpLocation = archive.getTempFile(".tmp");
-        // TODO: Get the jar location.
         Files.copy(adapterInfo.getFile(), Locations.newOutputSupplier(tmpLocation));
-        // Files.copy(location, Locations.newOutputSupplier(tmpLocation));
+
         try {
           // Finally, move archive to final location
           if (tmpLocation.renameTo(archive) == null) {
@@ -400,11 +400,10 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
         deploy(namespaceId, adapterType, archive);
       }
 
-
       // We need this information, in order to know if/what to schedule
       String appId = adapterType;
       String programId = adapterInfo.getScheduleProgramId();
-      SchedulableProgramType programType = adapterInfo.getScheduleProgramType();
+      SchedulableProgramType programType = SchedulableProgramType.valueOf(adapterInfo.getScheduleProgramType().toString());
       Id.Program scheduledProgramId = Id.Program.from(namespaceId, appId, programId);
       String scheduleName = String.format("%s", adapterName);
       String scheduleDescription = "";
@@ -492,27 +491,27 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
 
 
   @POST
-  @Path("/adapters/{adapterId}/{action}")
+  @Path("/adapters/{adapter-id}/{action}")
   public void startStopAdapter(HttpRequest request, HttpResponder responder,
                                @PathParam("namespace-id") String namespaceId,
-                               @PathParam("adapterId") String adapterId,
+                               @PathParam("adapter-id") String adapterName,
                                @PathParam("action") String action) {
-    AdapterSpecification adapterSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterId);
+    AdapterSpecification adapterSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterName);
     if (adapterSpec == null) {
       responder.sendString(HttpResponseStatus.NOT_FOUND,
-                           String.format("Adapter not found: %s.%s", namespaceId, adapterId));
+                           String.format("Adapter not found: %s.%s", namespaceId, adapterName));
       return;
     }
-    AdapterInfo adapterInfo = adapterInfoService.getAdapter(adapterSpec.getType());
+    AdapterInfoService.AdapterInfo adapterInfo = adapterInfoService.getAdapter(adapterSpec.getType());
     // TODO: use getAppName() instead of getType();
     Id.Program programId = Id.Program.from(namespaceId, adapterSpec.getType(), adapterInfo.getScheduleProgramId());
     // TODO:  Need to revise this. scheduleId should have  more info that name.
-    String scheduleName = String.format("%s", adapterId);
+    String scheduleName = String.format("%s", adapterName);
 
     if ("start".equals(action)) {
-      scheduler.resumeSchedule(programId, adapterInfo.getScheduleProgramType(), scheduleName);
+      scheduler.resumeSchedule(programId, SchedulableProgramType.valueOf(adapterInfo.getScheduleProgramType().toString()), scheduleName);
     } else if ("stop".equals(action)) {
-      scheduler.suspendSchedule(programId, adapterInfo.getScheduleProgramType(), scheduleName);
+      scheduler.suspendSchedule(programId, SchedulableProgramType.valueOf(adapterInfo.getScheduleProgramType().toString()), scheduleName);
     } else {
       responder.sendString(HttpResponseStatus.BAD_REQUEST,
                            String.format("Invalid adapter action: %s. Possible actions are: 'start', 'stop'.", action));
