@@ -17,39 +17,13 @@
 package co.cask.cdap.conversion.app;
 
 import co.cask.cdap.api.app.AbstractApplication;
-import co.cask.cdap.api.data.schema.Schema;
-import co.cask.cdap.api.dataset.lib.FileSet;
-import co.cask.cdap.api.dataset.lib.FileSetProperties;
-import co.cask.cdap.internal.io.SchemaTypeAdapter;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import org.apache.avro.mapreduce.AvroKeyInputFormat;
-import org.apache.avro.mapreduce.AvroKeyOutputFormat;
 
 /**
  *
  */
 public class StreamConversionApp extends AbstractApplication {
-  private static final Gson GSON = new GsonBuilder()
-    .registerTypeAdapter(Schema.class, new SchemaTypeAdapter())
-    .create();
-
   @Override
   public void configure() {
-    Schema schema = Schema.recordOf(
-      "streamEvent",
-      Schema.Field.of("ts", Schema.of(Schema.Type.LONG)),
-      Schema.Field.of("header1", Schema.unionOf(Schema.of(Schema.Type.NULL), Schema.of(Schema.Type.STRING))),
-      Schema.Field.of("header2", Schema.unionOf(Schema.of(Schema.Type.NULL), Schema.of(Schema.Type.STRING))),
-      Schema.Field.of("data", Schema.of(Schema.Type.STRING)));
     addWorkflow(new StreamConversionWorkflow());
-    // this should not be in the app.  But there is no way to pass in the name of the dataset at runtime...
-    // do this to get an outline of the app in place then change it after the framework can support runtime datasets.
-    createDataset("converted_stream", FileSet.class, FileSetProperties.builder()
-      .setBasePath("converted_stream")
-      .setInputFormat(AvroKeyInputFormat.class)
-      .setOutputFormat(AvroKeyOutputFormat.class)
-      .setOutputProperty("schema", GSON.toJson(schema))
-      .build());
   }
 }

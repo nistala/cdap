@@ -19,15 +19,22 @@ package co.cask.cdap.conversion.app;
 import co.cask.cdap.api.Resources;
 import co.cask.cdap.api.data.format.FormatSpecification;
 import co.cask.cdap.api.data.format.StructuredRecord;
-import co.cask.cdap.internal.io.SchemaTypeAdapter;
 import co.cask.cdap.api.data.stream.StreamBatchReadable;
 import co.cask.cdap.api.dataset.lib.FileSet;
+import co.cask.cdap.api.dataset.lib.FileSetArguments;
 import co.cask.cdap.api.mapreduce.AbstractMapReduce;
 import co.cask.cdap.api.mapreduce.MapReduceContext;
+import co.cask.cdap.api.stream.GenericStreamEventData;
 import co.cask.cdap.conversion.avro.Converter;
+import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.mapred.AvroKey;
 import org.apache.avro.mapreduce.AvroJob;
@@ -40,7 +47,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -48,20 +58,21 @@ import java.util.concurrent.TimeUnit;
  * in avro format.
  */
 public class StreamConversionMapReduce extends AbstractMapReduce {
-  private static final Gson GSON = new GsonBuilder()
-    .registerTypeAdapter(co.cask.cdap.api.data.schema.Schema.class, new SchemaTypeAdapter())
-    .create();
+  private static final Gson GSON = new Gson();
   private static final Logger LOG = LoggerFactory.getLogger(StreamConversionMapReduce.class);
+  private static final Type mapType = new TypeToken<Map<String, String>>() {}.getType();
+  public static final String ADAPTER_PROPERTIES = "adapter.properties";
+  public static final String SOURCE_NAME = "source.name";
+  public static final String SOURCE_PROPERTIES = "source.properties";
+  public static final String SINK_NAME = "sink.name";
+  public static final String SINK_PROPERTIES = "sink.properties";
+  public static final String SCHEMA = "schema";
+  public static final String FORMAT_NAME = "format.name";
+  public static final String FORMAT_SETTINGS = "format.settings";
+  public static final String FREQUENCY = "frequency";
+  public static final String HEADERS = "headers";
+  // for mapred
   public static final String SCHEMA_KEY = "cdap.stream.conversion.output.schema";
-  public static final String STREAM_NAME = "cdap.stream.conversion.stream.name";
-  public static final String FILESET_NAME = "cdap.stream.conversion.fileset.name";
-  public static final String RUN_FREQUENCY_MS = "cdap.stream.conversion.run.frequency.ms";
-  // impala only supports scalar types, so we can't include headers as a map
-  // instead, allow a comma separated list of headers to be set in runtime args as columns to include.
-  // assumes the schema of the output dataset is appropriately named.
-  public static final String HEADERS = "cdap.stream.conversion.headers";
-  public static final String MAPPER_MEMORY = "cdap.stream.conversion.mapper.memorymb";
-  public static final String FORMAT_SPEC = "cdap.stream.conversion.format.spec";
   private String jobTime;
   private Location filesetLocation;
   private Location jobOutputLocation;
@@ -81,50 +92,74 @@ public class StreamConversionMapReduce extends AbstractMapReduce {
     job.setMapOutputValueClass(NullWritable.class);
 
     Map<String, String> runtimeArgs = context.getRuntimeArguments();
-    // set memory if present in runtime args
-    // TODO: move this capability into the framework.
-    String mapperMemoryMBStr = runtimeArgs.get(MAPPER_MEMORY);
-    if (mapperMemoryMBStr != null) {
-      int mapperMemoryMB = Integer.parseInt(mapperMemoryMBStr);
-      job.getConfiguration().setInt(Job.MAP_MEMORY_MB, mapperMemoryMB);
-      // Also set the Xmx to be smaller than the container memory.
-      job.getConfiguration().set(Job.MAP_JAVA_OPTS, "-Xmx" + (int) (mapperMemoryMB * 0.8) + "m");
-    }
 
+    // setup input arguments
+    String streamName = getRequiredArg(runtimeArgs, SOURCE_NAME);
     // the time when this MapReduce job is supposed to start if this job is started by the scheduler
     long logicalStartTime = context.getLogicalStartTime();
-    long runFrequency = Long.parseLong(getRequiredArg(runtimeArgs, RUN_FREQUENCY_MS));
+
+    // get adapter properties -- format name, format settings, schema, and run frequency
+    Map<String, String> adapterProperties = GSON.fromJson(getRequiredArg(runtimeArgs, ADAPTER_PROPERTIES), mapType);
+    String formatName = getRequiredArg(adapterProperties, FORMAT_NAME);
+    Map<String, String> formatSettings = GSON.fromJson(getRequiredArg(adapterProperties, FORMAT_SETTINGS), mapType);
+    // set the headers that should be included for each event
+    String headersStr = adapterProperties.get(HEADERS);
+    Set<String> headers = Sets.newHashSet();
+    if (headersStr != null) {
+      job.getConfiguration().set(HEADERS, headersStr);
+      for (String header : headersStr.split(",")) {
+        headers.add(header);
+      }
+    }
+
+    // read a time interval from the stream as input, using the given format
+    long runFrequency = Long.parseLong(getRequiredArg(adapterProperties, FREQUENCY));
     jobTime = String.valueOf(TimeUnit.SECONDS.convert(logicalStartTime, TimeUnit.MILLISECONDS));
-    String streamName = getRequiredArg(runtimeArgs, STREAM_NAME);
-    FormatSpecification formatSpec = GSON.fromJson(getRequiredArg(runtimeArgs, FORMAT_SPEC), FormatSpecification.class);
-    StreamBatchReadable.useStreamInput(context, streamName, logicalStartTime - runFrequency, logicalStartTime,
+    String schemaStr = getRequiredArg(adapterProperties, SCHEMA);
+    FormatSpecification formatSpec = new FormatSpecification(
+      formatName,
+      bodySchema(co.cask.cdap.api.data.schema.Schema.parse(schemaStr), headers),
+      formatSettings);
+    StreamBatchReadable.useStreamInput(context, streamName,
+                                       logicalStartTime - runFrequency, logicalStartTime,
                                        formatSpec);
 
-    String filesetName = getRequiredArg(runtimeArgs, FILESET_NAME);
-    FileSet fileSet = context.getDataset(filesetName);
+    // setup output arguments
+    String sinkName = getRequiredArg(runtimeArgs, SINK_NAME);
+    Map<String, String> sinkArgs = Maps.newHashMap();
+    FileSetArguments.setOutputPath(sinkArgs, jobTime);
+    FileSet sink = context.getDataset(sinkName, sinkArgs);
 
     // this schema is our schema, which is slightly different than avro's schema in terms of the types it supports.
     // Incompatibilities will surface here and cause the job to fail.
     // TODO: support output formats other than avro
-    String schemaStr = fileSet.getOutputFormatConfiguration().get("schema");
     Schema schema = new Schema.Parser().parse(schemaStr);
-    job.getConfiguration().set(SCHEMA_KEY, schemaStr);
+    job.getConfiguration().set(SCHEMA_KEY, schema.toString());
     AvroJob.setOutputKeySchema(job, schema);
-    // set the headers that should be included for each event
-    String headersStr = runtimeArgs.get(HEADERS);
-    if (headersStr != null) {
-      job.getConfiguration().set(HEADERS, runtimeArgs.get(HEADERS));
-    }
 
     // each job will output to its logical start time so that concurrent jobs don't step on each other.
     // the assumption here is that multiple runs will not have the same logical start time.
     // TODO: set the output path here instead of assuming it is set in the runtime args by whatever
     //       is running this program. Requires some way of setting runtime args in this method (or some other method)
-    filesetLocation = fileSet.getBaseLocation();
-    LOG.error("ashau - fileset location = {}.", filesetLocation.toURI().toString());
-    jobOutputLocation = fileSet.getOutputLocation();
-    LOG.error("ashau - output location = {}.", jobOutputLocation.toURI().toString());
-    context.setOutput(filesetName);
+    filesetLocation = sink.getBaseLocation();
+    LOG.error("ashau - sink base location = {}.", filesetLocation.toURI().toString());
+    jobOutputLocation = sink.getOutputLocation();
+    LOG.error("ashau - sink output location = {}.", jobOutputLocation.toURI().toString());
+    context.setOutput(sinkName, sink);
+  }
+
+  // strip timestamp and headers from the full schema to get the schema of the stream body
+  private co.cask.cdap.api.data.schema.Schema bodySchema(
+    co.cask.cdap.api.data.schema.Schema schema, Set<String> headers) {
+
+    List<co.cask.cdap.api.data.schema.Schema.Field> fields = Lists.newArrayList();
+    for (co.cask.cdap.api.data.schema.Schema.Field field : schema.getFields()) {
+      String fieldName = field.getName();
+      if (!"ts".equals(fieldName) && !headers.contains(fieldName)) {
+        fields.add(field);
+      }
+    }
+    return co.cask.cdap.api.data.schema.Schema.recordOf("eventBody", fields);
   }
 
   private String getRequiredArg(Map<String, String> runtimeArgs, String key) {
@@ -163,7 +198,7 @@ public class StreamConversionMapReduce extends AbstractMapReduce {
    * Mapper that reads events from a stream and writes them out as Avro.
    */
   public static class StreamConversionMapper extends
-    Mapper<LongWritable, StructuredRecord, AvroKey<GenericRecord>, NullWritable> {
+    Mapper<LongWritable, GenericStreamEventData<StructuredRecord>, AvroKey<GenericRecord>, NullWritable> {
     private Schema schema;
     private String[] headers;
     private Converter converter;
@@ -177,9 +212,10 @@ public class StreamConversionMapReduce extends AbstractMapReduce {
     }
 
     @Override
-    public void map(LongWritable timestamp, StructuredRecord streamEvent, Context context)
+    public void map(LongWritable timestamp, GenericStreamEventData<StructuredRecord> streamEvent, Context context)
       throws IOException, InterruptedException {
-      GenericRecord record = converter.convert(streamEvent, timestamp.get());
+      Map<String, String> headers = Objects.firstNonNull(streamEvent.getHeaders(), ImmutableMap.<String, String>of());
+      GenericRecord record = converter.convert(streamEvent.getBody(), timestamp.get(), headers);
       context.write(new AvroKey<GenericRecord>(record), NullWritable.get());
     }
   }

@@ -19,6 +19,7 @@ package co.cask.cdap.conversion.avro;
 import co.cask.cdap.api.common.Bytes;
 import co.cask.cdap.api.data.format.StructuredRecord;
 import co.cask.cdap.api.data.schema.Schema;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericRecord;
@@ -51,9 +52,8 @@ public class ConverterTest {
     headers.put("header1", "value1");
     StructuredRecord record = StructuredRecord.builder(schema)
       .set("body", "hello world")
-      .set("headers", headers)
       .build();
-    GenericRecord result = converter.convert(record, 1234567890);
+    GenericRecord result = converter.convert(record, 1234567890, headers);
 
     Assert.assertEquals(1234567890L, result.get("ts"));
     Assert.assertEquals("value1", result.get("header1"));
@@ -92,7 +92,7 @@ public class ConverterTest {
       .build();
 
     Converter converter = new Converter(avroSchema, new String[] { });
-    GenericRecord result = converter.convert(record, 1234567890);
+    GenericRecord result = converter.convert(record, 1234567890, ImmutableMap.<String, String>of());
 
     Assert.assertEquals(1234567890L, result.get("ts"));
     Assert.assertEquals(Integer.MAX_VALUE, result.get("intField"));
@@ -103,7 +103,7 @@ public class ConverterTest {
     Assert.assertEquals("foo bar", result.get("stringField"));
 
     // check nulls
-    result = converter.convert(StructuredRecord.builder(schema).build(), 1234567890);
+    result = converter.convert(StructuredRecord.builder(schema).build(), 1234567890, ImmutableMap.<String, String>of());
     Assert.assertEquals(1234567890L, result.get("ts"));
     Assert.assertNull(result.get("intField"));
     Assert.assertNull(result.get("booleanField"));
@@ -134,7 +134,7 @@ public class ConverterTest {
       .build();
 
     Converter converter = new Converter(avroSchema, new String[] { });
-    GenericRecord result = converter.convert(record, 1234567890);
+    GenericRecord result = converter.convert(record, 1234567890, ImmutableMap.<String, String>of());
 
     Assert.assertEquals(1234567890L, result.get("ts"));
     Assert.assertEquals(mapValue, result.get("map"));
@@ -159,7 +159,7 @@ public class ConverterTest {
       .build();
 
     Converter converter = new Converter(avroSchema, new String[] { });
-    GenericRecord result = converter.convert(record, 1234567890);
+    GenericRecord result = converter.convert(record, 1234567890, ImmutableMap.<String, String>of());
 
     Assert.assertEquals(1234567890L, result.get("ts"));
     Assert.assertArrayEquals(value, (String[]) result.get("arr"));
@@ -197,7 +197,7 @@ public class ConverterTest {
       .build();
 
     Converter converter = new Converter(avroSchema, new String[] { });
-    GenericRecord result = converter.convert(record, 1234567890);
+    GenericRecord result = converter.convert(record, 1234567890, ImmutableMap.<String, String>of());
 
     Assert.assertEquals(1234567890L, result.get("ts"));
     Assert.assertEquals(5, result.get("intField"));

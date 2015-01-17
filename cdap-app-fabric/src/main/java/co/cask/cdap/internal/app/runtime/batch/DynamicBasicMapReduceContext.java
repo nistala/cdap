@@ -17,6 +17,7 @@
 
 package co.cask.cdap.internal.app.runtime.batch;
 
+import co.cask.cdap.api.Resources;
 import co.cask.cdap.api.data.batch.Split;
 import co.cask.cdap.api.dataset.Dataset;
 import co.cask.cdap.api.mapreduce.AbstractMapReduce;
@@ -127,6 +128,16 @@ public class DynamicBasicMapReduceContext extends DynamicDatasetContext implemen
   @Override
   public void setOutput(String datasetName) {
     mapReduceContext.setOutput(datasetName);
+  }
+
+  @Override
+  public void setMapperResources(Resources resources) {
+    mapReduceContext.setMapperResources(resources);
+  }
+
+  @Override
+  public void setReducerResources(Resources resources) {
+    mapReduceContext.setReducerResources(resources);
   }
 
   @Override

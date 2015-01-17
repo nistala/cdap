@@ -323,7 +323,7 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
       }
 
       // Validate the adapter
-      String adapterType = config.getType();
+      String adapterType = config.type;
       AdapterInfoService.AdapterInfo adapterInfo = adapterInfoService.getAdapter(adapterType);
       if (adapterInfo == null) {
         responder.sendString(HttpResponseStatus.NOT_FOUND, String.format("Adapter type %s not found", adapterType));
