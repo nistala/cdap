@@ -18,9 +18,9 @@ package co.cask.cdap.internal.app.runtime;
 
 import co.cask.cdap.adapter.Sink;
 import co.cask.cdap.adapter.Source;
+import co.cask.cdap.api.schedule.SchedulableProgramType;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
-import co.cask.cdap.proto.ProgramType;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.AbstractIdleService;
 import com.google.inject.Inject;
@@ -88,10 +88,13 @@ public class AdapterInfoService extends AbstractIdleService {
         if (manifest != null) {
           Attributes mainAttributes = manifest.getMainAttributes();
           String adapterType = mainAttributes.getValue("CDAP-Adapter-Type");
-          Source.Type sourceType = Source.Type.valueOf(mainAttributes.getValue("CDAP-Source-Type"));
-          Sink.Type sinkType = Sink.Type.valueOf(mainAttributes.getValue("CDAP-Sink-Type"));
+          String sourceTypeString = mainAttributes.getValue("CDAP-Source-Type");
+          Source.Type sourceType = Source.Type.valueOf(sourceTypeString);
+          String sinkTypeString = mainAttributes.getValue("CDAP-Sink-Type");
+          Sink.Type sinkType = Sink.Type.valueOf(sinkTypeString);
           String scheduleProgramId = mainAttributes.getValue("CDAP-Scheduled-Program-Id");
-          ProgramType scheduleProgramType = ProgramType.valueOf(mainAttributes.getValue("CDAP-Scheduled-Program-Type"));
+          SchedulableProgramType scheduleProgramType =
+            SchedulableProgramType.valueOf(mainAttributes.getValue("CDAP-Scheduled-Program-Type"));
 
           AdapterInfo adapterInfo = new AdapterInfo(file, adapterType, sourceType, sinkType, scheduleProgramId,
                                                     scheduleProgramType);

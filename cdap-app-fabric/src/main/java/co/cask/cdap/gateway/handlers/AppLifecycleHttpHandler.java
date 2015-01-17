@@ -79,6 +79,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -297,8 +298,10 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
                            String.format("Adapter not found: %s.%s", namespaceId, adapterId));
       return;
     }
-    // TODO: Update application specification
-    scheduler.deleteSchedules(Id.Program.from(namespaceId, "appId", "programId"), ProgramType.WORKFLOW);
+    AdapterInfo adapterInfo = adapterInfoService.getAdapter(adapterSpec.getType());
+    deleteSchedule(scheduler, store, Id.Program.from(namespaceId, adapterSpec.getType(),
+                                                     adapterInfo.getScheduleProgramId()),
+                   adapterInfo.getScheduleProgramType(), String.format("%s", adapterId));
     store.removeAdapter(Id.Namespace.from(namespaceId), adapterId);
     responder.sendStatus(HttpResponseStatus.OK);
   }
@@ -360,6 +363,7 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
           if (!datasetFramework.hasInstance(datasetName)) {
             //TODO: This should come from a property.
             datasetFramework.addInstance(FileSet.class.getName(), datasetName, DatasetProperties.EMPTY);
+            LOG.debug("Dataset instance {} created during create of adapter: {}", datasetName, spec);
           } else {
             LOG.debug("Dataset instance {} already existed during create of adapter: {}", datasetName, spec);
           }
@@ -369,7 +373,7 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
       }
 
       // Check to see if the App is already deployed
-      ApplicationSpecification applicationSpec = store.getApplication(Id.Application.from(namespaceId, adapterName));
+      ApplicationSpecification applicationSpec = store.getApplication(Id.Application.from(namespaceId, adapterType));
       if (applicationSpec == null) {
         // Deploy the application, by copying the jar to tmp location and moving it (atomically) after the copy.
         Location archiveDirectory = locationFactory.create(this.archiveDir).append(namespaceId);
@@ -399,19 +403,29 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
       // We need this information, in order to know if/what to schedule
       String appId = adapterType;
       String programId = adapterInfo.getScheduleProgramId();
-      ProgramType programType = adapterInfo.getScheduleProgramType();
+      SchedulableProgramType programType = adapterInfo.getScheduleProgramType();
       Id.Program scheduledProgramId = Id.Program.from(namespaceId, appId, programId);
+      String scheduleName = String.format("%s", adapterName);
+      String scheduleDescription = "";
+      String cronEntry = toCronExpr(spec.getProperties().get("frequency"));
+      ScheduleProgramInfo scheduleProgramInfo = new ScheduleProgramInfo(programType, programId);
+      //TODO: populate this (runtime args)
+      Map<String, String> properties = ImmutableMap.of("testKey", "testVal");
 
 
       // If the adapter already exists, remove existing schedule to replace with the new one.
       AdapterSpecification existingSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterName);
       if (existingSpec != null) {
         // TODO: Remove the schedule.
+        deleteSchedule(scheduler, store, scheduledProgramId, programType, scheduleName);
         String debugMessage = String.format("Existing adapter found while create: %s.%s",
                                             namespaceId, existingSpec);
         LOG.debug(debugMessage);
       }
-      //TODO: Schedule new programs once the API is available.
+
+      addSchedule(scheduler, store, scheduledProgramId,
+                  new ScheduleSpecification(new Schedule(scheduleName, scheduleDescription, cronEntry),
+                                            scheduleProgramInfo, properties));
 
       store.addAdapter(Id.Namespace.from(namespaceId), spec);
 
@@ -481,12 +495,16 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
                            String.format("Adapter not found: %s.%s", namespaceId, adapterId));
       return;
     }
+    AdapterInfo adapterInfo = adapterInfoService.getAdapter(adapterSpec.getType());
+    // TODO: use getAppName() instead of getType();
+    Id.Program programId = Id.Program.from(namespaceId, adapterSpec.getType(), adapterInfo.getScheduleProgramId());
     // TODO:  Need to revise this. scheduleId should have  more info that name.
-    String scheduleId = String.format("schedule.%s", adapterSpec.getName());
+    String scheduleName = String.format("%s", adapterId);
+
     if ("start".equals(action)) {
-      scheduler.resumeSchedule(scheduleId);
+      scheduler.resumeSchedule(programId, adapterInfo.getScheduleProgramType(), scheduleName);
     } else if ("stop".equals(action)) {
-      scheduler.suspendSchedule(scheduleId);
+      scheduler.suspendSchedule(programId, adapterInfo.getScheduleProgramType(), scheduleName);
     } else {
       responder.sendString(HttpResponseStatus.BAD_REQUEST,
                            String.format("Invalid adapter action: %s. Possible actions are: 'start', 'stop'.", action));

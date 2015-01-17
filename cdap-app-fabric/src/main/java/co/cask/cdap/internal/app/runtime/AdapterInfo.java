@@ -18,7 +18,7 @@ package co.cask.cdap.internal.app.runtime;
 
 import co.cask.cdap.adapter.Sink;
 import co.cask.cdap.adapter.Source;
-import co.cask.cdap.proto.ProgramType;
+import co.cask.cdap.api.schedule.SchedulableProgramType;
 
 import java.io.File;
 
@@ -32,10 +32,10 @@ public final class AdapterInfo {
   private final Source.Type sourceType;
   private final Sink.Type sinkType;
   private final String scheduleProgramId;
-  private final ProgramType scheduleProgramType;
+  private final SchedulableProgramType scheduleProgramType;
 
   public AdapterInfo(File file, String adapterType, Source.Type sourceType, Sink.Type sinkType,
-                     String scheduleProgramId, ProgramType scheduleProgramType) {
+                     String scheduleProgramId, SchedulableProgramType scheduleProgramType) {
     this.file = file;
     this.type = adapterType;
     this.sourceType = sourceType;
@@ -64,7 +64,7 @@ public final class AdapterInfo {
     return scheduleProgramId;
   }
 
-  public ProgramType getScheduleProgramType() {
+  public SchedulableProgramType getScheduleProgramType() {
     return scheduleProgramType;
   }
 }

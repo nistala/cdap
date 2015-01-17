@@ -42,6 +42,7 @@ import java.net.URL;
  * MapReduce job that reads purchases from the purchases DataSet and creates a purchase history for every user.
  */
 public class PurchaseHistoryBuilder extends AbstractMapReduce {
+  private static final Logger LOG = LoggerFactory.getLogger(PurchaseHistoryBuilder.class);
 
 
   @Override
@@ -57,6 +58,11 @@ public class PurchaseHistoryBuilder extends AbstractMapReduce {
 
   @Override
   public void beforeSubmit(MapReduceContext context) throws Exception {
+    System.out.println("context.getRuntimeArguments():");
+    System.out.println(context.getRuntimeArguments());
+
+    LOG.error("context.getRuntimeArguments():");
+    LOG.error("{}", context.getRuntimeArguments());
     Job job = context.getHadoopJob();
     job.setMapperClass(PurchaseMapper.class);
     job.setReducerClass(PerUserReducer.class);

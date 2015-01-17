@@ -321,6 +321,8 @@ public class StandaloneMain {
     hConf.set(Constants.AppFabric.OUTPUT_DIR, cConf.get(Constants.AppFabric.OUTPUT_DIR));
     hConf.set("hadoop.tmp.dir", new File(localDataDir, cConf.get(Constants.AppFabric.TEMP_DIR)).getAbsolutePath());
 
+    cConf.set(Constants.AppFabric.ADAPTER_DIR, "/tmp/purchase/tmptmp");
+
     // Windows specific requirements
     if (OSDetector.isWindows()) {
       String userDir = System.getProperty("user.dir");
