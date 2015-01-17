@@ -57,7 +57,6 @@ import co.cask.cdap.internal.UserErrors;
 import co.cask.cdap.internal.UserMessages;
 import co.cask.cdap.internal.app.deploy.ProgramTerminator;
 import co.cask.cdap.internal.app.deploy.pipeline.ApplicationWithPrograms;
-import co.cask.cdap.internal.app.runtime.AdapterInfo;
 import co.cask.cdap.internal.app.runtime.AdapterInfoService;
 import co.cask.cdap.internal.app.runtime.flow.FlowUtils;
 import co.cask.cdap.internal.app.runtime.schedule.Scheduler;
@@ -311,28 +310,28 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
 
     try {
       if (!namespaceExists(namespaceId)) {
-        String errorMessage = String.format("Create adapter failed - namespace '%s' does not exist.", namespaceId);
-        LOG.warn(errorMessage);
-        responder.sendString(HttpResponseStatus.NOT_FOUND, errorMessage);
+        responder.sendString(HttpResponseStatus.NOT_FOUND,
+                             String.format("Create adapter failed - namespace '%s' does not exist.", namespaceId));
         return;
       }
 
       AdapterConfig config = parseBody(request, AdapterConfig.class);
 
-      //TODO: Fix source and sink type
-      AdapterSpecification spec = getAdapterSpec(config, adapterName, Source.Type.STREAM, Sink.Type.DATASET);
-      if (spec == null) {
-        responder.sendString(HttpResponseStatus.BAD_REQUEST, "AdapterSpecification could not be parsed");
+      if (config == null) {
+        responder.sendString(HttpResponseStatus.BAD_REQUEST, "Adapter configuration could not be parsed");
         return;
       }
 
-      // TODO: Verify if the Adapter is a valid adapter by reading the mapping.
-      String adapterType = spec.getType();
-      AdapterInfo adapterInfo = adapterInfoService.getAdapter(adapterType);
+      // Validate the adapter
+      String adapterType = config.getType();
+      AdapterInfoService.AdapterInfo adapterInfo = adapterInfoService.getAdapter(adapterType);
       if (adapterInfo == null) {
-        responder.sendString(HttpResponseStatus.NOT_FOUND, "Adapter type not found");
+        responder.sendString(HttpResponseStatus.NOT_FOUND, String.format("Adapter type %s not found", adapterType));
         return;
       }
+
+      AdapterSpecification spec = getAdapterSpec(config, adapterName,
+                                                 adapterInfo.getSourceType(), adapterInfo.getSinkType());
 
       // Setup Sources and Sinks prior to application deploy
       // ensure all sources exist
@@ -349,6 +348,7 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
           throw new IllegalArgumentException(String.format("Unknown Source type: %s", source.getType()));
         }
       }
+
       // create sinks if not exist
       for (Sink sink : spec.getSinks()) {
         if (Sink.Type.DATASET.equals(sink.getType())) {
@@ -374,9 +374,8 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
 
         // Copy jar content to a temporary location
         Location tmpLocation = archive.getTempFile(".tmp");
-        // TODO: Get the jar location.
         Files.copy(adapterInfo.getFile(), Locations.newOutputSupplier(tmpLocation));
-        // Files.copy(location, Locations.newOutputSupplier(tmpLocation));
+
         try {
           // Finally, move archive to final location
           if (tmpLocation.renameTo(archive) == null) {
@@ -391,13 +390,11 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
         deploy(namespaceId, adapterType, archive);
       }
 
-
       // We need this information, in order to know if/what to schedule
       String appId = adapterType;
       String programId = adapterInfo.getScheduleProgramId();
       ProgramType programType = adapterInfo.getScheduleProgramType();
       Id.Program scheduledProgramId = Id.Program.from(namespaceId, appId, programId);
-
 
       // If the adapter already exists, remove existing schedule to replace with the new one.
       AdapterSpecification existingSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterName);

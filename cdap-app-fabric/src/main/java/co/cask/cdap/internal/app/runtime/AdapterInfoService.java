@@ -95,16 +95,64 @@ public class AdapterInfoService extends AbstractIdleService {
 
           AdapterInfo adapterInfo = new AdapterInfo(file, adapterType, sourceType, sinkType, scheduleProgramId,
                                                     scheduleProgramType);
-          if (adapterType != null) {
+          if (adapterType != null && scheduleProgramId != null && scheduleProgramType != null) {
             builder.put(adapterType, adapterInfo);
+          } else {
+            LOG.error("Missing information for adapter at {}", file.getAbsolutePath());
           }
         }
       } catch (IOException e) {
-        LOG.warn(String.format("Unable to read plugin jar %s", file.getAbsolutePath()));
+        LOG.warn(String.format("Unable to read adapter jar %s", file.getAbsolutePath()));
       }
 
     }
     return builder.build();
   }
 
+  /**
+   * Holds information about an Adapter
+   */
+  public static final class AdapterInfo {
+
+    private final File file;
+    private final String type;
+    private final Source.Type sourceType;
+    private final Sink.Type sinkType;
+    private final String scheduleProgramId;
+    private final ProgramType scheduleProgramType;
+
+    public AdapterInfo(File file, String adapterType, Source.Type sourceType, Sink.Type sinkType,
+                       String scheduleProgramId, ProgramType scheduleProgramType) {
+      this.file = file;
+      this.type = adapterType;
+      this.sourceType = sourceType;
+      this.sinkType = sinkType;
+      this.scheduleProgramId = scheduleProgramId;
+      this.scheduleProgramType = scheduleProgramType;
+    }
+
+    public File getFile() {
+      return file;
+    }
+
+    public String getType() {
+      return type;
+    }
+
+    public Source.Type getSourceType() {
+      return sourceType;
+    }
+
+    public Sink.Type getSinkType() {
+      return sinkType;
+    }
+
+    public String getScheduleProgramId() {
+      return scheduleProgramId;
+    }
+
+    public ProgramType getScheduleProgramType() {
+      return scheduleProgramType;
+    }
+  }
 }
