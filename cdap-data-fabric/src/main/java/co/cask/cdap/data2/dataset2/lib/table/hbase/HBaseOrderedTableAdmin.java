@@ -84,7 +84,7 @@ public class HBaseOrderedTableAdmin extends AbstractHBaseDataSetAdmin {
 
     // if the dataset is configured for readless increments, the set the table property to support upgrades
     if (supportsReadlessIncrements(spec)) {
-      tableDescriptor.setValue(OrderedTable.PROPERTY_READLESS_INCREMENT, "true");
+      tableDescriptor.setValue(Table.PROPERTY_READLESS_INCREMENT, "true");
     }
 
     CoprocessorJar coprocessorJar = createCoprocessorJar();
@@ -128,15 +128,15 @@ public class HBaseOrderedTableAdmin extends AbstractHBaseDataSetAdmin {
     }
 
     // check if the readless increment setting has changed
-    if (spec.getProperty(OrderedTable.PROPERTY_READLESS_INCREMENT) == null &&
-        tableDescriptor.getValue(OrderedTable.PROPERTY_READLESS_INCREMENT) != null) {
-      tableDescriptor.remove(OrderedTable.PROPERTY_READLESS_INCREMENT);
+    if (spec.getProperty(Table.PROPERTY_READLESS_INCREMENT) == null &&
+        tableDescriptor.getValue(Table.PROPERTY_READLESS_INCREMENT) != null) {
+      tableDescriptor.remove(Table.PROPERTY_READLESS_INCREMENT);
       needUpgrade = true;
-    } else if (spec.getProperty(OrderedTable.PROPERTY_READLESS_INCREMENT) != null &&
-        !spec.getProperty(OrderedTable.PROPERTY_READLESS_INCREMENT).equals(
-            tableDescriptor.getValue(OrderedTable.PROPERTY_READLESS_INCREMENT))) {
-      tableDescriptor.setValue(OrderedTable.PROPERTY_READLESS_INCREMENT,
-          spec.getProperty(OrderedTable.PROPERTY_READLESS_INCREMENT));
+    } else if (spec.getProperty(Table.PROPERTY_READLESS_INCREMENT) != null &&
+        !spec.getProperty(Table.PROPERTY_READLESS_INCREMENT).equals(
+            tableDescriptor.getValue(Table.PROPERTY_READLESS_INCREMENT))) {
+      tableDescriptor.setValue(Table.PROPERTY_READLESS_INCREMENT,
+          spec.getProperty(Table.PROPERTY_READLESS_INCREMENT));
       needUpgrade = true;
     }
 
