@@ -16,22 +16,17 @@
 
 package co.cask.cdap.conversion.app;
 
-import co.cask.cdap.api.schedule.Schedule;
 import co.cask.cdap.api.workflow.Workflow;
-import co.cask.cdap.api.workflow.WorkflowSpecification;
+import co.cask.cdap.api.workflow.WorkflowConfigurer;
 
 /**
  *
  */
 public class StreamConversionWorkflow implements Workflow {
-
   @Override
-  public WorkflowSpecification configure() {
-    return WorkflowSpecification.Builder.with()
-      .setName("StreamConversionWorkflow")
-      .setDescription("Periodically reads stream data and writes it into a FileSet")
-      .onlyWith(new StreamConversionMapReduce())
-      .addSchedule(new Schedule("schedule", "description", "0 0 * * *", Schedule.Action.START))
-      .build();
+  public void configure(WorkflowConfigurer configurer) {
+    configurer.setName("StreamConversionWorkflow");
+    configurer.setDescription("Periodically reads stream data and writes it into a FileSet");
+    configurer.addMapReduce("StreamConversionMapReduce");
   }
 }

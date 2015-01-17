@@ -302,7 +302,8 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
     String adapterId = adapterSpec.getName();
     deleteSchedule(scheduler, store, Id.Program.from(namespaceId, adapterSpec.getType(),
                                                      adapterInfo.getScheduleProgramId()),
-                   SchedulableProgramType.valueOf(adapterInfo.getScheduleProgramType().toString()), String.format("%s", adapterId));
+                   SchedulableProgramType.valueOf(adapterInfo.getScheduleProgramType().toString()),
+                   String.format("%s", adapterId));
     store.removeAdapter(Id.Namespace.from(namespaceId), adapterId);
     responder.sendStatus(HttpResponseStatus.OK);
   }
@@ -364,7 +365,8 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
           String datasetName = sink.getName();
           if (!datasetFramework.hasInstance(datasetName)) {
             //TODO: This should come from a property.
-            datasetFramework.addInstance(FileSet.class.getName(), datasetName, DatasetProperties.builder().addAll(sink.getProperties()).build());
+            datasetFramework.addInstance(FileSet.class.getName(), datasetName,
+                                         DatasetProperties.builder().addAll(sink.getProperties()).build());
             LOG.debug("Dataset instance {} created during create of adapter: {}", datasetName, spec);
           } else {
             LOG.debug("Dataset instance {} already existed during create of adapter: {}", datasetName, spec);
@@ -403,7 +405,8 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
       // We need this information, in order to know if/what to schedule
       String appId = adapterType;
       String programId = adapterInfo.getScheduleProgramId();
-      SchedulableProgramType programType = SchedulableProgramType.valueOf(adapterInfo.getScheduleProgramType().toString());
+      SchedulableProgramType programType =
+        SchedulableProgramType.valueOf(adapterInfo.getScheduleProgramType().toString());
       Id.Program scheduledProgramId = Id.Program.from(namespaceId, appId, programId);
       String scheduleName = String.format("%s", adapterName);
       String scheduleDescription = "";
@@ -416,7 +419,7 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
                         "sink.name", spec.getSinks().iterator().next().getName(),
                         "sink.properties", GSON.toJson(spec.getSources().iterator().next().getProperties()),
                         "properties", GSON.toJson(spec.getProperties()));
-//      streamAdmin.getConfig(spec.getSources().iterator().next().getName()).getFormat()
+      streamAdmin.getConfig(spec.getSources().iterator().next().getName()).getFormat();
 
       Iterators.get(spec.getSources().iterator(), 0);
 
@@ -509,9 +512,11 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
     String scheduleName = String.format("%s", adapterName);
 
     if ("start".equals(action)) {
-      scheduler.resumeSchedule(programId, SchedulableProgramType.valueOf(adapterInfo.getScheduleProgramType().toString()), scheduleName);
+      scheduler.resumeSchedule(programId, SchedulableProgramType
+        .valueOf(adapterInfo.getScheduleProgramType().toString()), scheduleName);
     } else if ("stop".equals(action)) {
-      scheduler.suspendSchedule(programId, SchedulableProgramType.valueOf(adapterInfo.getScheduleProgramType().toString()), scheduleName);
+      scheduler.suspendSchedule(programId, SchedulableProgramType
+        .valueOf(adapterInfo.getScheduleProgramType().toString()), scheduleName);
     } else {
       responder.sendString(HttpResponseStatus.BAD_REQUEST,
                            String.format("Invalid adapter action: %s. Possible actions are: 'start', 'stop'.", action));

@@ -24,6 +24,7 @@ import co.cask.cdap.api.app.AbstractApplication;
 public class StreamConversionApp extends AbstractApplication {
   @Override
   public void configure() {
+    addMapReduce(new StreamConversionMapReduce());
     addWorkflow(new StreamConversionWorkflow());
   }
 }
