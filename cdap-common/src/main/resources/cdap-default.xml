@@ -534,15 +534,13 @@
         <description>Directory where all archives are stored</description>
     </property>
 
-  <property>
-    <name>app.adapter.dir</name>
-    <value>/tmp/plugins</value>
-    <description>Directory where all archives for adapters are stored</description>
-  </property>
+    <property>
+      <name>app.adapter.dir</name>
+      <value>/opt/cdap/master/plugins</value>
+      <description>Directory where all archives for adapters are stored</description>
+    </property>
 
-
-
-  <property>
+    <property>
         <name>dataset.table.prefix</name>
         <value>${root.namespace}</value>
         <description>Prefix for dataset table name</description>
