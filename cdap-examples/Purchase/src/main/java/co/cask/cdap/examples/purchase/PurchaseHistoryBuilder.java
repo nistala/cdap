@@ -41,7 +41,7 @@ import java.net.URL;
 import java.util.Map;
 
 /**
- * MapReduce job that reads purchases from the purchases DataSet and creates a purchase history for every user.
+ * MapReduce that reads purchases from the purchases DataSet and creates a purchase history for every user
  */
 public class PurchaseHistoryBuilder extends AbstractMapReduce {
   private static final Logger LOG = LoggerFactory.getLogger(PurchaseHistoryBuilder.class);
@@ -51,8 +51,7 @@ public class PurchaseHistoryBuilder extends AbstractMapReduce {
 
   @Override
   public void configure() {
-    setName("PurchaseHistoryBuilder");
-    setDescription("Purchase History Builder MapReduce job");
+    setDescription("Purchase History Builder");
     useDatasets("frequentCustomers");
     setInputDataset("purchases");
     setOutputDataset("history");

@@ -60,9 +60,9 @@ public class DefaultSchedulerService {
       String[] parts = key.split(":");
       Preconditions.checkArgument(parts.length == 5);
 
-      ProgramType programType = ProgramType.valueOf(parts[0]);
-      String accountId = parts[1];
-      String applicationId = parts[2];
+      String accountId = parts[0];
+      String applicationId = parts[1];
+      ProgramType programType = ProgramType.valueOf(parts[2]);
       String programId = parts[3];
       String scheduleName = parts[4];
 
