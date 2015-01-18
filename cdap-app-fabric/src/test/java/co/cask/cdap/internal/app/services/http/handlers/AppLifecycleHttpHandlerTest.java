@@ -229,18 +229,7 @@ public class AppLifecycleHttpHandlerTest extends AppFabricTestBase {
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
     AdapterSpecification receivedAdapterSpecification = readResponse(response, AdapterSpecification.class);
     Assert.assertEquals(specification, receivedAdapterSpecification);
-
-    // Delete adapter
-    response = deleteAdapter(namespaceId, adapterName);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-
-    response = getAdapter(namespaceId, adapterName);
-    Assert.assertEquals(404, response.getStatusLine().getStatusCode());
-
-    response = listAdapters(namespaceId);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-    list = readResponse(response, ADAPTER_SPEC_LIST_TYPE);
-    Assert.assertTrue(list.isEmpty());
+    //TODO: Add Delete tests
   }
 
   @Test
@@ -254,7 +243,6 @@ public class AppLifecycleHttpHandlerTest extends AppFabricTestBase {
                                      String sinkName, ImmutableMap<String, String> adapterProperties,
                                      ImmutableMap<String, String> sourceProperties,
                                      ImmutableMap<String, String> sinkProperties) throws Exception {
-
     JsonObject source = new JsonObject();
     source.addProperty("name", sourceName);
     source.add("properties", toJsonObject(sourceProperties));
@@ -293,12 +281,6 @@ public class AppLifecycleHttpHandlerTest extends AppFabricTestBase {
   private HttpResponse getAdapter(String namespaceId, String adapterId) throws Exception {
     return doGet(String.format("%s/namespaces/%s/adapters/%s",
                                Constants.Gateway.API_VERSION_3, namespaceId, adapterId));
-  }
-
-
-  private HttpResponse deleteAdapter(String namespaceId, String adapterId) throws Exception {
-    return doDelete(String.format("%s/namespaces/%s/adapters/%s",
-                                  Constants.Gateway.API_VERSION_3, namespaceId, adapterId));
   }
 
   //TODO: move these elsewhere:

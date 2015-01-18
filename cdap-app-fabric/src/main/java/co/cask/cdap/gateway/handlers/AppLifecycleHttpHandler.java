@@ -275,25 +275,6 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
   }
 
   /**
-   * Deletes an adapter
-   */
-  @DELETE
-  @Path("/adapters/{adapter-name}")
-  public void deleteAdapter(HttpRequest request, HttpResponder responder,
-                            @PathParam("namespace-id") String namespaceId,
-                            @PathParam("adapter-name") String adapterName) {
-    AdapterSpecification adapterSpec = adapterService.getAdapter(namespaceId, adapterName);
-    if (adapterSpec == null) {
-      responder.sendString(HttpResponseStatus.NOT_FOUND,
-                           String.format("Adapter not found: %s.%s", namespaceId, adapterName));
-      return;
-    }
-    adapterService.removeAdapter(namespaceId, adapterSpec);
-    responder.sendStatus(HttpResponseStatus.OK);
-  }
-
-
-  /**
    * Create an adapter.
    */
   @PUT
@@ -329,8 +310,8 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
         deployAdapterApplication(namespaceId, adapterType, adapterTypeInfo);
       }
 
-      AdapterSpecification spec = getAdapterSpec(config, adapterName,
-                                                 adapterTypeInfo.getSourceType(), adapterTypeInfo.getSinkType());
+      AdapterSpecification spec = getAdapterSpec(config, adapterName, adapterTypeInfo.getSourceType(),
+                                                 adapterTypeInfo.getSinkType());
       adapterService.createAdapter(namespaceId, spec);
       responder.sendString(HttpResponseStatus.OK, String.format("Adapter: %s is created", adapterName));
     } catch (IllegalArgumentException e) {

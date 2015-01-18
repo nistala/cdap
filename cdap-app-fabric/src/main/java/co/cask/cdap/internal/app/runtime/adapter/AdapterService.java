@@ -137,16 +137,6 @@ public class AdapterService extends AbstractIdleService {
     store.addAdapter(Id.Namespace.from(namespaceId), spec);
   }
 
-  public void removeAdapter(String namespaceId, AdapterSpecification adapterSpecification) {
-    String adapterName = adapterSpecification.getName();
-    AdapterTypeInfo adapterInfo = getAdapterTypeInfo(adapterSpecification.getType());
-    Id.Program programToUnschedule = Id.Program.from(namespaceId, adapterSpecification.getType(),
-                                                     adapterInfo.getScheduleProgramId());
-//    deleteSchedule(scheduler, store, programToUnschedule,
-//                   adapterInfo.getScheduleProgramType(), adapterSpecification.getScheduleName());
-    store.removeAdapter(Id.Namespace.from(namespaceId), adapterName);
-  }
-
   private void validateSources(String adapterName, Set<Source> sources) throws IllegalArgumentException {
     // Ensure all sources exist
     for (Source source : sources) {
