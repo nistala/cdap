@@ -246,13 +246,13 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
   //TODO: improved docs
 
   /**
-   * Retrieves a list of adapters
+   * Retrieves all adapters in a given namespace.
    */
   @GET
   @Path("/adapters")
   public void listAdapters(HttpRequest request, HttpResponder responder,
                            @PathParam("namespace-id") String namespaceId) {
-    responder.sendJson(HttpResponseStatus.OK, store.getAllAdapters(Id.Namespace.from(namespaceId)));
+    responder.sendJson(HttpResponseStatus.OK, adapterService.getAdapters(namespaceId));
   }
 
   /**
@@ -263,7 +263,7 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
   public void getAdapter(HttpRequest request, HttpResponder responder,
                          @PathParam("namespace-id") String namespaceId,
                          @PathParam("adapter-name") String adapterName) {
-    AdapterSpecification adapterSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterName);
+    AdapterSpecification adapterSpec = adapterService.getAdapter(namespaceId, adapterName);
     if (adapterSpec == null) {
       responder.sendString(HttpResponseStatus.NOT_FOUND,
                            String.format("Adapter not found: %s.%s", namespaceId, adapterName));
@@ -280,15 +280,13 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
   public void deleteAdapter(HttpRequest request, HttpResponder responder,
                             @PathParam("namespace-id") String namespaceId,
                             @PathParam("adapter-name") String adapterName) {
-    AdapterSpecification adapterSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterName);
+    AdapterSpecification adapterSpec = adapterService.getAdapter(namespaceId, adapterName);
     if (adapterSpec == null) {
       responder.sendString(HttpResponseStatus.NOT_FOUND,
                            String.format("Adapter not found: %s.%s", namespaceId, adapterName));
       return;
     }
     adapterService.removeAdapter(namespaceId, adapterName);
-
-
     responder.sendStatus(HttpResponseStatus.OK);
   }
 
@@ -310,17 +308,16 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
       }
 
       AdapterConfig config = parseBody(request, AdapterConfig.class);
-
       if (config == null) {
-        responder.sendString(HttpResponseStatus.BAD_REQUEST, "Adapter configuration could not be parsed");
+        responder.sendString(HttpResponseStatus.BAD_REQUEST, "Insufficient paramters to create adapter");
         return;
       }
 
       // Validate the adapter
       String adapterType = config.type;
-      AdapterService.AdapterInfo adapterInfo = adapterService.getAdapter(adapterType);
+      AdapterService.AdapterTypeInfo adapterTypeInfo = adapterService.getAdapterTypeInfo(adapterType);
 
-      if (adapterInfo == null) {
+      if (adapterTypeInfo == null) {
         responder.sendString(HttpResponseStatus.NOT_FOUND, String.format("Adapter type %s not found", adapterType));
         return;
       }
@@ -336,7 +333,7 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
         // Copy jar content to a temporary location
         Location tmpLocation = archive.getTempFile(".tmp");
         // TODO: Uncomment below. We need to find what to expose in AdapterInfo. location maynot be needed?
-        Files.copy(adapterInfo.getFile(), Locations.newOutputSupplier(tmpLocation));
+        Files.copy(adapterTypeInfo.getFile(), Locations.newOutputSupplier(tmpLocation));
 
         try {
           // Finally, move archive to final location
@@ -354,7 +351,7 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
       }
 
       AdapterSpecification spec = getAdapterSpec(config, adapterName,
-                                                 adapterInfo.getSourceType(), adapterInfo.getSinkType());
+                                                 adapterTypeInfo.getSourceType(), adapterTypeInfo.getSinkType());
 
       adapterService.createAdapter(namespaceId, spec);
       responder.sendString(HttpResponseStatus.OK, String.format("Adapter: %s is created", adapterName));
@@ -367,31 +364,6 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
       responder.sendString(HttpResponseStatus.BAD_REQUEST, e.getMessage());
     }
   }
-
-  @POST
-  @Path("/adapters/{adapter-id}/{action}")
-  public void startStopAdapter(HttpRequest request, HttpResponder responder,
-                               @PathParam("namespace-id") String namespaceId,
-                               @PathParam("adapter-id") String adapterName,
-                               @PathParam("action") String action) {
-    AdapterSpecification adapterSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterName);
-    if (adapterSpec == null) {
-      responder.sendString(HttpResponseStatus.NOT_FOUND,
-                           String.format("Adapter not found: %s.%s", namespaceId, adapterName));
-      return;
-    }
-    // TODO:  Need to revise this. scheduleId should have  more info that name.
-    String scheduleId = String.format("schedule.%s", adapterSpec.getName());
-    if ("start".equals(action)) {
-      scheduler.resumeSchedule(scheduleId);
-    } else if ("stop".equals(action)) {
-      scheduler.suspendSchedule(scheduleId);
-    } else {
-      responder.sendString(HttpResponseStatus.BAD_REQUEST,
-                           String.format("Invalid adapter action: %s. Possible actions are: 'start', 'stop'.", action));
-    }
-  }
-
 
   /**
    * Returns a list of applications associated with a namespace.

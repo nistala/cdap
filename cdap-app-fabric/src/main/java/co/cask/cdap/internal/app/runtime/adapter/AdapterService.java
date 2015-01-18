@@ -50,14 +50,15 @@ import java.util.Map;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import javax.annotation.Nullable;
 
 /**
- * Utility service that provides access to adapterInfos currently registered
+ * Utility service that provides access to adapterTypeInfos currently registered
  */
 public class AdapterService extends AbstractIdleService {
   private static final Logger LOG = LoggerFactory.getLogger(AdapterService.class);
   private final CConfiguration configuration;
-  private Map<String, AdapterInfo> adapterInfos;
+  private Map<String, AdapterTypeInfo> adapterTypeInfos;
   private final DatasetFramework datasetFramework;
   private final StreamAdmin streamAdmin;
   private final Store store;
@@ -84,7 +85,7 @@ public class AdapterService extends AbstractIdleService {
   @Override
   protected void startUp() throws Exception {
     LOG.info("Starting AdapterInfoService");
-    adapterInfos = registerAdapters();
+    adapterTypeInfos = registerAdapters();
   }
 
   @Override
@@ -92,22 +93,32 @@ public class AdapterService extends AbstractIdleService {
     LOG.info("Shutting down AdapterInfoService");
   }
 
+  @Nullable
+  public AdapterTypeInfo getAdapterTypeInfo(String adapterType) {
+    return this.adapterTypeInfos.get(adapterType);
+  }
+
   /**
    * Retrieves information about an Adapter
    *
-   * @param adapterType the type of the requested AdapterInfo
-   * @return requested AdapterInfo or null if no such AdapterInfo exists
+   * @param namespace namespace to lookup the adapter
+   * @param adapterName the type of the requested AdapterInfo
+   * @return requested AdapterSpecification or null if no such AdapterInfo exists
    */
-  public AdapterInfo getAdapter(String adapterType) {
-    return adapterInfos.get(adapterType);
+  @Nullable
+  public AdapterSpecification getAdapter(String namespace, String adapterName) {
+    return store.getAdapter(Id.Namespace.from(namespace), adapterName);
+  }
+
+  public Collection<AdapterSpecification> getAdapters(String namespace) {
+    return store.getAllAdapters(Id.Namespace.from(namespace));
   }
 
 
   public void createAdapter(String namespaceId, AdapterSpecification spec) throws Exception {
 
-    AdapterInfo adapterInfo = adapterInfos.get(spec.getType());
+    AdapterTypeInfo adapterTypeInfo = adapterTypeInfos.get(spec.getType());
     String adapterAppName = spec.getType();
-
     // Setup Sources and Sinks
     // ensure all sources exist
     for (Source source : spec.getSources()) {
@@ -139,9 +150,8 @@ public class AdapterService extends AbstractIdleService {
       }
     }
 
-
-    String programId = adapterInfo.getScheduleProgramId();
-    ProgramType programType = adapterInfo.getScheduleProgramType();
+    String programId = adapterTypeInfo.getScheduleProgramId();
+    ProgramType programType = adapterTypeInfo.getScheduleProgramType();
     Id.Program scheduledProgramId = Id.Program.from(namespaceId, adapterAppName, programId);
 
     // If the adapter already exists, remove existing schedule to replace with the new one.
@@ -164,16 +174,8 @@ public class AdapterService extends AbstractIdleService {
     store.removeAdapter(Id.Namespace.from(namespaceId), adapterName);
   }
 
-  public void stopAdapter() {
-
-  }
-
-  public void startAdapter() {
-
-  }
-
-  private Map<String, AdapterInfo> registerAdapters() {
-    ImmutableMap.Builder<String, AdapterInfo> builder = ImmutableMap.builder();
+  private Map<String, AdapterTypeInfo> registerAdapters() {
+    ImmutableMap.Builder<String, AdapterTypeInfo> builder = ImmutableMap.builder();
     Collection<File> files = Collections.EMPTY_LIST;
     try {
       File baseDir = new File(configuration.get(Constants.AppFabric.ADAPTER_DIR));
@@ -198,10 +200,10 @@ public class AdapterService extends AbstractIdleService {
           //TODO: remove Hardcoding.
           ProgramType scheduleProgramType = ProgramType.WORKFLOW;
 //      ProgramType scheduleProgramType = ProgramType.valueOf(mainAttributes.getValue("CDAP-Scheduled-Program-Type"));
-          AdapterInfo adapterInfo = new AdapterInfo(file, adapterType, sourceType, sinkType, scheduleProgramId,
+          AdapterTypeInfo adapterTypeInfo = new AdapterTypeInfo(file, adapterType, sourceType, sinkType, scheduleProgramId,
                                                     scheduleProgramType);
           if (adapterType != null && scheduleProgramType != null) {
-            builder.put(adapterType, adapterInfo);
+            builder.put(adapterType, adapterTypeInfo);
           } else {
             LOG.error("Missing information for adapter at {}", file.getAbsolutePath());
           }
@@ -216,7 +218,7 @@ public class AdapterService extends AbstractIdleService {
   /**
    * Holds information about an Adapter
    */
-  public static final class AdapterInfo {
+  public static final class AdapterTypeInfo {
 
     private final File file;
     private final String type;
@@ -225,8 +227,8 @@ public class AdapterService extends AbstractIdleService {
     private final String scheduleProgramId;
     private final ProgramType scheduleProgramType;
 
-    public AdapterInfo(File file, String adapterType, Source.Type sourceType, Sink.Type sinkType,
-                       String scheduleProgramId, ProgramType scheduleProgramType) {
+    public AdapterTypeInfo(File file, String adapterType, Source.Type sourceType, Sink.Type sinkType,
+                           String scheduleProgramId, ProgramType scheduleProgramType) {
       this.file = file;
       this.type = adapterType;
       this.sourceType = sourceType;
