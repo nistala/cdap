@@ -22,6 +22,7 @@ import co.cask.cdap.WordCountApp;
 import co.cask.cdap.adapter.AdapterSpecification;
 import co.cask.cdap.adapter.Sink;
 import co.cask.cdap.adapter.Source;
+import co.cask.cdap.api.dataset.lib.FileSet;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.gateway.handlers.AppLifecycleHttpHandler;
@@ -208,11 +209,16 @@ public class AppLifecycleHttpHandlerTest extends AppFabricTestBase {
     String adapterName = "myStreamConvertor";
 
     ImmutableMap<String, String> properties = ImmutableMap.of("frequency", "1m");
-    AdapterSpecification specification = new AdapterSpecification(adapterName, adapterId, properties,
-                                               ImmutableSet.of(new Source("mySource", Source.Type.STREAM, properties)),
-                                               ImmutableSet.of(new Sink("mySink", Sink.Type.DATASET, properties)));
+    ImmutableMap<String, String> sourceProperties = ImmutableMap.of();
+    ImmutableMap<String, String> sinkProperties = ImmutableMap.of("dataset.class", FileSet.class.getName());
 
-    HttpResponse response = createAdapter(namespaceId, adapterId, adapterName, "mySource", "mySink", properties);
+    AdapterSpecification specification =
+      new AdapterSpecification(adapterName, adapterId, properties,
+                               ImmutableSet.of(new Source("mySource", Source.Type.STREAM, sourceProperties)),
+                               ImmutableSet.of(new Sink("mySink", Sink.Type.DATASET, sinkProperties)));
+
+    HttpResponse response = createAdapter(namespaceId, adapterId, adapterName, "mySource", "mySink", properties,
+                                          sourceProperties, sinkProperties);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
 
     response = listAdapters(namespaceId);
@@ -255,22 +261,28 @@ public class AppLifecycleHttpHandlerTest extends AppFabricTestBase {
     String adapterName2 = "streamConvertor2";
 
     ImmutableMap<String, String> properties = ImmutableMap.of("frequency", "1m");
+    ImmutableMap<String, String> sourceProperties = ImmutableMap.of();
+    ImmutableMap<String, String> sinkProperties = ImmutableMap.of("dataset.class", FileSet.class.getName());
 
     // Create two adapters.
-    HttpResponse response = createAdapter(namespaceId, adapterId, adapterName1, "mySource", "mySink1", properties);
+    HttpResponse response = createAdapter(namespaceId, adapterId, adapterName1, "mySource", "mySink1", properties,
+                                          sourceProperties, sinkProperties);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
 
-    response = createAdapter(namespaceId, adapterId, adapterName2, "mySource", "mySink2", properties);
+    response = createAdapter(namespaceId, adapterId, adapterName2, "mySource", "mySink2", properties, sourceProperties,
+                             sinkProperties);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
 
     // Validate Adapters
-    AdapterSpecification specification1 = new AdapterSpecification(adapterName1, adapterId, properties,
-                                                ImmutableSet.of(new Source("mySource", Source.Type.STREAM, properties)),
-                                                ImmutableSet.of(new Sink("mySink1", Sink.Type.DATASET, properties)));
+    AdapterSpecification specification1 =
+      new AdapterSpecification(adapterName1, adapterId, properties,
+                               ImmutableSet.of(new Source("mySource", Source.Type.STREAM, sourceProperties)),
+                               ImmutableSet.of(new Sink("mySink1", Sink.Type.DATASET, sinkProperties)));
 
-    AdapterSpecification specification2 = new AdapterSpecification(adapterName2, adapterId, properties,
-                                                ImmutableSet.of(new Source("mySource", Source.Type.STREAM, properties)),
-                                                ImmutableSet.of(new Sink("mySink2", Sink.Type.DATASET, properties)));
+    AdapterSpecification specification2 =
+      new AdapterSpecification(adapterName2, adapterId, properties,
+                               ImmutableSet.of(new Source("mySource", Source.Type.STREAM, sourceProperties)),
+                               ImmutableSet.of(new Sink("mySink2", Sink.Type.DATASET, sinkProperties)));
 
     List<AdapterSpecification> expectedSpecs = Lists.newArrayList(specification1, specification2);
 
@@ -297,28 +309,33 @@ public class AppLifecycleHttpHandlerTest extends AppFabricTestBase {
   }
 
   private HttpResponse createAdapter(String namespaceId, String type, String name, String sourceName,
-                                     String sinkName, ImmutableMap<String, String> props) throws Exception {
-
-    JsonObject properties = new JsonObject();
-    for(Map.Entry<String, String> entry : props.entrySet()) {
-      properties.addProperty(entry.getKey(), entry.getValue());
-    }
+                                     String sinkName, ImmutableMap<String, String> adapterProperties,
+                                     ImmutableMap<String, String> sourceProperties,
+                                     ImmutableMap<String, String> sinkProperties) throws Exception {
 
     JsonObject source = new JsonObject();
     source.addProperty("name", sourceName);
-    source.add("properties", properties);
+    source.add("properties", toJsonObject(sourceProperties));
 
     JsonObject sink = new JsonObject();
     sink.addProperty("name", sinkName);
-    sink.add("properties", properties);
+    sink.add("properties", toJsonObject(sinkProperties));
 
     JsonObject adapterConfig = new JsonObject();
     adapterConfig.addProperty("type", type);
-    adapterConfig.add("properties", properties);
+    adapterConfig.add("properties", toJsonObject(adapterProperties));
     adapterConfig.add("source", source);
     adapterConfig.add("sink", sink);
 
     return createAdapter(namespaceId, name, GSON.toJson(adapterConfig));
+  }
+
+  private JsonObject toJsonObject(Map<String, String> properties) {
+    JsonObject jsonProperties = new JsonObject();
+    for(Map.Entry<String, String> entry : properties.entrySet()) {
+      jsonProperties.addProperty(entry.getKey(), entry.getValue());
+    }
+    return jsonProperties;
   }
 
   private HttpResponse createAdapter(String namespaceId, String name, String adapterConfig) throws Exception {

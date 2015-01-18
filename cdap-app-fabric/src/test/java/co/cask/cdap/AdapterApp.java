@@ -19,8 +19,7 @@ package co.cask.cdap;
 import co.cask.cdap.api.app.AbstractApplication;
 import co.cask.cdap.api.data.stream.Stream;
 import co.cask.cdap.api.mapreduce.AbstractMapReduce;
-import co.cask.cdap.api.workflow.Workflow;
-import co.cask.cdap.api.workflow.WorkflowSpecification;
+import co.cask.cdap.api.workflow.AbstractWorkflow;
 
 /**
  *  App to test adapter lifecycle.
@@ -33,25 +32,25 @@ public class AdapterApp extends AbstractApplication {
     addStream(new Stream("mySource"));
     setDescription("Application for to test Adapter lifecycle");
     addWorkflow(new AdapterWorkflow());
+    addMapReduce(new DummyMapReduceJob());
   }
 
-  //TODO: Move to configurer API
-  public static class AdapterWorkflow implements Workflow {
+  public static class AdapterWorkflow extends AbstractWorkflow {
 
     @Override
-    public WorkflowSpecification configure() {
-      return WorkflowSpecification.Builder.with()
-        .setName("AdapterWorkflow")
-        .setDescription("Workflow to test Adaoter")
-        .onlyWith(new DummyMapReduceJob())
-        .build();
+    protected void configure() {
+      setName("AdapterWorkflow");
+      setDescription("Workflow to test Adapter");
+      addMapReduce(DummyMapReduceJob.NAME);
     }
   }
 
   public static class DummyMapReduceJob extends AbstractMapReduce {
+    public static final String NAME = "DummyMapReduceJob";
 
     @Override
     protected void configure() {
+      setName(NAME);
       setDescription("Mapreduce that does nothing (and actually doesn't run) - it is here to test Adapter lifecycle");
     }
   }
