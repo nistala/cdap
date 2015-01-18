@@ -247,8 +247,6 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
     }
   }
 
-  //TODO: improved docs
-
   /**
    * Retrieves all adapters in a given namespace.
    */
@@ -320,7 +318,6 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
       // Validate the adapter
       String adapterType = config.type;
       AdapterService.AdapterTypeInfo adapterTypeInfo = adapterService.getAdapterTypeInfo(adapterType);
-
       if (adapterTypeInfo == null) {
         responder.sendString(HttpResponseStatus.NOT_FOUND, String.format("Adapter type %s not found", adapterType));
         return;
@@ -329,43 +326,18 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
       // Check to see if the App is already deployed
       ApplicationSpecification applicationSpec = store.getApplication(Id.Application.from(namespaceId, adapterType));
       if (applicationSpec == null) {
-        // Deploy the application, by copying the jar to tmp location and moving it (atomically) after the copy.
-        Location archiveDirectory = locationFactory.create(this.archiveDir).append(namespaceId);
-        Locations.mkdirsIfNotExists(archiveDirectory);
-        Location archive = archiveDirectory.append(adapterType);
-
-        // Copy jar content to a temporary location
-        Location tmpLocation = archive.getTempFile(".tmp");
-        // TODO: Uncomment below. We need to find what to expose in AdapterInfo. location maynot be needed?
-        Files.copy(adapterTypeInfo.getFile(), Locations.newOutputSupplier(tmpLocation));
-
-        try {
-          // Finally, move archive to final location
-          if (tmpLocation.renameTo(archive) == null) {
-            throw new IOException(String.format("Could not move archive from location: %s, to location: %s",
-                                                tmpLocation.toURI(), archive.toURI()));
-          }
-        } catch (IOException e) {
-          // In case copy to temporary file failed, or rename failed
-          tmpLocation.delete();
-          throw e;
-        }
-        //TODO: Figure out deploy!!!
-        deploy(namespaceId, adapterType, archive);
+        deployAdapterApplication(namespaceId, adapterType, adapterTypeInfo);
       }
 
       AdapterSpecification spec = getAdapterSpec(config, adapterName,
                                                  adapterTypeInfo.getSourceType(), adapterTypeInfo.getSinkType());
-
       adapterService.createAdapter(namespaceId, spec);
       responder.sendString(HttpResponseStatus.OK, String.format("Adapter: %s is created", adapterName));
-    } catch (OperationException e) {
-      // TODO: remove this catch block after removing OperationException from MDS
-      responder.sendString(HttpResponseStatus.INTERNAL_SERVER_ERROR, e.getMessage());
-
-    } catch (Exception e) {
-      LOG.error("Failed to deploy adapter", e);
+    } catch (IllegalArgumentException e) {
       responder.sendString(HttpResponseStatus.BAD_REQUEST, e.getMessage());
+    } catch (Throwable th) {
+      LOG.error("Failed to deploy adapter", th);
+      responder.sendString(HttpResponseStatus.BAD_REQUEST, th.getMessage());
     }
   }
 
@@ -883,6 +855,31 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
 
   private static ApplicationRecord makeAppRecord(ApplicationSpecification appSpec) {
     return new ApplicationRecord("App", appSpec.getName(), appSpec.getName(), appSpec.getDescription());
+  }
+
+  private void deployAdapterApplication(String namespace, String adapterType,
+                                        AdapterService.AdapterTypeInfo adapterTypeInfo) throws Exception {
+    // Deploy the application, by copying the jar to tmp location and moving it (atomically) after the copy.
+    Location archiveDirectory = locationFactory.create(this.archiveDir).append(namespace);
+    Locations.mkdirsIfNotExists(archiveDirectory);
+    Location archive = archiveDirectory.append(adapterType);
+
+    // Copy jar content to a temporary location
+    Location tmpLocation = archive.getTempFile(".tmp");
+    Files.copy(adapterTypeInfo.getFile(), Locations.newOutputSupplier(tmpLocation));
+
+    try {
+      // Finally, move archive to final location
+      if (tmpLocation.renameTo(archive) == null) {
+        throw new IOException(String.format("Could not move archive from location: %s, to location: %s",
+                                            tmpLocation.toURI(), archive.toURI()));
+      }
+    } catch (IOException e) {
+      // In case copy to temporary file failed, or rename failed
+      tmpLocation.delete();
+      throw e;
+    }
+    deploy(namespace, adapterType, archive);
   }
 
   private static final class AdapterConfig {

@@ -332,7 +332,7 @@ public class AppLifecycleHttpHandlerTest extends AppFabricTestBase {
 
   private JsonObject toJsonObject(Map<String, String> properties) {
     JsonObject jsonProperties = new JsonObject();
-    for(Map.Entry<String, String> entry : properties.entrySet()) {
+    for (Map.Entry<String, String> entry : properties.entrySet()) {
       jsonProperties.addProperty(entry.getKey(), entry.getValue());
     }
     return jsonProperties;

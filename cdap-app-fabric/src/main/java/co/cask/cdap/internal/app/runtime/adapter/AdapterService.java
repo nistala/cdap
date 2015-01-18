@@ -25,6 +25,7 @@ import co.cask.cdap.app.store.StoreFactory;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.data2.dataset2.DatasetFramework;
+import co.cask.cdap.data2.dataset2.DatasetManagementException;
 import co.cask.cdap.data2.transaction.stream.StreamAdmin;
 import co.cask.cdap.internal.app.runtime.schedule.Scheduler;
 import co.cask.cdap.proto.Id;
@@ -38,7 +39,6 @@ import com.google.gson.Gson;
 import com.google.inject.Inject;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.twill.filesystem.LocationFactory;
 import org.quartz.DateBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +48,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
@@ -68,25 +69,15 @@ public class AdapterService extends AbstractIdleService {
   private final StreamAdmin streamAdmin;
   private final Scheduler scheduler;
   private final Store store;
-  private final LocationFactory locationFactory;
-  //TODO: refactor?!! hacky!!
-  private final String appFabricDir;
-  private final String archiveDir;
 
   @Inject
   public AdapterService(CConfiguration configuration, DatasetFramework datasetFramework, Scheduler scheduler,
-                        StreamAdmin streamAdmin, StoreFactory storeFactory, LocationFactory locationFactory) {
+                        StreamAdmin streamAdmin, StoreFactory storeFactory) {
     this.configuration = configuration;
     this.datasetFramework = datasetFramework;
     this.scheduler = scheduler;
     this.streamAdmin = streamAdmin;
     this.store = storeFactory.create();
-    this.locationFactory = locationFactory;
-
-    // TODO: Seems hacky!!
-    this.appFabricDir = configuration.get(Constants.AppFabric.OUTPUT_DIR);
-    this.archiveDir = this.appFabricDir + "/archive";
-
   }
 
   @Override
@@ -121,41 +112,13 @@ public class AdapterService extends AbstractIdleService {
     return store.getAllAdapters(Id.Namespace.from(namespace));
   }
 
-  public void createAdapter(String namespaceId, AdapterSpecification spec) throws Exception {
+  public void createAdapter(String namespaceId, AdapterSpecification spec) throws IllegalArgumentException {
 
     AdapterTypeInfo adapterTypeInfo = adapterTypeInfos.get(spec.getType());
     String adapterAppName = spec.getType();
-    // Setup Sources and Sinks
-    // ensure all sources exist
-    for (Source source : spec.getSources()) {
-      if (Source.Type.STREAM.equals(source.getType())) {
-        if (!streamAdmin.exists(source.getName())) {
-          String errMessage = String.format("stream instance %s does not exist during create of adapter: %s",
-                                            source.getName(), spec);
-          LOG.debug(errMessage);
-          throw new IllegalStateException(errMessage);
 
-        }
-      } else {
-        throw new IllegalArgumentException(String.format("Unknown Source type: %s", source.getType()));
-      }
-    }
-
-    // create sinks if not exist
-    for (Sink sink : spec.getSinks()) {
-      if (Sink.Type.DATASET.equals(sink.getType())) {
-        String datasetName = sink.getName();
-        if (!datasetFramework.hasInstance(datasetName)) {
-          datasetFramework.addInstance(sink.getProperties().get(DATASET_CLASS), datasetName,
-                                       toDatasetProperties(sink.getProperties()));
-        } else {
-          LOG.debug("Dataset instance {} already exists {}", datasetName, spec);
-        }
-      } else {
-        throw new IllegalArgumentException(String.format("Unknown Sink type: %s", sink.getType()));
-      }
-    }
-
+    validateSources(spec.getName(), spec.getSources());
+    createSinks(spec.getName(), spec.getSinks());
 
     String programId = adapterTypeInfo.getScheduleProgramId();
     ProgramType programType = adapterTypeInfo.getScheduleProgramType();
@@ -171,9 +134,7 @@ public class AdapterService extends AbstractIdleService {
       LOG.debug(debugMessage);
     }
     //TODO: Schedule new programs once the API is available.
-
     store.addAdapter(Id.Namespace.from(namespaceId), spec);
-
   }
 
   public void removeAdapter(String namespaceId, AdapterSpecification adapterSpecification) {
@@ -186,13 +147,69 @@ public class AdapterService extends AbstractIdleService {
     store.removeAdapter(Id.Namespace.from(namespaceId), adapterName);
   }
 
+  private void validateSources(String adapterName, Set<Source> sources) throws IllegalArgumentException {
+    // Ensure all sources exist
+    for (Source source : sources) {
+      if (Source.Type.STREAM.equals(source.getType())) {
+        if (!streamExists(source.getName())) {
+          throw new IllegalArgumentException(String.format("Stream %s must exist during create of adapter: %s",
+                                                           source.getName(), adapterName));
+        }
+      } else {
+        throw new IllegalArgumentException(String.format("Unknown Source type: %s", source.getType()));
+      }
+    }
+  }
+
+  private boolean streamExists(String streamName) {
+    try {
+      if (!streamAdmin.exists(streamName)) {
+        return false;
+      } else {
+        return true;
+      }
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private void createSinks(String adapterName, Set<Sink> sinks) {
+    // create sinks if not exist
+    for (Sink sink : sinks) {
+      if (Sink.Type.DATASET.equals(sink.getType())) {
+        String datasetName = sink.getName();
+        createDataset(datasetName, sink.getProperties().get(DATASET_CLASS), sink.getProperties());
+      } else {
+        throw new IllegalArgumentException(String.format("Unknown Sink type: %s", sink.getType()));
+      }
+    }
+  }
+
+  private void createDataset(String datasetName, String datasetClass, Map<String, String> properties) {
+    Preconditions.checkNotNull(datasetClass, "Dataset class cannot be null");
+    try {
+      if (!datasetFramework.hasInstance(datasetName)) {
+        datasetFramework.addInstance(datasetClass, datasetName,
+                                     DatasetProperties.builder().addAll(properties).build());
+      } else {
+        LOG.debug("Dataset instance {} already exists not creating a new one.", datasetName);
+      }
+    } catch (DatasetManagementException e) {
+      LOG.error("Error while creating dataset {}", datasetName, e);
+      throw new RuntimeException(e);
+    } catch (IOException e) {
+      LOG.error("Error while creating dataset {}", datasetName, e);
+      throw new RuntimeException(e);
+    }
+  }
+
+
   private Map<String, AdapterTypeInfo> registerAdapters() {
     ImmutableMap.Builder<String, AdapterTypeInfo> builder = ImmutableMap.builder();
     Collection<File> files = Collections.EMPTY_LIST;
     try {
       File baseDir = new File(configuration.get(Constants.AppFabric.ADAPTER_DIR));
       files = FileUtils.listFiles(baseDir, new String[]{"jar"}, true);
-
     } catch (Exception e) {
       LOG.warn("Unable to read the plugins directory ");
     }
@@ -212,8 +229,8 @@ public class AdapterService extends AbstractIdleService {
           //TODO: remove Hardcoding.
           ProgramType scheduleProgramType = ProgramType.WORKFLOW;
 //      ProgramType scheduleProgramType = ProgramType.valueOf(mainAttributes.getValue("CDAP-Scheduled-Program-Type"));
-          AdapterTypeInfo adapterTypeInfo = new AdapterTypeInfo(file, adapterType, sourceType, sinkType, scheduleProgramId,
-                                                    scheduleProgramType);
+          AdapterTypeInfo adapterTypeInfo = new AdapterTypeInfo(file, adapterType, sourceType, sinkType,
+                                                                scheduleProgramId, scheduleProgramType);
           if (adapterType != null && scheduleProgramType != null) {
             builder.put(adapterType, adapterTypeInfo);
           } else {
@@ -223,15 +240,6 @@ public class AdapterService extends AbstractIdleService {
       } catch (IOException e) {
         LOG.warn(String.format("Unable to read adapter jar %s", file.getAbsolutePath()));
       }
-    }
-    return builder.build();
-  }
-
-  private DatasetProperties toDatasetProperties(Map<String, String> properties) {
-    //TODO: possibly expose such an API in DatasetProperties class (by making constructor public)
-    DatasetProperties.Builder builder = DatasetProperties.builder();
-    for (Map.Entry<String, String> entry : properties.entrySet()) {
-      builder.add(entry.getKey(), entry.getValue());
     }
     return builder.build();
   }
