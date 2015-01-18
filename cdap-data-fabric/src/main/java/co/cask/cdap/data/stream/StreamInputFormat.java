@@ -42,6 +42,7 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
@@ -329,9 +330,10 @@ public class StreamInputFormat<K, V> extends InputFormat<K, V> {
       if (decoderClass.isAssignableFrom(FormatStreamEventDecoder.class)) {
         try {
           RecordFormat<ByteBuffer, V> bodyFormat = getInitializedFormat(conf);
+          LoggerFactory.getLogger(StreamInputFormat.class).error("in between");
           return (StreamEventDecoder<K, V>) new FormatStreamEventDecoder(bodyFormat);
         } catch (Exception e) {
-          throw new IllegalArgumentException("Unable to get the stream body format.");
+          throw new IllegalArgumentException("Unable to get the stream body format.", e);
         }
       } else {
         return (StreamEventDecoder<K, V>) decoderClass.newInstance();

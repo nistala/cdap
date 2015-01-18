@@ -16,14 +16,10 @@
 
 package co.cask.cdap.conversion.app;
 
-import co.cask.cdap.api.common.RuntimeArguments;
-import co.cask.cdap.api.common.Scope;
-import co.cask.cdap.api.data.format.FormatSpecification;
 import co.cask.cdap.api.data.schema.Schema;
+import co.cask.cdap.api.dataset.lib.FileSet;
 import co.cask.cdap.api.dataset.lib.FileSetProperties;
 import co.cask.cdap.internal.io.SchemaTypeAdapter;
-import co.cask.cdap.api.dataset.lib.FileSet;
-import co.cask.cdap.api.dataset.lib.FileSetArguments;
 import co.cask.cdap.test.ApplicationManager;
 import co.cask.cdap.test.DataSetManager;
 import co.cask.cdap.test.MapReduceManager;
@@ -43,7 +39,6 @@ import org.apache.twill.filesystem.Location;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;

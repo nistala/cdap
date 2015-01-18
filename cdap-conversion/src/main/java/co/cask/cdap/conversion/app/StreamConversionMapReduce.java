@@ -34,7 +34,6 @@ import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.apache.avro.Schema;
-import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.mapred.AvroKey;
 import org.apache.avro.mapreduce.AvroJob;
@@ -60,7 +59,7 @@ import java.util.concurrent.TimeUnit;
 public class StreamConversionMapReduce extends AbstractMapReduce {
   private static final Gson GSON = new Gson();
   private static final Logger LOG = LoggerFactory.getLogger(StreamConversionMapReduce.class);
-  private static final Type mapType = new TypeToken<Map<String, String>>() {}.getType();
+  private static final Type mapType = new TypeToken<Map<String, String>>() { }.getType();
   public static final String ADAPTER_PROPERTIES = "adapter.properties";
   public static final String SOURCE_NAME = "source.name";
   public static final String SOURCE_PROPERTIES = "source.properties";

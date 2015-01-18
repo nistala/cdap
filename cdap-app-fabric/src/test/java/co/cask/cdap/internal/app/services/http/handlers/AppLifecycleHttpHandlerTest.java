@@ -309,8 +309,8 @@ public class AppLifecycleHttpHandlerTest extends AppFabricTestBase {
   public void test() {
     AdapterSpecification adapterSpecification =
       new AdapterSpecification("adapterName", "adapterType", ImmutableMap.<String, String>of(),
-                               ImmutableSet.of(new Source("sourceName", Source.Type.STREAM, ImmutableMap.of("",""))),
-                               ImmutableSet.of(new Sink("sinkName", Sink.Type.DATASET, ImmutableMap.of("",""))));
+                               ImmutableSet.of(new Source("sourceName", Source.Type.STREAM, ImmutableMap.of("", ""))),
+                               ImmutableSet.of(new Sink("sinkName", Sink.Type.DATASET, ImmutableMap.of("", ""))));
 
   }
 

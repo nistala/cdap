@@ -20,8 +20,10 @@ import co.cask.cdap.adapter.AdapterSpecification;
 import co.cask.cdap.adapter.Sink;
 import co.cask.cdap.adapter.Source;
 import co.cask.cdap.api.ProgramSpecification;
+import co.cask.cdap.api.data.schema.Schema;
 import co.cask.cdap.api.dataset.DatasetProperties;
 import co.cask.cdap.api.dataset.lib.FileSet;
+import co.cask.cdap.api.dataset.lib.FileSetProperties;
 import co.cask.cdap.api.flow.FlowSpecification;
 import co.cask.cdap.api.flow.FlowletConnection;
 import co.cask.cdap.api.schedule.SchedulableProgramType;
@@ -48,6 +50,7 @@ import co.cask.cdap.common.queue.QueueName;
 import co.cask.cdap.common.utils.DirUtils;
 import co.cask.cdap.config.PreferencesStore;
 import co.cask.cdap.data.Namespace;
+import co.cask.cdap.data.format.SingleStringRecordFormat;
 import co.cask.cdap.data2.OperationException;
 import co.cask.cdap.data2.datafabric.DefaultDatasetNamespace;
 import co.cask.cdap.data2.dataset2.DatasetFramework;
@@ -81,8 +84,8 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
@@ -302,12 +305,22 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
     String adapterId = adapterSpec.getName();
     deleteSchedule(scheduler, store, Id.Program.from(namespaceId, adapterSpec.getType(),
                                                      adapterInfo.getScheduleProgramId()),
-                   SchedulableProgramType.valueOf(adapterInfo.getScheduleProgramType().toString()),
-                   String.format("%s", adapterId));
+                   adapterInfo.getScheduleProgramType(), String.format("%s", adapterId));
     store.removeAdapter(Id.Namespace.from(namespaceId), adapterId);
     responder.sendStatus(HttpResponseStatus.OK);
   }
 
+
+
+  private static final String ADAPTER_PROPERTIES = "adapter.properties";
+  private static final String SOURCE_NAME = "source.name";
+  private static final String SOURCE_PROPERTIES = "source.properties";
+  private static final String SINK_NAME = "sink.name";
+  private static final String SINK_PROPERTIES = "sink.properties";
+  private static final String SCHEMA = "schema";
+  private static final String FORMAT_NAME = "format.name";
+  private static final String FORMAT_SETTINGS = "format.settings";
+  private static final String FREQUENCY = "frequency";
 
   /**
    * Create an adapter.
@@ -359,14 +372,28 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
         }
       }
 
+
+      Schema schema = Schema.recordOf(
+        "event",
+        Schema.Field.of("ts", Schema.of(Schema.Type.LONG)),
+        Schema.Field.of("data", Schema.of(Schema.Type.STRING)));
+
       // create sinks if not exist
       for (Sink sink : spec.getSinks()) {
         if (Sink.Type.DATASET.equals(sink.getType())) {
           String datasetName = sink.getName();
           if (!datasetFramework.hasInstance(datasetName)) {
-            //TODO: This should come from a property.
-            datasetFramework.addInstance(FileSet.class.getName(), datasetName,
-                                         DatasetProperties.builder().addAll(sink.getProperties()).build());
+
+            DatasetProperties dsProps = DatasetProperties.builder()
+              .add("base.path", datasetName)
+              .add(FileSetProperties.INPUT_FORMAT, "org.apache.avro.mapreduce.AvroKeyInputFormat")
+              .add(FileSetProperties.OUTPUT_FORMAT, "org.apache.avro.mapreduce.AvroKeyOutputFormat")
+              .add("output.properties.schema", schema.toString())
+            .build();
+
+            //TODO: merge in sink properties from user
+
+            datasetFramework.addInstance(FileSet.class.getName(), datasetName, dsProps);
             LOG.debug("Dataset instance {} created during create of adapter: {}", datasetName, spec);
           } else {
             LOG.debug("Dataset instance {} already existed during create of adapter: {}", datasetName, spec);
@@ -405,23 +432,27 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
       // We need this information, in order to know if/what to schedule
       String appId = adapterType;
       String programId = adapterInfo.getScheduleProgramId();
-      SchedulableProgramType programType =
-        SchedulableProgramType.valueOf(adapterInfo.getScheduleProgramType().toString());
+      SchedulableProgramType programType = adapterInfo.getScheduleProgramType();
       Id.Program scheduledProgramId = Id.Program.from(namespaceId, appId, programId);
       String scheduleName = String.format("%s", adapterName);
       String scheduleDescription = "";
       String cronEntry = toCronExpr(spec.getProperties().get("frequency"));
       ScheduleProgramInfo scheduleProgramInfo = new ScheduleProgramInfo(programType, programId);
       //TODO: populate this (runtime args)
-      Map<String, String> properties =
-        ImmutableMap.of("source.name", spec.getSources().iterator().next().getName(),
-                        "source.properties", GSON.toJson(spec.getSinks().iterator().next().getProperties()),
-                        "sink.name", spec.getSinks().iterator().next().getName(),
-                        "sink.properties", GSON.toJson(spec.getSources().iterator().next().getProperties()),
-                        "properties", GSON.toJson(spec.getProperties()));
-      streamAdmin.getConfig(spec.getSources().iterator().next().getName()).getFormat();
+//      FormatSpecification format = streamAdmin.getConfig(spec.getSources().iterator().next().getName()).getFormat();
+      Map<String, String> adapterProperties = Maps.newHashMap(spec.getProperties());
+      adapterProperties.put(SCHEMA, schema.toString());
+      adapterProperties.put(FORMAT_NAME, SingleStringRecordFormat.class.getName());
+      adapterProperties.put(FORMAT_SETTINGS, "{}");
+      adapterProperties.put(FREQUENCY, toFrequencyMillis(adapterProperties.get(FREQUENCY)).toString());
 
-      Iterators.get(spec.getSources().iterator(), 0);
+      Map<String, String> properties =
+        ImmutableMap.of(SOURCE_NAME, spec.getSources().iterator().next().getName(),
+                        SOURCE_PROPERTIES, GSON.toJson(spec.getSinks().iterator().next().getProperties()),
+                        SINK_NAME, spec.getSinks().iterator().next().getName(),
+                        SINK_PROPERTIES, GSON.toJson(spec.getSources().iterator().next().getProperties()),
+                        ADAPTER_PROPERTIES, GSON.toJson(adapterProperties));
+
 
       // If the adapter already exists, remove existing schedule to replace with the new one.
       AdapterSpecification existingSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterName);
@@ -452,6 +483,34 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
   }
 
   //TODO: move this method elsewhere!
+  public static Long toFrequencyMillis(String frequency) {
+    //TODO: replace with TimeMathParser
+    Preconditions.checkArgument(!Strings.isNullOrEmpty(frequency));
+    // remove all whitespace
+    frequency = frequency.replaceAll("\\s+", "");
+    Preconditions.checkArgument(frequency.length() >= 0);
+
+    frequency = frequency.toLowerCase();
+
+    String value = frequency.substring(0, frequency.length() - 1);
+    Preconditions.checkArgument(StringUtils.isNumeric(value));
+    Integer parsedValue = Integer.valueOf(value);
+    Preconditions.checkArgument(parsedValue > 0);
+
+    char lastChar = frequency.charAt(frequency.length() - 1);
+    switch (lastChar) {
+      case 'm':
+        DateBuilder.validateMinute(parsedValue);
+        return TimeUnit.MINUTES.toMillis(parsedValue);
+      case 'h':
+        DateBuilder.validateHour(parsedValue);
+        return TimeUnit.HOURS.toMillis(parsedValue);
+      case 'd':
+        DateBuilder.validateDayOfMonth(parsedValue);
+        return TimeUnit.DAYS.toMillis(parsedValue);
+    }
+    throw new IllegalArgumentException(String.format("Time unit not supported: %s", lastChar));
+  }
 
   /**
    * Converts a frequency expression into cronExpression that is usable by quartz.
@@ -512,11 +571,9 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
     String scheduleName = String.format("%s", adapterName);
 
     if ("start".equals(action)) {
-      scheduler.resumeSchedule(programId, SchedulableProgramType
-        .valueOf(adapterInfo.getScheduleProgramType().toString()), scheduleName);
+      scheduler.resumeSchedule(programId, adapterInfo.getScheduleProgramType(), scheduleName);
     } else if ("stop".equals(action)) {
-      scheduler.suspendSchedule(programId, SchedulableProgramType
-        .valueOf(adapterInfo.getScheduleProgramType().toString()), scheduleName);
+      scheduler.suspendSchedule(programId, adapterInfo.getScheduleProgramType(), scheduleName);
     } else {
       responder.sendString(HttpResponseStatus.BAD_REQUEST,
                            String.format("Invalid adapter action: %s. Possible actions are: 'start', 'stop'.", action));
