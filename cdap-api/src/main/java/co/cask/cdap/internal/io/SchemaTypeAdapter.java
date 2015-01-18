@@ -14,7 +14,7 @@
  * the License.
  */
 
-package co.cask.cdap.api.data.schema;
+package co.cask.cdap.internal.io;
 
 import co.cask.cdap.api.data.schema.Schema;
 import com.google.common.collect.ImmutableList;

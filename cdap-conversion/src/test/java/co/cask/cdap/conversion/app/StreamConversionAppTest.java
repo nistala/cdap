@@ -16,13 +16,9 @@
 
 package co.cask.cdap.conversion.app;
 
-import co.cask.cdap.api.common.RuntimeArguments;
-import co.cask.cdap.api.common.Scope;
-import co.cask.cdap.api.data.format.FormatSpecification;
 import co.cask.cdap.api.data.schema.Schema;
-import co.cask.cdap.api.data.schema.SchemaTypeAdapter;
 import co.cask.cdap.api.dataset.lib.FileSet;
-import co.cask.cdap.api.dataset.lib.FileSetArguments;
+import co.cask.cdap.api.dataset.lib.FileSetProperties;
 import co.cask.cdap.test.ApplicationManager;
 import co.cask.cdap.test.DataSetManager;
 import co.cask.cdap.test.MapReduceManager;
@@ -31,17 +27,16 @@ import co.cask.cdap.test.TestBase;
 import com.clearspring.analytics.util.Lists;
 import com.google.common.collect.Maps;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
+import org.apache.avro.mapreduce.AvroKeyInputFormat;
+import org.apache.avro.mapreduce.AvroKeyOutputFormat;
 import org.apache.twill.filesystem.Location;
-import org.json4s.Formats;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -50,9 +45,7 @@ import java.util.concurrent.TimeUnit;
  *
  */
 public class StreamConversionAppTest extends TestBase {
-  private static final Gson GSON = new GsonBuilder()
-    .registerTypeAdapter(Schema.class, new SchemaTypeAdapter())
-    .create();
+  private static final Gson GSON = new Gson();
 
   @Test
   public void testMapReduce() throws Exception {
@@ -80,24 +73,31 @@ public class StreamConversionAppTest extends TestBase {
       Schema.Field.of("ticker", Schema.of(Schema.Type.STRING)),
       Schema.Field.of("num_traded", Schema.of(Schema.Type.INT)),
       Schema.Field.of("price", Schema.of(Schema.Type.FLOAT)));*/
-    Schema bodySchema = Schema.recordOf(
-      "eventBody", Schema.Field.of("data", Schema.of(Schema.Type.STRING)));
-    FormatSpecification formatSpecification =
-      new FormatSpecification("string", bodySchema, Collections.<String, String>emptyMap());
+    Schema schema = Schema.recordOf(
+      "event",
+      Schema.Field.of("ts", Schema.of(Schema.Type.LONG)),
+      Schema.Field.of("header1", Schema.unionOf(Schema.of(Schema.Type.NULL), Schema.of(Schema.Type.STRING))),
+      Schema.Field.of("header2", Schema.unionOf(Schema.of(Schema.Type.NULL), Schema.of(Schema.Type.STRING))),
+      Schema.Field.of("data", Schema.of(Schema.Type.STRING)));
+    addDatasetInstance("fileSet", filesetName, FileSetProperties.builder()
+      .setBasePath("converted_stream")
+      .setInputFormat(AvroKeyInputFormat.class)
+      .setOutputFormat(AvroKeyOutputFormat.class)
+      .setOutputProperty("schema", schema.toString())
+      .build());
 
     Map<String, String> runtimeArgs = Maps.newHashMap();
-    // TODO: take out once the program is capable of figuring out the output path on its own
-    String relativeOutputPath = "100";
-    runtimeArgs.put(FileSetArguments.OUTPUT_PATH, relativeOutputPath);
-    runtimeArgs = RuntimeArguments.addScope(Scope.DATASET, filesetName, runtimeArgs);
+    runtimeArgs.put(StreamConversionMapReduce.SOURCE_NAME, streamName);
+    runtimeArgs.put(StreamConversionMapReduce.SINK_NAME, filesetName);
 
-    // set required arguments.
-    runtimeArgs.put(StreamConversionMapReduce.STREAM_NAME, streamName);
-    runtimeArgs.put(StreamConversionMapReduce.FILESET_NAME, filesetName);
-    runtimeArgs.put(StreamConversionMapReduce.RUN_FREQUENCY_MS,
-                    String.valueOf(TimeUnit.MILLISECONDS.convert(5, TimeUnit.MINUTES)));
-    runtimeArgs.put(StreamConversionMapReduce.HEADERS, "header1,header2");
-    runtimeArgs.put(StreamConversionMapReduce.FORMAT_SPEC, GSON.toJson(formatSpecification));
+    Map<String, String> adapterProperties = Maps.newHashMap();
+    adapterProperties.put(StreamConversionMapReduce.FORMAT_NAME, "string");
+    adapterProperties.put(StreamConversionMapReduce.FORMAT_SETTINGS, "{}");
+    adapterProperties.put(StreamConversionMapReduce.SCHEMA, schema.toString());
+    adapterProperties.put(StreamConversionMapReduce.FREQUENCY, String.valueOf(600000));
+    adapterProperties.put(StreamConversionMapReduce.HEADERS, "header1,header2");
+
+    runtimeArgs.put(StreamConversionMapReduce.ADAPTER_PROPERTIES, GSON.toJson(adapterProperties));
 
     // run the mapreduce job and wait for it to finish
     MapReduceManager mapReduceManager = appManager.startMapReduce(
@@ -108,9 +108,9 @@ public class StreamConversionAppTest extends TestBase {
     DataSetManager<FileSet> fileSetManager = getDataset(filesetName);
     FileSet fileSet = fileSetManager.get();
 
-    org.apache.avro.Schema schema = new org.apache.avro.Schema.Parser()
+    org.apache.avro.Schema avroSchema = new org.apache.avro.Schema.Parser()
       .parse(fileSet.getOutputFormatConfiguration().get("schema"));
-    DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>(schema);
+    DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>(avroSchema);
     List<GenericRecord> records = Lists.newArrayList();
     for (Location loc : fileSet.getBaseLocation().list()) {
       String locName = loc.getName();
