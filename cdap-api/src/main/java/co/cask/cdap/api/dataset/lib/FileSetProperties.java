@@ -202,8 +202,24 @@ public class FileSetProperties {
     /**
      * Sets the output format of the file dataset.
      */
+    public Builder setOutputFormat(String outputFormatClass) {
+      delegate.add(OUTPUT_FORMAT, outputFormatClass);
+      return this;
+    }
+
+    /**
+     * Sets the output format of the file dataset.
+     */
     public Builder setInputFormat(Class<?> inputFormatClass) {
       delegate.add(INPUT_FORMAT, inputFormatClass.getName());
+      return this;
+    }
+
+    /**
+     * Sets the output format of the file dataset.
+     */
+    public Builder setInputFormat(String inputFormatClass) {
+      delegate.add(INPUT_FORMAT, inputFormatClass);
       return this;
     }
 

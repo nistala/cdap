@@ -1,5 +1,5 @@
 CDAP-Adapter-Type: stream-conversion
 CDAP-Source-Type: STREAM
 CDAP-Sink-Type: DATASET
-CDAP-Scheduled-Program-Id: streamConversion
+CDAP-Scheduled-Program-Id: StreamConversionWorkflow
 CDAP-Scheduled-Program-Type: WORKFLOW

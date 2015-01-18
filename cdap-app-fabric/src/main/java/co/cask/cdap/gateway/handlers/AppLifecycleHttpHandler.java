@@ -24,6 +24,7 @@ import co.cask.cdap.api.data.schema.Schema;
 import co.cask.cdap.api.dataset.DatasetProperties;
 import co.cask.cdap.api.dataset.lib.FileSet;
 import co.cask.cdap.api.dataset.lib.FileSetProperties;
+import co.cask.cdap.api.dataset.lib.TimePartitionedFileSet;
 import co.cask.cdap.api.flow.FlowSpecification;
 import co.cask.cdap.api.flow.FlowletConnection;
 import co.cask.cdap.api.schedule.SchedulableProgramType;
@@ -384,16 +385,21 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
           String datasetName = sink.getName();
           if (!datasetFramework.hasInstance(datasetName)) {
 
-            DatasetProperties dsProps = DatasetProperties.builder()
-              .add("base.path", datasetName)
-              .add(FileSetProperties.INPUT_FORMAT, "org.apache.avro.mapreduce.AvroKeyInputFormat")
-              .add(FileSetProperties.OUTPUT_FORMAT, "org.apache.avro.mapreduce.AvroKeyOutputFormat")
-              .add("output.properties.schema", schema.toString())
-            .build();
+            DatasetProperties dsProps = FileSetProperties.builder()
+              .setBasePath(datasetName)
+              .setInputFormat("org.apache.avro.mapreduce.AvroKeyInputFormat")
+              .setOutputFormat("org.apache.avro.mapreduce.AvroKeyOutputFormat")
+              .setOutputProperty("schema", schema.toString())
+              .setExploreEnabled(true)
+              .setSerde("org.apache.hadoop.hive.serde2.avro.AvroSerDe")
+              .setExploreInputFormat("org.apache.hadoop.hive.ql.io.avro.AvroContainerInputFormat")
+              .setExploreOutputFormat("org.apache.hadoop.hive.ql.io.avro.AvroContainerOutputFormat")
+              .setTableProperty("avro.schema.literal", schema.toString())
+              .build();
 
             //TODO: merge in sink properties from user
 
-            datasetFramework.addInstance(FileSet.class.getName(), datasetName, dsProps);
+            datasetFramework.addInstance(TimePartitionedFileSet.class.getName(), datasetName, dsProps);
             LOG.debug("Dataset instance {} created during create of adapter: {}", datasetName, spec);
           } else {
             LOG.debug("Dataset instance {} already existed during create of adapter: {}", datasetName, spec);

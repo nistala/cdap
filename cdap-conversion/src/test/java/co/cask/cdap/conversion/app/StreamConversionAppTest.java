@@ -128,7 +128,8 @@ public class StreamConversionAppTest extends TestBase {
           // this level should be map reduce output
           String locName = file.getName();
           if (locName.endsWith(".avro")) {
-            DataFileStream<GenericRecord> fileStream = new DataFileStream<GenericRecord>(file.getInputStream(), datumReader);
+            DataFileStream<GenericRecord> fileStream =
+              new DataFileStream<GenericRecord>(file.getInputStream(), datumReader);
             while (fileStream.hasNext()) {
               records.add(fileStream.next());
             }
