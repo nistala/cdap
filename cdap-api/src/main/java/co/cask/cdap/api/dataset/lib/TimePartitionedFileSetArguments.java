@@ -38,7 +38,7 @@ public class TimePartitionedFileSetArguments {
    * @param time The time in milli seconds.
    */
   public static void setOutputPartitionTime(Map<String, String> arguments, long time) {
-    arguments.put(OUTPUT_PARTITION_TIME, Long.toString(time));
+    arguments.put(FileSetProperties.OUTPUT_PROPERTIES_PREFIX + OUTPUT_PARTITION_TIME, Long.toString(time));
   }
 
   /**

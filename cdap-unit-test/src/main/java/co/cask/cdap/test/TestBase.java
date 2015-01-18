@@ -254,7 +254,7 @@ public class TestBase {
       new MetricsHandlerModule(),
       new LoggingModules().getInMemoryModules(),
       new ExploreRuntimeModule().getInMemoryModules(),
-      new ExploreClientModule(),
+      //new ExploreClientModule(),
       new NotificationFeedServiceRuntimeModule().getInMemoryModules(),
       new AbstractModule() {
         @Override

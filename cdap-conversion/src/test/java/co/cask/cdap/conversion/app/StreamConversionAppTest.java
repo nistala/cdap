@@ -19,6 +19,7 @@ package co.cask.cdap.conversion.app;
 import co.cask.cdap.api.data.schema.Schema;
 import co.cask.cdap.api.dataset.lib.FileSet;
 import co.cask.cdap.api.dataset.lib.FileSetProperties;
+import co.cask.cdap.api.dataset.lib.TimePartitionedFileSet;
 import co.cask.cdap.internal.io.SchemaTypeAdapter;
 import co.cask.cdap.test.ApplicationManager;
 import co.cask.cdap.test.DataSetManager;
@@ -83,11 +84,16 @@ public class StreamConversionAppTest extends TestBase {
       Schema.Field.of("header1", Schema.unionOf(Schema.of(Schema.Type.NULL), Schema.of(Schema.Type.STRING))),
       Schema.Field.of("header2", Schema.unionOf(Schema.of(Schema.Type.NULL), Schema.of(Schema.Type.STRING))),
       Schema.Field.of("data", Schema.of(Schema.Type.STRING)));
-    addDatasetInstance("fileSet", filesetName, FileSetProperties.builder()
-      .setBasePath("converted_stream")
+    addDatasetInstance("timePartitionedFileSet", filesetName, FileSetProperties.builder()
+      .setBasePath(filesetName)
       .setInputFormat(AvroKeyInputFormat.class)
       .setOutputFormat(AvroKeyOutputFormat.class)
-      .setOutputProperty("schema", GSON.toJson(schema))
+      .setOutputProperty("schema", schema.toString())
+      .setExploreEnabled(true)
+      .setSerde("org.apache.hadoop.hive.serde2.avro.AvroSerDe")
+      .setExploreInputFormat("org.apache.hadoop.hive.ql.io.avro.AvroContainerInputFormat")
+      .setExploreOutputFormat("org.apache.hadoop.hive.ql.io.avro.AvroContainerOutputFormat")
+      .setTableProperty("avro.schema.literal", schema.toString())
       .build());
 
     Map<String, String> runtimeArgs = Maps.newHashMap();
@@ -104,24 +110,29 @@ public class StreamConversionAppTest extends TestBase {
     runtimeArgs.put(StreamConversionMapReduce.ADAPTER_PROPERTIES, GSON.toJson(adapterProperties));
 
     // run the mapreduce job and wait for it to finish
-    MapReduceManager mapReduceManager = appManager.startMapReduce(
-      "StreamConversionWorkflow_StreamConversionMapReduce", runtimeArgs);
+    MapReduceManager mapReduceManager = appManager.startMapReduce("StreamConversionMapReduce", runtimeArgs);
     mapReduceManager.waitForFinish(3, TimeUnit.MINUTES);
 
     // get the output fileset, and read the avro files it output.
-    DataSetManager<FileSet> fileSetManager = getDataset(filesetName);
-    FileSet fileSet = fileSetManager.get();
+    DataSetManager<TimePartitionedFileSet> fileSetManager = getDataset(filesetName);
+    TimePartitionedFileSet fileSet = fileSetManager.get();
 
-    org.apache.avro.Schema avroSchema = new org.apache.avro.Schema.Parser()
-      .parse(fileSet.getOutputFormatConfiguration().get("schema"));
+    org.apache.avro.Schema avroSchema = new org.apache.avro.Schema.Parser().parse(schema.toString());
     DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>(avroSchema);
     List<GenericRecord> records = Lists.newArrayList();
-    for (Location loc : fileSet.getBaseLocation().list()) {
-      String locName = loc.getName();
-      if (locName.endsWith(".avro")) {
-        DataFileStream<GenericRecord> fileStream = new DataFileStream<GenericRecord>(loc.getInputStream(), datumReader);
-        while (fileStream.hasNext()) {
-          records.add(fileStream.next());
+    for (Location dayLoc : fileSet.getUnderlyingFileSet().getBaseLocation().list()) {
+      // this level should be directories of the day
+      for (Location minLoc : dayLoc.list()) {
+        // this level should be directories of the minute
+        for (Location file : minLoc.list()) {
+          // this level should be map reduce output
+          String locName = file.getName();
+          if (locName.endsWith(".avro")) {
+            DataFileStream<GenericRecord> fileStream = new DataFileStream<GenericRecord>(file.getInputStream(), datumReader);
+            while (fileStream.hasNext()) {
+              records.add(fileStream.next());
+            }
+          }
         }
       }
     }
