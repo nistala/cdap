@@ -20,8 +20,6 @@ import co.cask.cdap.adapter.AdapterSpecification;
 import co.cask.cdap.adapter.Sink;
 import co.cask.cdap.adapter.Source;
 import co.cask.cdap.api.ProgramSpecification;
-import co.cask.cdap.api.dataset.DatasetProperties;
-import co.cask.cdap.api.dataset.lib.FileSet;
 import co.cask.cdap.api.flow.FlowSpecification;
 import co.cask.cdap.api.flow.FlowletConnection;
 import co.cask.cdap.api.workflow.WorkflowSpecification;
@@ -57,7 +55,7 @@ import co.cask.cdap.internal.UserErrors;
 import co.cask.cdap.internal.UserMessages;
 import co.cask.cdap.internal.app.deploy.ProgramTerminator;
 import co.cask.cdap.internal.app.deploy.pipeline.ApplicationWithPrograms;
-import co.cask.cdap.internal.app.runtime.AdapterInfoService;
+import co.cask.cdap.internal.app.runtime.adapter.AdapterService;
 import co.cask.cdap.internal.app.runtime.flow.FlowUtils;
 import co.cask.cdap.internal.app.runtime.schedule.Scheduler;
 import co.cask.cdap.proto.ApplicationRecord;
@@ -67,11 +65,9 @@ import co.cask.cdap.proto.ProgramType;
 import co.cask.cdap.proto.ProgramTypes;
 import co.cask.http.BodyConsumer;
 import co.cask.http.HttpResponder;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
@@ -84,7 +80,6 @@ import com.google.gson.Gson;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.ning.http.client.SimpleAsyncHttpClient;
-import org.apache.commons.lang.StringUtils;
 import org.apache.twill.api.RunId;
 import org.apache.twill.discovery.Discoverable;
 import org.apache.twill.discovery.DiscoveryServiceClient;
@@ -93,7 +88,6 @@ import org.apache.twill.filesystem.LocationFactory;
 import org.jboss.netty.handler.codec.http.HttpHeaders;
 import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
-import org.quartz.DateBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -184,7 +178,7 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
 
   private final StreamAdmin streamAdmin;
 
-  private final AdapterInfoService adapterInfoService;
+  private final AdapterService adapterService;
 
   @Inject
   public AppLifecycleHttpHandler(Authenticator authenticator, CConfiguration configuration,
@@ -194,7 +188,7 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
                                  StreamConsumerFactory streamConsumerFactory, QueueAdmin queueAdmin,
                                  DiscoveryServiceClient discoveryServiceClient, PreferencesStore preferencesStore,
                                  DatasetFramework datasetFramework, StreamAdmin streamAdmin,
-                                 AdapterInfoService adapterInfoService) {
+                                 AdapterService adapterService) {
     super(authenticator);
     this.configuration = configuration;
     this.managerFactory = managerFactory;
@@ -211,7 +205,7 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
     this.datasetFramework =
       new NamespacedDatasetFramework(datasetFramework, new DefaultDatasetNamespace(configuration, Namespace.USER));
     this.streamAdmin = streamAdmin;
-    this.adapterInfoService = adapterInfoService;
+    this.adapterService = adapterService;
   }
 
   /**
@@ -292,9 +286,9 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
                            String.format("Adapter not found: %s.%s", namespaceId, adapterName));
       return;
     }
-    // TODO: Update application specification
-    scheduler.deleteSchedules(Id.Program.from(namespaceId, "appId", "programId"), ProgramType.WORKFLOW);
-    store.removeAdapter(Id.Namespace.from(namespaceId), adapterName);
+    adapterService.removeAdapter(namespaceId, adapterName);
+
+
     responder.sendStatus(HttpResponseStatus.OK);
   }
 
@@ -324,56 +318,24 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
 
       // Validate the adapter
       String adapterType = config.type;
-      AdapterInfoService.AdapterInfo adapterInfo = adapterInfoService.getAdapter(adapterType);
+      AdapterService.AdapterInfo adapterInfo = adapterService.getAdapter(adapterType);
+
       if (adapterInfo == null) {
         responder.sendString(HttpResponseStatus.NOT_FOUND, String.format("Adapter type %s not found", adapterType));
         return;
       }
 
-      AdapterSpecification spec = getAdapterSpec(config, adapterName,
-                                                 adapterInfo.getSourceType(), adapterInfo.getSinkType());
-
-      // Setup Sources and Sinks prior to application deploy
-      // ensure all sources exist
-      for (Source source : spec.getSources()) {
-        if (Source.Type.STREAM.equals(source.getType())) {
-          if (!streamAdmin.exists(source.getName())) {
-            String errMessage = String.format("stream instance %s does not exist during create of adapter: %s",
-                                              source.getName(), spec);
-            LOG.debug(errMessage);
-            throw new IllegalStateException(errMessage);
-
-          }
-        } else {
-          throw new IllegalArgumentException(String.format("Unknown Source type: %s", source.getType()));
-        }
-      }
-
-      // create sinks if not exist
-      for (Sink sink : spec.getSinks()) {
-        if (Sink.Type.DATASET.equals(sink.getType())) {
-          String datasetName = sink.getName();
-          if (!datasetFramework.hasInstance(datasetName)) {
-            //TODO: This should come from a property.
-            datasetFramework.addInstance(FileSet.class.getName(), datasetName, DatasetProperties.EMPTY);
-          } else {
-            LOG.debug("Dataset instance {} already exists {}", datasetName, spec);
-          }
-        } else {
-          throw new IllegalArgumentException(String.format("Unknown Sink type: %s", sink.getType()));
-        }
-      }
-
       // Check to see if the App is already deployed
-      ApplicationSpecification applicationSpec = store.getApplication(Id.Application.from(namespaceId, adapterName));
+      ApplicationSpecification applicationSpec = store.getApplication(Id.Application.from(namespaceId, adapterType));
       if (applicationSpec == null) {
         // Deploy the application, by copying the jar to tmp location and moving it (atomically) after the copy.
         Location archiveDirectory = locationFactory.create(this.archiveDir).append(namespaceId);
         Locations.mkdirsIfNotExists(archiveDirectory);
-        Location archive = archiveDirectory.append(adapterName);
+        Location archive = archiveDirectory.append(adapterType);
 
         // Copy jar content to a temporary location
         Location tmpLocation = archive.getTempFile(".tmp");
+        // TODO: Uncomment below. We need to find what to expose in AdapterInfo. location maynot be needed?
         Files.copy(adapterInfo.getFile(), Locations.newOutputSupplier(tmpLocation));
 
         try {
@@ -387,80 +349,24 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
           tmpLocation.delete();
           throw e;
         }
+        //TODO: Figure out deploy!!!
         deploy(namespaceId, adapterType, archive);
       }
 
-      // We need this information, in order to know if/what to schedule
-      String appId = adapterType;
-      String programId = adapterInfo.getScheduleProgramId();
-      ProgramType programType = adapterInfo.getScheduleProgramType();
-      Id.Program scheduledProgramId = Id.Program.from(namespaceId, appId, programId);
+      AdapterSpecification spec = getAdapterSpec(config, adapterName,
+                                                 adapterInfo.getSourceType(), adapterInfo.getSinkType());
 
-      // If the adapter already exists, remove existing schedule to replace with the new one.
-      AdapterSpecification existingSpec = store.getAdapter(Id.Namespace.from(namespaceId), adapterName);
-      if (existingSpec != null) {
-        // TODO: Remove the schedule.
-        String debugMessage = String.format("Existing adapter found while create: %s.%s",
-                                            namespaceId, existingSpec);
-        LOG.debug(debugMessage);
-      }
-      //TODO: Schedule new programs once the API is available.
-
-      store.addAdapter(Id.Namespace.from(namespaceId), spec);
-
+      adapterService.createAdapter(namespaceId, spec);
       responder.sendString(HttpResponseStatus.OK, String.format("Adapter: %s is created", adapterName));
-    } catch (IOException e) {
-      responder.sendString(HttpResponseStatus.BAD_REQUEST, "AdapterSpecification could not be parsed");
     } catch (OperationException e) {
-      // TODO: Remove the catch clause after operation Exception is removed from Store. CDAP-1165
-      responder.sendStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+      // TODO: remove this catch block after removing OperationException from MDS
+      responder.sendString(HttpResponseStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+
     } catch (Exception e) {
       LOG.error("Failed to deploy adapter", e);
       responder.sendString(HttpResponseStatus.BAD_REQUEST, e.getMessage());
     }
   }
-
-  //TODO: move this method elsewhere!
-
-  /**
-   * Converts a frequency expression into cronExpression that is usable by quartz.
-   * Supports frequency expressions with the following resolutions: minutes, hours, days.
-   * Example conversions:
-   * '10m' -> '*{@literal /}10 * * * ?'
-   * '3d' -> '0 0 *{@literal /}3 * ?'
-   *
-   * @return a chron expression
-   */
-  @VisibleForTesting
-  public static String toCronExpr(String frequency) {
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(frequency));
-    // remove all whitespace
-    frequency = frequency.replaceAll("\\s+", "");
-    Preconditions.checkArgument(frequency.length() >= 0);
-
-    frequency = frequency.toLowerCase();
-
-    String value = frequency.substring(0, frequency.length() - 1);
-    Preconditions.checkArgument(StringUtils.isNumeric(value));
-    Integer parsedValue = Integer.valueOf(value);
-    Preconditions.checkArgument(parsedValue > 0);
-
-    String everyN = String.format("*/%s", value);
-    char lastChar = frequency.charAt(frequency.length() - 1);
-    switch (lastChar) {
-      case 'm':
-        DateBuilder.validateMinute(parsedValue);
-        return String.format("%s * * * ?", everyN);
-      case 'h':
-        DateBuilder.validateHour(parsedValue);
-        return String.format("0 %s * * ?", everyN);
-      case 'd':
-        DateBuilder.validateDayOfMonth(parsedValue);
-        return String.format("0 0 %s * ?", everyN);
-    }
-    throw new IllegalArgumentException(String.format("Time unit not supported: %s", lastChar));
-  }
-
 
   @POST
   @Path("/adapters/{adapter-id}/{action}")

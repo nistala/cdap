@@ -16,6 +16,7 @@
 
 package co.cask.cdap.internal.app.services.http;
 
+import co.cask.cdap.AdapterApp;
 import co.cask.cdap.app.program.ManifestFields;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
@@ -26,6 +27,8 @@ import co.cask.cdap.data2.datafabric.dataset.service.DatasetService;
 import co.cask.cdap.data2.datafabric.dataset.service.executor.DatasetOpExecutor;
 import co.cask.cdap.internal.app.services.AppFabricServer;
 import co.cask.cdap.metrics.query.MetricsQueryService;
+import co.cask.cdap.test.internal.AppFabricClient;
+import co.cask.cdap.test.internal.TempFolder;
 import co.cask.cdap.test.internal.guice.AppFabricTestModule;
 import co.cask.tephra.TransactionManager;
 import co.cask.tephra.TransactionSystemClient;
@@ -34,6 +37,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ObjectArrays;
 import com.google.common.io.ByteStreams;
+import com.google.common.io.Files;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Guice;
@@ -53,6 +57,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
 import org.apache.twill.discovery.DiscoveryServiceClient;
+import org.apache.twill.filesystem.LocationFactory;
 import org.apache.twill.internal.utils.Dependencies;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -60,6 +65,7 @@ import org.junit.BeforeClass;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Type;
@@ -69,6 +75,7 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
@@ -99,9 +106,16 @@ public abstract class AppFabricTestBase {
   private static DatasetOpExecutor dsOpService;
   private static DatasetService datasetService;
   private static TransactionSystemClient txClient;
+  private static final TempFolder TEMP_FOLDER = new TempFolder();
+  private static LocationFactory locationFactory;
+  private static File adapterDir;
+  private static final String adapterFolder = "adapter";
 
   @BeforeClass
   public static void beforeClass() throws Throwable {
+    TEMP_FOLDER.newFolder(adapterFolder);
+    adapterDir = new File(String.format("%s/%s", TEMP_FOLDER.getRoot(), adapterFolder));
+
     CConfiguration conf = CConfiguration.create();
 
     conf.set(Constants.AppFabric.SERVER_ADDRESS, hostname);
@@ -109,8 +123,13 @@ public abstract class AppFabricTestBase {
     conf.set(Constants.AppFabric.TEMP_DIR, System.getProperty("java.io.tmpdir"));
 
     conf.setBoolean(Constants.Dangerous.UNRECOVERABLE_RESET, true);
+    conf.set(Constants.AppFabric.ADAPTER_DIR, adapterDir.getAbsolutePath());
 
     injector = Guice.createInjector(new AppFabricTestModule(conf));
+
+    locationFactory = injector.getInstance(LocationFactory.class);
+    setupAdapters();
+
     txManager = injector.getInstance(TransactionManager.class);
     txManager.startAndWait();
     dsOpService = injector.getInstance(DatasetOpExecutor.class);
@@ -137,6 +156,29 @@ public abstract class AppFabricTestBase {
     datasetService.stopAndWait();
     dsOpService.stopAndWait();
     txManager.stopAndWait();
+    TEMP_FOLDER.delete();
+  }
+
+  private static void setupAdapters() throws IOException {
+    setupAdapter(AdapterApp.class, "dummyAdapter", "AdapterWorkflow");
+  }
+
+  private static void setupAdapter(Class<?> clz, String adapterType, String scheduledProgram) throws IOException {
+
+    Attributes attributes = new Attributes();
+    attributes.put(ManifestFields.MAIN_CLASS, clz.getName());
+    attributes.put(ManifestFields.MANIFEST_VERSION, "1.0");
+    attributes.putValue("CDAP-Source-Type", "STREAM");
+    attributes.putValue("CDAP-Sink-Type", "DATASET");
+    attributes.putValue("CDAP-Adapter-Type", adapterType);
+    attributes.putValue("CDAP-Scheduled-Program-Id", adapterType);
+
+    Manifest manifest = new Manifest();
+    manifest.getMainAttributes().putAll(attributes);
+
+    File adapterJar = AppFabricClient.createDeploymentJar(locationFactory, clz, manifest);
+    File destination =  new File(String.format("%s/%s", adapterDir.getAbsolutePath(), adapterJar.getName()));
+    Files.copy(adapterJar, destination);
   }
 
   protected static Injector getInjector() {
@@ -272,6 +314,8 @@ public abstract class AppFabricTestBase {
     throws Exception {
     return deploy(application, apiVersion, namespace, null);
   }
+
+
 
   /**
    * Deploys an application with (optionally) a defined app name

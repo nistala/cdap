@@ -22,13 +22,14 @@ import co.cask.cdap.WordCountApp;
 import co.cask.cdap.adapter.AdapterSpecification;
 import co.cask.cdap.adapter.Sink;
 import co.cask.cdap.adapter.Source;
+import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.gateway.handlers.AppLifecycleHttpHandler;
 import co.cask.cdap.internal.app.services.http.AppFabricTestBase;
 import co.cask.cdap.proto.NamespaceMeta;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -37,7 +38,6 @@ import org.apache.http.HttpResponse;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.lang.reflect.Type;
@@ -61,6 +61,8 @@ public class AppLifecycleHttpHandlerTest extends AppFabricTestBase {
 
   @BeforeClass
   public static void setup() throws Exception {
+    CConfiguration conf = getInjector().getInstance(CConfiguration.class);
+
     HttpResponse response = doPut(String.format("%s/namespaces/%s", Constants.Gateway.API_VERSION_3, TEST_NAMESPACE1),
                                   GSON.toJson(TEST_NAMESPACE_META1));
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
@@ -198,40 +200,37 @@ public class AppLifecycleHttpHandlerTest extends AppFabricTestBase {
     Assert.assertEquals(404, response.getStatusLine().getStatusCode());
   }
 
-  @Ignore
+
   @Test
   public void testAdapterLifeCycle() throws Exception {
     String namespaceId = Constants.DEFAULT_NAMESPACE;
-    String adapterId = "adapterId";
-    AdapterSpecification adapterToPut =
-      new AdapterSpecification(adapterId, "batchStreamToAvro", ImmutableMap.of("frequency", "1m"),
-                               ImmutableSet.of(new Source("someSource", Source.Type.STREAM, EMPTY_MAP)),
-                               ImmutableSet.of(new Sink("someSink", Sink.Type.DATASET, EMPTY_MAP)));
+    String adapterId = "dummyAdapter";
+    String adapterName = "myStreamConvertor";
 
-    HttpResponse response = listAdapters(namespaceId);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-    List<AdapterSpecification> list = readResponse(response, ADAPTER_SPEC_LIST_TYPE);
-    Assert.assertTrue(list.isEmpty());
+    ImmutableMap<String, String> properties = ImmutableMap.of("frequency", "1m");
+    AdapterSpecification specification = new AdapterSpecification(adapterName, adapterId, properties,
+                                               ImmutableSet.of(new Source("mySource", Source.Type.STREAM, properties)),
+                                               ImmutableSet.of(new Sink("mySink", Sink.Type.DATASET, properties)));
 
-    createStream("someSource");
-    response = createAdapter(namespaceId, adapterToPut);
+    HttpResponse response = createAdapter(namespaceId, adapterId, adapterName, "mySource", "mySink", properties);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
 
     response = listAdapters(namespaceId);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-    list = readResponse(response, ADAPTER_SPEC_LIST_TYPE);
+    List<AdapterSpecification> list = readResponse(response, ADAPTER_SPEC_LIST_TYPE);
     Assert.assertEquals(1, list.size());
-    Assert.assertEquals(adapterToPut, list.get(0));
+    Assert.assertEquals(specification, list.get(0));
 
-    response = getAdapter(namespaceId, adapterId);
+    response = getAdapter(namespaceId, adapterName);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
     AdapterSpecification receivedAdapterSpecification = readResponse(response, AdapterSpecification.class);
-    Assert.assertEquals(adapterToPut, receivedAdapterSpecification);
+    Assert.assertEquals(specification, receivedAdapterSpecification);
 
-    response = deleteAdapter(namespaceId, adapterId);
+    // Delete adapter
+    response = deleteAdapter(namespaceId, adapterName);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
 
-    response = getAdapter(namespaceId, adapterId);
+    response = getAdapter(namespaceId, adapterName);
     Assert.assertEquals(404, response.getStatusLine().getStatusCode());
 
     response = listAdapters(namespaceId);
@@ -245,48 +244,86 @@ public class AppLifecycleHttpHandlerTest extends AppFabricTestBase {
     String nonexistentAdapterId = "nonexistentAdapterId";
     HttpResponse response = getAdapter(Constants.DEFAULT_NAMESPACE, nonexistentAdapterId);
     Assert.assertEquals(404, response.getStatusLine().getStatusCode());
-
-    response = deleteAdapter(Constants.DEFAULT_NAMESPACE, nonexistentAdapterId);
-    Assert.assertEquals(404, response.getStatusLine().getStatusCode());
   }
 
-  @Ignore
   @Test
   public void testMultipleAdapters() throws Exception {
-    // Streams have to exist for adapter deploy to succeed
-    createStream("someSource");
-    List<AdapterSpecification> adaptersToPut = ImmutableList.of(
-      new AdapterSpecification("adapterId", "batchStreamToAvro", ImmutableMap.of("frequency", "30m"),
-                               ImmutableSet.of(new Source("someSource", Source.Type.STREAM, EMPTY_MAP)),
-                               ImmutableSet.of(new Sink("someSink", Sink.Type.DATASET, EMPTY_MAP))),
+    String namespaceId = Constants.DEFAULT_NAMESPACE;
 
-      new AdapterSpecification("otherId", "realtimeStreamToAvro", ImmutableMap.of("frequency", "1h"),
-                               ImmutableSet.of(new Source("someSource", Source.Type.STREAM, EMPTY_MAP)),
-                               ImmutableSet.of(new Sink("someSink", Sink.Type.DATASET, EMPTY_MAP))));
-    for (AdapterSpecification adapterSpec : adaptersToPut) {
-      HttpResponse response = createAdapter(Constants.DEFAULT_NAMESPACE, adapterSpec);
-      Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    String adapterId = "dummyAdapter";
+    String adapterName1 = "streamConvertor1";
+    String adapterName2 = "streamConvertor2";
+
+    ImmutableMap<String, String> properties = ImmutableMap.of("frequency", "1m");
+
+    // Create two adapters.
+    HttpResponse response = createAdapter(namespaceId, adapterId, adapterName1, "mySource", "mySink1", properties);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+
+    response = createAdapter(namespaceId, adapterId, adapterName2, "mySource", "mySink2", properties);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+
+    // Validate Adapters
+    AdapterSpecification specification1 = new AdapterSpecification(adapterName1, adapterId, properties,
+                                                ImmutableSet.of(new Source("mySource", Source.Type.STREAM, properties)),
+                                                ImmutableSet.of(new Sink("mySink1", Sink.Type.DATASET, properties)));
+
+    AdapterSpecification specification2 = new AdapterSpecification(adapterName2, adapterId, properties,
+                                                ImmutableSet.of(new Source("mySource", Source.Type.STREAM, properties)),
+                                                ImmutableSet.of(new Sink("mySink2", Sink.Type.DATASET, properties)));
+
+    List<AdapterSpecification> expectedSpecs = Lists.newArrayList(specification1, specification2);
+
+    response = listAdapters(Constants.DEFAULT_NAMESPACE);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    List<AdapterSpecification> actualSpecs = readResponse(response, ADAPTER_SPEC_LIST_TYPE);
+
+    Assert.assertEquals(expectedSpecs.size(), actualSpecs.size());
+    Assert.assertEquals(Sets.newHashSet(expectedSpecs), Sets.newHashSet(actualSpecs));
+
+    // Delete adapter1
+    response = deleteAdapter(namespaceId, adapterName1);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+
+    // validate adapter2 still exists
+    response = listAdapters(Constants.DEFAULT_NAMESPACE);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+    actualSpecs = readResponse(response, ADAPTER_SPEC_LIST_TYPE);
+    Assert.assertEquals(Sets.newHashSet(specification2), Sets.newHashSet(actualSpecs));
+
+    // Delete adapter2
+    response = deleteAdapter(namespaceId, adapterName2);
+    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+  }
+
+  private HttpResponse createAdapter(String namespaceId, String type, String name, String sourceName,
+                                     String sinkName, ImmutableMap<String, String> props) throws Exception {
+
+    JsonObject properties = new JsonObject();
+    for(Map.Entry<String, String> entry : props.entrySet()) {
+      properties.addProperty(entry.getKey(), entry.getValue());
     }
 
-    HttpResponse response = listAdapters(Constants.DEFAULT_NAMESPACE);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-    List<AdapterSpecification> retrievedAdapters = readResponse(response, ADAPTER_SPEC_LIST_TYPE);
-    Assert.assertEquals(adaptersToPut.size(), retrievedAdapters.size());
-    Assert.assertEquals(Sets.newHashSet(adaptersToPut), Sets.newHashSet(retrievedAdapters));
+    JsonObject source = new JsonObject();
+    source.addProperty("name", sourceName);
+    source.add("properties", properties);
+
+    JsonObject sink = new JsonObject();
+    sink.addProperty("name", sinkName);
+    sink.add("properties", properties);
+
+    JsonObject adapterConfig = new JsonObject();
+    adapterConfig.addProperty("type", type);
+    adapterConfig.add("properties", properties);
+    adapterConfig.add("source", source);
+    adapterConfig.add("sink", sink);
+
+    return createAdapter(namespaceId, name, GSON.toJson(adapterConfig));
   }
 
-  private void createStream(String streamName) throws Exception {
-    // TODO: tests are failing, because this is failing.
-    doPut(String.format("%s/streams/%s", Constants.Gateway.API_VERSION_2, streamName));
-  }
-
-  private HttpResponse createAdapter(String namespaceId, AdapterSpecification adapterSpec) throws Exception {
-    return createAdapter(namespaceId, GSON.toJson(adapterSpec));
-  }
-
-  private HttpResponse createAdapter(String namespaceId, String adapterSpecJson) throws Exception {
-    return doPut(String.format("%s/namespaces/%s/adapters",
-                               Constants.Gateway.API_VERSION_3, namespaceId), adapterSpecJson);
+  private HttpResponse createAdapter(String namespaceId, String name, String adapterConfig) throws Exception {
+    return doPut(String.format("%s/namespaces/%s/adapters/%s",
+                               Constants.Gateway.API_VERSION_3, namespaceId, name), adapterConfig);
   }
 
   private HttpResponse listAdapters(String namespaceId) throws Exception {
@@ -299,39 +336,39 @@ public class AppLifecycleHttpHandlerTest extends AppFabricTestBase {
                                Constants.Gateway.API_VERSION_3, namespaceId, adapterId));
   }
 
+
   private HttpResponse deleteAdapter(String namespaceId, String adapterId) throws Exception {
     return doDelete(String.format("%s/namespaces/%s/adapters/%s",
                                   Constants.Gateway.API_VERSION_3, namespaceId, adapterId));
   }
 
-
   //TODO: move these elsewhere:
-  @Test
-  public void testCronConversion() {
-    Assert.assertEquals("*/1 * * * ?", AppLifecycleHttpHandler.toCronExpr("1m"));
-    Assert.assertEquals("*/52 * * * ?", AppLifecycleHttpHandler.toCronExpr("52m"));
-    Assert.assertEquals("0 */4 * * ?", AppLifecycleHttpHandler.toCronExpr("4h"));
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void invalidExpression() {
-    AppLifecycleHttpHandler.toCronExpr("62m");
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void invalidExpression1() {
-    AppLifecycleHttpHandler.toCronExpr("am");
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void invalidExpression2() {
-    AppLifecycleHttpHandler.toCronExpr("1w");
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void invalidExpression3() {
-    AppLifecycleHttpHandler.toCronExpr("1d 1h");
-  }
+//  @Test
+//  public void testCronConversion() {
+//    Assert.assertEquals("*/1 * * * ?", AppLifecycleHttpHandler.toCronExpr("1m"));
+//    Assert.assertEquals("*/52 * * * ?", AppLifecycleHttpHandler.toCronExpr("52m"));
+//    Assert.assertEquals("0 */4 * * ?", AppLifecycleHttpHandler.toCronExpr("4h"));
+//  }
+//
+//  @Test(expected = IllegalArgumentException.class)
+//  public void invalidExpression() {
+//    AppLifecycleHttpHandler.toCronExpr("62m");
+//  }
+//
+//  @Test(expected = IllegalArgumentException.class)
+//  public void invalidExpression1() {
+//    AppLifecycleHttpHandler.toCronExpr("am");
+//  }
+//
+//  @Test(expected = IllegalArgumentException.class)
+//  public void invalidExpression2() {
+//    AppLifecycleHttpHandler.toCronExpr("1w");
+//  }
+//
+//  @Test(expected = IllegalArgumentException.class)
+//  public void invalidExpression3() {
+//    AppLifecycleHttpHandler.toCronExpr("1d 1h");
+//  }
 
   @AfterClass
   public static void tearDown() throws Exception {
