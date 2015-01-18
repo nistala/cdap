@@ -88,6 +88,14 @@ public final class  AdapterSpecification {
     return properties;
   }
 
+  /**
+   * @return name of the schedule for this Adapter.
+   */
+  public String getScheduleName() {
+    // For now, simply schedule the adapter's program with the name of the adapter.
+    return name;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {

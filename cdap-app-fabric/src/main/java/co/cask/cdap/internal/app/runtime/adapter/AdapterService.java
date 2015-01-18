@@ -20,13 +20,13 @@ import co.cask.cdap.adapter.AdapterSpecification;
 import co.cask.cdap.adapter.Sink;
 import co.cask.cdap.adapter.Source;
 import co.cask.cdap.api.dataset.DatasetProperties;
-import co.cask.cdap.api.dataset.lib.FileSet;
 import co.cask.cdap.app.store.Store;
 import co.cask.cdap.app.store.StoreFactory;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.data2.dataset2.DatasetFramework;
 import co.cask.cdap.data2.transaction.stream.StreamAdmin;
+import co.cask.cdap.internal.app.runtime.schedule.Scheduler;
 import co.cask.cdap.proto.Id;
 import co.cask.cdap.proto.ProgramType;
 import com.google.common.annotations.VisibleForTesting;
@@ -34,6 +34,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.AbstractIdleService;
+import com.google.gson.Gson;
 import com.google.inject.Inject;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -57,10 +58,15 @@ import javax.annotation.Nullable;
  */
 public class AdapterService extends AbstractIdleService {
   private static final Logger LOG = LoggerFactory.getLogger(AdapterService.class);
+  private static final Gson GSON = new Gson();
+  private static final String ADAPTER_SPEC = "adapter.spec";
+  private static final String DATASET_CLASS = "dataset.class";
+
   private final CConfiguration configuration;
   private Map<String, AdapterTypeInfo> adapterTypeInfos;
   private final DatasetFramework datasetFramework;
   private final StreamAdmin streamAdmin;
+  private final Scheduler scheduler;
   private final Store store;
   private final LocationFactory locationFactory;
   //TODO: refactor?!! hacky!!
@@ -68,10 +74,11 @@ public class AdapterService extends AbstractIdleService {
   private final String archiveDir;
 
   @Inject
-  public AdapterService(CConfiguration configuration, DatasetFramework datasetFramework,
+  public AdapterService(CConfiguration configuration, DatasetFramework datasetFramework, Scheduler scheduler,
                         StreamAdmin streamAdmin, StoreFactory storeFactory, LocationFactory locationFactory) {
     this.configuration = configuration;
     this.datasetFramework = datasetFramework;
+    this.scheduler = scheduler;
     this.streamAdmin = streamAdmin;
     this.store = storeFactory.create();
     this.locationFactory = locationFactory;
@@ -114,7 +121,6 @@ public class AdapterService extends AbstractIdleService {
     return store.getAllAdapters(Id.Namespace.from(namespace));
   }
 
-
   public void createAdapter(String namespaceId, AdapterSpecification spec) throws Exception {
 
     AdapterTypeInfo adapterTypeInfo = adapterTypeInfos.get(spec.getType());
@@ -140,8 +146,8 @@ public class AdapterService extends AbstractIdleService {
       if (Sink.Type.DATASET.equals(sink.getType())) {
         String datasetName = sink.getName();
         if (!datasetFramework.hasInstance(datasetName)) {
-          //TODO: This should come from a property.
-          datasetFramework.addInstance(FileSet.class.getName(), datasetName, DatasetProperties.EMPTY);
+          datasetFramework.addInstance(sink.getProperties().get(DATASET_CLASS), datasetName,
+                                       toDatasetProperties(sink.getProperties()));
         } else {
           LOG.debug("Dataset instance {} already exists {}", datasetName, spec);
         }
@@ -150,9 +156,11 @@ public class AdapterService extends AbstractIdleService {
       }
     }
 
+
     String programId = adapterTypeInfo.getScheduleProgramId();
     ProgramType programType = adapterTypeInfo.getScheduleProgramType();
     Id.Program scheduledProgramId = Id.Program.from(namespaceId, adapterAppName, programId);
+    Map<String, String> properties = ImmutableMap.of(ADAPTER_SPEC, GSON.toJson(spec));
 
     // If the adapter already exists, remove existing schedule to replace with the new one.
     AdapterSpecification existingSpec = store.getAdapter(Id.Namespace.from(namespaceId), spec.getName());
@@ -168,9 +176,13 @@ public class AdapterService extends AbstractIdleService {
 
   }
 
-  public void removeAdapter(String namespaceId, String adapterName) {
-    // TODO: Update application specification
-    //scheduler.deleteSchedules(Id.Program.from(namespaceId, "appId", "programId"), ProgramType.WORKFLOW);
+  public void removeAdapter(String namespaceId, AdapterSpecification adapterSpecification) {
+    String adapterName = adapterSpecification.getName();
+    AdapterTypeInfo adapterInfo = getAdapterTypeInfo(adapterSpecification.getType());
+    Id.Program programToUnschedule = Id.Program.from(namespaceId, adapterSpecification.getType(),
+                                                     adapterInfo.getScheduleProgramId());
+//    deleteSchedule(scheduler, store, programToUnschedule,
+//                   adapterInfo.getScheduleProgramType(), adapterSpecification.getScheduleName());
     store.removeAdapter(Id.Namespace.from(namespaceId), adapterName);
   }
 
@@ -211,6 +223,15 @@ public class AdapterService extends AbstractIdleService {
       } catch (IOException e) {
         LOG.warn(String.format("Unable to read adapter jar %s", file.getAbsolutePath()));
       }
+    }
+    return builder.build();
+  }
+
+  private DatasetProperties toDatasetProperties(Map<String, String> properties) {
+    //TODO: possibly expose such an API in DatasetProperties class (by making constructor public)
+    DatasetProperties.Builder builder = DatasetProperties.builder();
+    for (Map.Entry<String, String> entry : properties.entrySet()) {
+      builder.add(entry.getKey(), entry.getValue());
     }
     return builder.build();
   }

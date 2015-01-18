@@ -290,7 +290,7 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
                            String.format("Adapter not found: %s.%s", namespaceId, adapterName));
       return;
     }
-    adapterService.removeAdapter(namespaceId, adapterName);
+    adapterService.removeAdapter(namespaceId, adapterSpec);
     responder.sendStatus(HttpResponseStatus.OK);
   }
 
@@ -313,7 +313,7 @@ public class AppLifecycleHttpHandler extends AbstractAppFabricHttpHandler {
 
       AdapterConfig config = parseBody(request, AdapterConfig.class);
       if (config == null) {
-        responder.sendString(HttpResponseStatus.BAD_REQUEST, "Insufficient paramters to create adapter");
+        responder.sendString(HttpResponseStatus.BAD_REQUEST, "Insufficient parameters to create adapter");
         return;
       }
 
