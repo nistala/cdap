@@ -30,8 +30,6 @@ import co.cask.cdap.internal.app.services.http.AppFabricTestBase;
 import co.cask.cdap.proto.NamespaceMeta;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
@@ -250,62 +248,6 @@ public class AppLifecycleHttpHandlerTest extends AppFabricTestBase {
     String nonexistentAdapterId = "nonexistentAdapterId";
     HttpResponse response = getAdapter(Constants.DEFAULT_NAMESPACE, nonexistentAdapterId);
     Assert.assertEquals(404, response.getStatusLine().getStatusCode());
-  }
-
-  @Test
-  public void testMultipleAdapters() throws Exception {
-    String namespaceId = Constants.DEFAULT_NAMESPACE;
-
-    String adapterId = "dummyAdapter";
-    String adapterName1 = "streamConvertor1";
-    String adapterName2 = "streamConvertor2";
-
-    ImmutableMap<String, String> properties = ImmutableMap.of("frequency", "1m");
-    ImmutableMap<String, String> sourceProperties = ImmutableMap.of();
-    ImmutableMap<String, String> sinkProperties = ImmutableMap.of("dataset.class", FileSet.class.getName());
-
-    // Create two adapters.
-    HttpResponse response = createAdapter(namespaceId, adapterId, adapterName1, "mySource", "mySink1", properties,
-                                          sourceProperties, sinkProperties);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-
-    response = createAdapter(namespaceId, adapterId, adapterName2, "mySource", "mySink2", properties, sourceProperties,
-                             sinkProperties);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-
-    // Validate Adapters
-    AdapterSpecification specification1 =
-      new AdapterSpecification(adapterName1, adapterId, properties,
-                               ImmutableSet.of(new Source("mySource", Source.Type.STREAM, sourceProperties)),
-                               ImmutableSet.of(new Sink("mySink1", Sink.Type.DATASET, sinkProperties)));
-
-    AdapterSpecification specification2 =
-      new AdapterSpecification(adapterName2, adapterId, properties,
-                               ImmutableSet.of(new Source("mySource", Source.Type.STREAM, sourceProperties)),
-                               ImmutableSet.of(new Sink("mySink2", Sink.Type.DATASET, sinkProperties)));
-
-    List<AdapterSpecification> expectedSpecs = Lists.newArrayList(specification1, specification2);
-
-    response = listAdapters(Constants.DEFAULT_NAMESPACE);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-    List<AdapterSpecification> actualSpecs = readResponse(response, ADAPTER_SPEC_LIST_TYPE);
-
-    Assert.assertEquals(expectedSpecs.size(), actualSpecs.size());
-    Assert.assertEquals(Sets.newHashSet(expectedSpecs), Sets.newHashSet(actualSpecs));
-
-    // Delete adapter1
-    response = deleteAdapter(namespaceId, adapterName1);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-
-    // validate adapter2 still exists
-    response = listAdapters(Constants.DEFAULT_NAMESPACE);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-    actualSpecs = readResponse(response, ADAPTER_SPEC_LIST_TYPE);
-    Assert.assertEquals(Sets.newHashSet(specification2), Sets.newHashSet(actualSpecs));
-
-    // Delete adapter2
-    response = deleteAdapter(namespaceId, adapterName2);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
   }
 
   private HttpResponse createAdapter(String namespaceId, String type, String name, String sourceName,
