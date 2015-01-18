@@ -46,7 +46,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.jar.Attributes;
@@ -120,10 +119,12 @@ public class AdapterService extends AbstractIdleService {
     validateSources(spec.getName(), spec.getSources());
     createSinks(spec.getName(), spec.getSinks());
 
-    String programId = adapterTypeInfo.getScheduleProgramId();
-    ProgramType programType = adapterTypeInfo.getScheduleProgramType();
-    Id.Program scheduledProgramId = Id.Program.from(namespaceId, adapterAppName, programId);
-    Map<String, String> properties = ImmutableMap.of(ADAPTER_SPEC, GSON.toJson(spec));
+    //String programId = adapterTypeInfo.getScheduleProgramId();
+    // TODO: Schedule all programs of type.
+    // TODO: What happens when you schedule same program twice.
+    //ProgramType programType = adapterTypeInfo.getScheduleProgramType();
+    //Id.Program scheduledProgramId = Id.Program.from(namespaceId, adapterAppName, programId);
+    //Map<String, String> properties = ImmutableMap.of(ADAPTER_SPEC, GSON.toJson(spec));
 
     // If the adapter already exists, remove existing schedule to replace with the new one.
     AdapterSpecification existingSpec = store.getAdapter(Id.Namespace.from(namespaceId), spec.getName());
@@ -221,18 +222,17 @@ public class AdapterService extends AbstractIdleService {
   private AdapterTypeInfo getAdapterTypeInfo(File file, Manifest manifest) {
     if (manifest != null) {
       Attributes mainAttributes = manifest.getMainAttributes();
+
       String adapterType = mainAttributes.getValue("CDAP-Adapter-Type");
-      // TODO: Check for null?
-      Source.Type sourceType = Source.Type.valueOf(mainAttributes.getValue("CDAP-Source-Type").toUpperCase());
-      Sink.Type sinkType = Sink.Type.valueOf(mainAttributes.getValue("CDAP-Sink-Type").toUpperCase());
-      //TODO: Schedule program Id? do we need this?
-      String scheduleProgramId = mainAttributes.getValue("CDAP-Scheduled-Program-Id");
-      //TODO: remove Hardcoding.
-      ProgramType scheduleProgramType = ProgramType.WORKFLOW;
-//      ProgramType scheduleProgramType = ProgramType.valueOf(mainAttributes.getValue("CDAP-Scheduled-Program-Type"));
-      AdapterTypeInfo adapterTypeInfo = new AdapterTypeInfo(file, adapterType, sourceType, sinkType,
-                                                            scheduleProgramId, scheduleProgramType);
-      return adapterTypeInfo;
+      String sourceType = mainAttributes.getValue("CDAP-Source-Type");
+      String sinkType = mainAttributes.getValue("CDAP-Sink-Type");
+      String adapterProgramType = mainAttributes.getValue("CDAP-Adapter-Program-Type");
+
+      if (adapterType != null && sourceType != null && sinkType != null && adapterProgramType != null) {
+        return new AdapterTypeInfo(file, adapterType, Source.Type.valueOf(sourceType.toUpperCase()),
+                                   Sink.Type.valueOf(sinkType.toUpperCase()),
+                                   ProgramType.valueOf(adapterProgramType.toUpperCase()));
+      }
     }
     return null;
   }
@@ -246,16 +246,14 @@ public class AdapterService extends AbstractIdleService {
     private final String type;
     private final Source.Type sourceType;
     private final Sink.Type sinkType;
-    private final String scheduleProgramId;
     private final ProgramType scheduleProgramType;
 
     public AdapterTypeInfo(File file, String adapterType, Source.Type sourceType, Sink.Type sinkType,
-                           String scheduleProgramId, ProgramType scheduleProgramType) {
+                           ProgramType scheduleProgramType) {
       this.file = file;
       this.type = adapterType;
       this.sourceType = sourceType;
       this.sinkType = sinkType;
-      this.scheduleProgramId = scheduleProgramId;
       this.scheduleProgramType = scheduleProgramType;
     }
 
@@ -273,10 +271,6 @@ public class AdapterService extends AbstractIdleService {
 
     public Sink.Type getSinkType() {
       return sinkType;
-    }
-
-    public String getScheduleProgramId() {
-      return scheduleProgramId;
     }
 
     public ProgramType getScheduleProgramType() {
