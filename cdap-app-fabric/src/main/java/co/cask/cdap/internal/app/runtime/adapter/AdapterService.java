@@ -196,42 +196,45 @@ public class AdapterService extends AbstractIdleService {
 
   private Map<String, AdapterTypeInfo> registerAdapters() {
     ImmutableMap.Builder<String, AdapterTypeInfo> builder = ImmutableMap.builder();
-    Collection<File> files = Collections.EMPTY_LIST;
     try {
       File baseDir = new File(configuration.get(Constants.AppFabric.ADAPTER_DIR));
-      files = FileUtils.listFiles(baseDir, new String[]{"jar"}, true);
-    } catch (Exception e) {
-      LOG.warn("Unable to read the plugins directory ");
-    }
-
-    for (File file : files) {
-      try {
-        Manifest manifest = new JarFile(file.getAbsolutePath()).getManifest();
-        if (manifest != null) {
-          Attributes mainAttributes = manifest.getMainAttributes();
-          String adapterType = mainAttributes.getValue("CDAP-Adapter-Type");
-          // TODO: Check for null?
-          Source.Type sourceType = Source.Type.valueOf(mainAttributes.getValue("CDAP-Source-Type").toUpperCase());
-          Sink.Type sinkType = Sink.Type.valueOf(mainAttributes.getValue("CDAP-Sink-Type").toUpperCase());
-          //TODO: Schedule program Id? do we need this?
-          String scheduleProgramId = mainAttributes.getValue("CDAP-Scheduled-Program-Id");
-
-          //TODO: remove Hardcoding.
-          ProgramType scheduleProgramType = ProgramType.WORKFLOW;
-//      ProgramType scheduleProgramType = ProgramType.valueOf(mainAttributes.getValue("CDAP-Scheduled-Program-Type"));
-          AdapterTypeInfo adapterTypeInfo = new AdapterTypeInfo(file, adapterType, sourceType, sinkType,
-                                                                scheduleProgramId, scheduleProgramType);
-          if (adapterType != null && scheduleProgramType != null) {
-            builder.put(adapterType, adapterTypeInfo);
+      Collection<File> files = FileUtils.listFiles(baseDir, new String[]{"jar"}, true);
+      for (File file : files) {
+        try {
+          Manifest manifest = new JarFile(file.getAbsolutePath()).getManifest();
+          AdapterTypeInfo adapterTypeInfo = getAdapterTypeInfo(file, manifest);
+          if (adapterTypeInfo != null) {
+            builder.put(adapterTypeInfo.getType(), adapterTypeInfo);
           } else {
             LOG.error("Missing information for adapter at {}", file.getAbsolutePath());
           }
+        } catch (IOException e) {
+          LOG.warn(String.format("Unable to read adapter jar %s", file.getAbsolutePath()));
         }
-      } catch (IOException e) {
-        LOG.warn(String.format("Unable to read adapter jar %s", file.getAbsolutePath()));
       }
+    } catch (Exception e) {
+      LOG.warn("Unable to read the plugins directory ");
     }
     return builder.build();
+  }
+
+  private AdapterTypeInfo getAdapterTypeInfo(File file, Manifest manifest) {
+    if (manifest != null) {
+      Attributes mainAttributes = manifest.getMainAttributes();
+      String adapterType = mainAttributes.getValue("CDAP-Adapter-Type");
+      // TODO: Check for null?
+      Source.Type sourceType = Source.Type.valueOf(mainAttributes.getValue("CDAP-Source-Type").toUpperCase());
+      Sink.Type sinkType = Sink.Type.valueOf(mainAttributes.getValue("CDAP-Sink-Type").toUpperCase());
+      //TODO: Schedule program Id? do we need this?
+      String scheduleProgramId = mainAttributes.getValue("CDAP-Scheduled-Program-Id");
+      //TODO: remove Hardcoding.
+      ProgramType scheduleProgramType = ProgramType.WORKFLOW;
+//      ProgramType scheduleProgramType = ProgramType.valueOf(mainAttributes.getValue("CDAP-Scheduled-Program-Type"));
+      AdapterTypeInfo adapterTypeInfo = new AdapterTypeInfo(file, adapterType, sourceType, sinkType,
+                                                            scheduleProgramId, scheduleProgramType);
+      return adapterTypeInfo;
+    }
+    return null;
   }
 
   /**
