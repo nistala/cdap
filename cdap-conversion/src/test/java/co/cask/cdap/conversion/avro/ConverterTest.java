@@ -53,7 +53,7 @@ public class ConverterTest {
       .set("body", "hello world")
       .set("headers", headers)
       .build();
-    GenericRecord result = converter.convert(record, 1234567890);
+    GenericRecord result = converter.convert(record, 1234567890, null);
 
     Assert.assertEquals(1234567890L, result.get("ts"));
     Assert.assertEquals("value1", result.get("header1"));
@@ -92,7 +92,7 @@ public class ConverterTest {
       .build();
 
     Converter converter = new Converter(avroSchema, new String[] { });
-    GenericRecord result = converter.convert(record, 1234567890);
+    GenericRecord result = converter.convert(record, 1234567890, null);
 
     Assert.assertEquals(1234567890L, result.get("ts"));
     Assert.assertEquals(Integer.MAX_VALUE, result.get("intField"));
@@ -103,7 +103,7 @@ public class ConverterTest {
     Assert.assertEquals("foo bar", result.get("stringField"));
 
     // check nulls
-    result = converter.convert(StructuredRecord.builder(schema).build(), 1234567890);
+    result = converter.convert(StructuredRecord.builder(schema).build(), 1234567890, null);
     Assert.assertEquals(1234567890L, result.get("ts"));
     Assert.assertNull(result.get("intField"));
     Assert.assertNull(result.get("booleanField"));
@@ -134,7 +134,7 @@ public class ConverterTest {
       .build();
 
     Converter converter = new Converter(avroSchema, new String[] { });
-    GenericRecord result = converter.convert(record, 1234567890);
+    GenericRecord result = converter.convert(record, 1234567890, null);
 
     Assert.assertEquals(1234567890L, result.get("ts"));
     Assert.assertEquals(mapValue, result.get("map"));
@@ -159,7 +159,7 @@ public class ConverterTest {
       .build();
 
     Converter converter = new Converter(avroSchema, new String[] { });
-    GenericRecord result = converter.convert(record, 1234567890);
+    GenericRecord result = converter.convert(record, 1234567890, null);
 
     Assert.assertEquals(1234567890L, result.get("ts"));
     Assert.assertArrayEquals(value, (String[]) result.get("arr"));
@@ -197,7 +197,7 @@ public class ConverterTest {
       .build();
 
     Converter converter = new Converter(avroSchema, new String[] { });
-    GenericRecord result = converter.convert(record, 1234567890);
+    GenericRecord result = converter.convert(record, 1234567890, null);
 
     Assert.assertEquals(1234567890L, result.get("ts"));
     Assert.assertEquals(5, result.get("intField"));

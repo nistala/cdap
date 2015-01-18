@@ -687,11 +687,7 @@ public final class Schema {
     StringBuilder builder = new StringBuilder();
     JsonWriter writer = new JsonWriter(CharStreams.asWriter(builder));
     try {
-<<<<<<< HEAD
-      new SchemaTypeAdapter().write(writer, this);
-=======
       schemaTypeAdapter.write(writer, this);
->>>>>>> origin/develop
       writer.close();
       return builder.toString();
     } catch (IOException e) {

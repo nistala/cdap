@@ -26,7 +26,6 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericRecordBuilder;
 
 import java.lang.reflect.Field;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,16 +53,13 @@ public class Converter {
    * Convert a {@link StructuredRecord} of the stream event body, the stream event timestamp, and the headers
    * for the stream event into a {@link GenericRecord} of the given schema.
    *
-   * @param streamData the data of the stream event as a {@link StructuredRecord}, with headers as a field
+   * @param streamData the data of the stream event as a {@link StructuredRecord}
    * @param timestamp the timestamp of the stream event
+   * @param headers headers of the stream event
    * @return the stream event as an avro record
    * @throws UnexpectedFormatException if there was an error during conversion due to incompatible fields
    */
-  public GenericRecord convert(StructuredRecord streamData, long timestamp) {
-    Map<String, String> headerValues = streamData.get("headers");
-    if (headerValues == null) {
-      headerValues = Collections.emptyMap();
-    }
+  public GenericRecord convert(StructuredRecord streamData, long timestamp, Map<String, String> headers) {
     GenericRecordBuilder recordBuilder = new GenericRecordBuilder(avroSchema);
     for (Schema.Field field : avroSchema.getFields()) {
       String fieldName = field.name();
@@ -71,7 +67,7 @@ public class Converter {
         recordBuilder.set(fieldName, timestamp);
       } else if (headerFields.contains(fieldName)) {
         // if the field should come from the headers, take the value from the headers
-        recordBuilder.set(fieldName, headerValues.get(fieldName));
+        recordBuilder.set(fieldName, headers.get(fieldName));
       } else {
         // otherwise the field should come from the event body
         recordBuilder.set(fieldName, convertField(streamData.get(fieldName), field.schema()));
