@@ -198,7 +198,6 @@ public class AdapterService extends AbstractIdleService {
 
   @VisibleForTesting
   void registerAdapters() {
-    ImmutableMap.Builder<String, AdapterTypeInfo> builder = ImmutableMap.builder();
     try {
       File baseDir = new File(configuration.get(Constants.AppFabric.ADAPTER_DIR));
       Collection<File> files = FileUtils.listFiles(baseDir, new String[]{"jar"}, true);
@@ -207,7 +206,7 @@ public class AdapterService extends AbstractIdleService {
           Manifest manifest = new JarFile(file.getAbsolutePath()).getManifest();
           AdapterTypeInfo adapterTypeInfo = getAdapterTypeInfo(file, manifest);
           if (adapterTypeInfo != null) {
-            builder.put(adapterTypeInfo.getType(), adapterTypeInfo);
+            adapterTypeInfos.put(adapterTypeInfo.getType(), adapterTypeInfo);
           } else {
             LOG.error("Missing information for adapter at {}", file.getAbsolutePath());
           }
@@ -218,7 +217,6 @@ public class AdapterService extends AbstractIdleService {
     } catch (Exception e) {
       LOG.warn("Unable to read the plugins directory ");
     }
-    adapterTypeInfos.putAll(builder.build());
   }
 
   private AdapterTypeInfo getAdapterTypeInfo(File file, Manifest manifest) {
