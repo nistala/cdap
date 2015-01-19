@@ -38,7 +38,6 @@ import co.cask.cdap.archive.ArchiveBundler;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.data.Namespace;
-import co.cask.cdap.data2.OperationException;
 import co.cask.cdap.data2.datafabric.DefaultDatasetNamespace;
 import co.cask.cdap.data2.datafabric.dataset.DatasetsUtil;
 import co.cask.cdap.data2.dataset2.DatasetFramework;
@@ -276,7 +275,7 @@ public class DefaultStore implements Store {
   }
 
   @Override
-  public StreamSpecification getStream(final Id.Namespace id, final String name) throws OperationException {
+  public StreamSpecification getStream(final Id.Namespace id, final String name) {
     return txnl.executeUnchecked(new TransactionExecutor.Function<AppMds, StreamSpecification>() {
       @Override
       public StreamSpecification apply(AppMds mds) throws Exception {
@@ -286,7 +285,7 @@ public class DefaultStore implements Store {
   }
 
   @Override
-  public Collection<StreamSpecification> getAllStreams(final Id.Namespace id) throws OperationException {
+  public Collection<StreamSpecification> getAllStreams(final Id.Namespace id) {
     return txnl.executeUnchecked(new TransactionExecutor.Function<AppMds, Collection<StreamSpecification>>() {
       @Override
       public Collection<StreamSpecification> apply(AppMds mds) throws Exception {
@@ -375,7 +374,7 @@ public class DefaultStore implements Store {
   }
 
   @Override
-  public void setServiceInstances(final Id.Program id, final int instances) throws OperationException {
+  public void setServiceInstances(final Id.Program id, final int instances) {
     Preconditions.checkArgument(instances > 0,
                                 "cannot change number of program instances to negative number: %s", instances);
 
@@ -403,7 +402,7 @@ public class DefaultStore implements Store {
   }
 
   @Override
-  public int getServiceInstances(final Id.Program id) throws OperationException {
+  public int getServiceInstances(final Id.Program id) {
     return txnl.executeUnchecked(new TransactionExecutor.Function<AppMds, Integer>() {
       @Override
       public Integer apply(AppMds mds) throws Exception {
@@ -416,7 +415,7 @@ public class DefaultStore implements Store {
 
   @Override
   public void setServiceWorkerInstances(final Id.Program id,
-                                        final String workerName, final int instances) throws OperationException {
+                                        final String workerName, final int instances) {
     Preconditions.checkArgument(instances > 0,
                                 "cannot change number of program instances to negative number: %s", instances);
 
@@ -453,7 +452,7 @@ public class DefaultStore implements Store {
   }
 
   @Override
-  public int getServiceWorkerInstances(final Id.Program id, final String workerName) throws OperationException {
+  public int getServiceWorkerInstances(final Id.Program id, final String workerName) {
     return txnl.executeUnchecked(new TransactionExecutor.Function<AppMds, Integer>() {
       @Override
       public Integer apply(AppMds mds) throws Exception {
