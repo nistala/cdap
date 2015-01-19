@@ -20,16 +20,12 @@ import co.cask.cdap.AppWithDataset;
 import co.cask.cdap.AppWithDatasetDuplicate;
 import co.cask.cdap.WordCountApp;
 import co.cask.cdap.adapter.AdapterSpecification;
-import co.cask.cdap.adapter.Sink;
-import co.cask.cdap.adapter.Source;
-import co.cask.cdap.api.dataset.lib.FileSet;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.gateway.handlers.AppLifecycleHttpHandler;
 import co.cask.cdap.internal.app.services.http.AppFabricTestBase;
 import co.cask.cdap.proto.NamespaceMeta;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
@@ -200,88 +196,9 @@ public class AppLifecycleHttpHandlerTest extends AppFabricTestBase {
   }
 
 
-  @Test
-  public void testAdapterLifeCycle() throws Exception {
-    String namespaceId = Constants.DEFAULT_NAMESPACE;
-    String adapterId = "dummyAdapter";
-    String adapterName = "myStreamConvertor";
 
-    ImmutableMap<String, String> properties = ImmutableMap.of("frequency", "1m");
-    ImmutableMap<String, String> sourceProperties = ImmutableMap.of();
-    ImmutableMap<String, String> sinkProperties = ImmutableMap.of("dataset.class", FileSet.class.getName());
 
-    AdapterSpecification specification =
-      new AdapterSpecification(adapterName, adapterId, properties,
-                               ImmutableSet.of(new Source("mySource", Source.Type.STREAM, sourceProperties)),
-                               ImmutableSet.of(new Sink("mySink", Sink.Type.DATASET, sinkProperties)));
 
-    HttpResponse response = createAdapter(namespaceId, adapterId, adapterName, "mySource", "mySink", properties,
-                                          sourceProperties, sinkProperties);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-
-    response = listAdapters(namespaceId);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-    List<AdapterSpecification> list = readResponse(response, ADAPTER_SPEC_LIST_TYPE);
-    Assert.assertEquals(1, list.size());
-    Assert.assertEquals(specification, list.get(0));
-
-    response = getAdapter(namespaceId, adapterName);
-    Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-    AdapterSpecification receivedAdapterSpecification = readResponse(response, AdapterSpecification.class);
-    Assert.assertEquals(specification, receivedAdapterSpecification);
-    //TODO: Add Delete tests
-  }
-
-  @Test
-  public void testNonexistentAdapter() throws Exception {
-    String nonexistentAdapterId = "nonexistentAdapterId";
-    HttpResponse response = getAdapter(Constants.DEFAULT_NAMESPACE, nonexistentAdapterId);
-    Assert.assertEquals(404, response.getStatusLine().getStatusCode());
-  }
-
-  private HttpResponse createAdapter(String namespaceId, String type, String name, String sourceName,
-                                     String sinkName, ImmutableMap<String, String> adapterProperties,
-                                     ImmutableMap<String, String> sourceProperties,
-                                     ImmutableMap<String, String> sinkProperties) throws Exception {
-    JsonObject source = new JsonObject();
-    source.addProperty("name", sourceName);
-    source.add("properties", toJsonObject(sourceProperties));
-
-    JsonObject sink = new JsonObject();
-    sink.addProperty("name", sinkName);
-    sink.add("properties", toJsonObject(sinkProperties));
-
-    JsonObject adapterConfig = new JsonObject();
-    adapterConfig.addProperty("type", type);
-    adapterConfig.add("properties", toJsonObject(adapterProperties));
-    adapterConfig.add("source", source);
-    adapterConfig.add("sink", sink);
-
-    return createAdapter(namespaceId, name, GSON.toJson(adapterConfig));
-  }
-
-  private JsonObject toJsonObject(Map<String, String> properties) {
-    JsonObject jsonProperties = new JsonObject();
-    for (Map.Entry<String, String> entry : properties.entrySet()) {
-      jsonProperties.addProperty(entry.getKey(), entry.getValue());
-    }
-    return jsonProperties;
-  }
-
-  private HttpResponse createAdapter(String namespaceId, String name, String adapterConfig) throws Exception {
-    return doPut(String.format("%s/namespaces/%s/adapters/%s",
-                               Constants.Gateway.API_VERSION_3, namespaceId, name), adapterConfig);
-  }
-
-  private HttpResponse listAdapters(String namespaceId) throws Exception {
-    return doGet(String.format("%s/namespaces/%s/adapters",
-                               Constants.Gateway.API_VERSION_3, namespaceId));
-  }
-
-  private HttpResponse getAdapter(String namespaceId, String adapterId) throws Exception {
-    return doGet(String.format("%s/namespaces/%s/adapters/%s",
-                               Constants.Gateway.API_VERSION_3, namespaceId, adapterId));
-  }
 
   //TODO: move these elsewhere:
 //  @Test

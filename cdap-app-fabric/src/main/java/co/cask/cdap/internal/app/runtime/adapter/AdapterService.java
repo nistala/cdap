@@ -34,6 +34,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.AbstractIdleService;
 import com.google.gson.Gson;
 import com.google.inject.Inject;
@@ -82,7 +83,8 @@ public class AdapterService extends AbstractIdleService {
   @Override
   protected void startUp() throws Exception {
     LOG.info("Starting AdapterInfoService");
-    adapterTypeInfos = registerAdapters();
+    this.adapterTypeInfos = Maps.newHashMap();
+    registerAdapters();
   }
 
   @Override
@@ -194,8 +196,8 @@ public class AdapterService extends AbstractIdleService {
     }
   }
 
-
-  private Map<String, AdapterTypeInfo> registerAdapters() {
+  @VisibleForTesting
+  void registerAdapters() {
     ImmutableMap.Builder<String, AdapterTypeInfo> builder = ImmutableMap.builder();
     try {
       File baseDir = new File(configuration.get(Constants.AppFabric.ADAPTER_DIR));
@@ -216,7 +218,7 @@ public class AdapterService extends AbstractIdleService {
     } catch (Exception e) {
       LOG.warn("Unable to read the plugins directory ");
     }
-    return builder.build();
+    adapterTypeInfos.putAll(builder.build());
   }
 
   private AdapterTypeInfo getAdapterTypeInfo(File file, Manifest manifest) {

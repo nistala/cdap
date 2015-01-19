@@ -16,7 +16,6 @@
 
 package co.cask.cdap.internal.app.services.http;
 
-import co.cask.cdap.AdapterApp;
 import co.cask.cdap.app.program.ManifestFields;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
@@ -27,7 +26,6 @@ import co.cask.cdap.data2.datafabric.dataset.service.DatasetService;
 import co.cask.cdap.data2.datafabric.dataset.service.executor.DatasetOpExecutor;
 import co.cask.cdap.internal.app.services.AppFabricServer;
 import co.cask.cdap.metrics.query.MetricsQueryService;
-import co.cask.cdap.test.internal.AppFabricClient;
 import co.cask.cdap.test.internal.TempFolder;
 import co.cask.cdap.test.internal.guice.AppFabricTestModule;
 import co.cask.tephra.TransactionManager;
@@ -37,7 +35,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ObjectArrays;
 import com.google.common.io.ByteStreams;
-import com.google.common.io.Files;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Guice;
@@ -75,7 +72,6 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
@@ -128,7 +124,6 @@ public abstract class AppFabricTestBase {
     injector = Guice.createInjector(new AppFabricTestModule(conf));
 
     locationFactory = injector.getInstance(LocationFactory.class);
-    setupAdapters();
 
     txManager = injector.getInstance(TransactionManager.class);
     txManager.startAndWait();
@@ -157,28 +152,6 @@ public abstract class AppFabricTestBase {
     dsOpService.stopAndWait();
     txManager.stopAndWait();
     TEMP_FOLDER.delete();
-  }
-
-  private static void setupAdapters() throws IOException {
-    setupAdapter(AdapterApp.class, "dummyAdapter", "AdapterWorkflow");
-  }
-
-  private static void setupAdapter(Class<?> clz, String adapterType, String scheduledProgram) throws IOException {
-
-    Attributes attributes = new Attributes();
-    attributes.put(ManifestFields.MAIN_CLASS, clz.getName());
-    attributes.put(ManifestFields.MANIFEST_VERSION, "1.0");
-    attributes.putValue("CDAP-Source-Type", "STREAM");
-    attributes.putValue("CDAP-Sink-Type", "DATASET");
-    attributes.putValue("CDAP-Adapter-Type", adapterType);
-    attributes.putValue("CDAP-Scheduled-Program-Id", adapterType);
-
-    Manifest manifest = new Manifest();
-    manifest.getMainAttributes().putAll(attributes);
-
-    File adapterJar = AppFabricClient.createDeploymentJar(locationFactory, clz, manifest);
-    File destination =  new File(String.format("%s/%s", adapterDir.getAbsolutePath(), adapterJar.getName()));
-    Files.copy(adapterJar, destination);
   }
 
   protected static Injector getInjector() {
