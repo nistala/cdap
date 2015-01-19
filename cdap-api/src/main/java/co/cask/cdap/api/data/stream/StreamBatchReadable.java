@@ -1,5 +1,5 @@
 /*
- * Copyright © 2014 Cask Data, Inc.
+ * Copyright © 2014-2015 Cask Data, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not
  * use this file except in compliance with the License. You may obtain a copy of
@@ -101,7 +101,7 @@ public class StreamBatchReadable implements BatchReadable<Long, String> {
    * @param endTime End timestamp in milliseconds (exclusive) of stream events provided to the job
    */
   public static void useStreamInput(MapReduceContext context, String streamName, long startTime, long endTime) {
-    context.setInput(new StreamBatchReadable(streamName, startTime, endTime).toURI().toString(), null);
+    context.setInput(new StreamBatchReadable(streamName, startTime, endTime).toURI().toString());
   }
 
   /**
@@ -116,7 +116,7 @@ public class StreamBatchReadable implements BatchReadable<Long, String> {
    */
   public static void useStreamInput(MapReduceContext context, String streamName,
                                     long startTime, long endTime, Class<? extends StreamEventDecoder> decoderType) {
-    context.setInput(new StreamBatchReadable(streamName, startTime, endTime, decoderType).toURI().toString(), null);
+    context.setInput(new StreamBatchReadable(streamName, startTime, endTime, decoderType).toURI().toString());
   }
 
   /**
@@ -132,7 +132,7 @@ public class StreamBatchReadable implements BatchReadable<Long, String> {
    */
   public static void useStreamInput(MapReduceContext context, String streamName,
                                     long startTime, long endTime, FormatSpecification bodyFormatSpec) {
-    context.setInput(new StreamBatchReadable(streamName, startTime, endTime, bodyFormatSpec).toURI().toString(), null);
+    context.setInput(new StreamBatchReadable(streamName, startTime, endTime, bodyFormatSpec).toURI().toString());
   }
 
   /**

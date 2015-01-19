@@ -61,5 +61,6 @@ public class SingleStringRecordFormat extends ByteBufferRecordFormat<StructuredR
     if (charsetStr != null) {
       this.charset = Charset.forName(charsetStr);
     }
+    this.fieldName = schema.getFields().get(0).getName();
   }
 }
