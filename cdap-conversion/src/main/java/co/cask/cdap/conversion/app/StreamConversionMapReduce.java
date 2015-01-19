@@ -41,7 +41,6 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.twill.filesystem.Location;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +49,6 @@ import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 /**
  * MapReduce job that reads events from a stream over a given time interval and writes the events out to a FileSet
@@ -72,9 +70,9 @@ public class StreamConversionMapReduce extends AbstractMapReduce {
   public static final String HEADERS = "headers";
   // for mapred
   public static final String SCHEMA_KEY = "cdap.stream.conversion.output.schema";
-  private String jobTime;
-  private Location filesetLocation;
-  private Location jobOutputLocation;
+  private String sinkName;
+  private String outputPath;
+  private Long partitionTime;
 
   @Override
   public void configure() {
@@ -112,8 +110,16 @@ public class StreamConversionMapReduce extends AbstractMapReduce {
     }
 
     // read a time interval from the stream as input, using the given format
+    partitionTime = logicalStartTime;
     long runFrequency = Long.parseLong(getRequiredArg(adapterProperties, FREQUENCY));
-    jobTime = String.valueOf(TimeUnit.SECONDS.convert(logicalStartTime, TimeUnit.MILLISECONDS));
+    sinkName = getRequiredArg(runtimeArgs, SINK_NAME);
+    Map<String, String> sinkArgs = Maps.newHashMap();
+    FileSetArguments.setOutputPath(sinkArgs, String.valueOf(partitionTime));
+    FileSet sink = context.getDataset(sinkName, sinkArgs);
+
+    /*TimePartitionedFileSetArguments.setOutputPartitionTime(sinkArgs, partitionTime);
+    TimePartitionedFileSet sink = context.getDataset(sinkName, sinkArgs);*/
+
     String schemaStr = getRequiredArg(adapterProperties, SCHEMA);
     FormatSpecification formatSpec = new FormatSpecification(
       formatName,
@@ -123,28 +129,14 @@ public class StreamConversionMapReduce extends AbstractMapReduce {
                                        logicalStartTime - runFrequency, logicalStartTime,
                                        formatSpec);
 
-    // setup output arguments
-    String sinkName = getRequiredArg(runtimeArgs, SINK_NAME);
-    Map<String, String> sinkArgs = Maps.newHashMap();
-    FileSetArguments.setOutputPath(sinkArgs, jobTime);
-    FileSet sink = context.getDataset(sinkName, sinkArgs);
-
     // this schema is our schema, which is slightly different than avro's schema in terms of the types it supports.
     // Incompatibilities will surface here and cause the job to fail.
     // TODO: support output formats other than avro
     Schema schema = new Schema.Parser().parse(schemaStr);
     job.getConfiguration().set(SCHEMA_KEY, schema.toString());
     AvroJob.setOutputKeySchema(job, schema);
-
-    // each job will output to its logical start time so that concurrent jobs don't step on each other.
-    // the assumption here is that multiple runs will not have the same logical start time.
-    // TODO: set the output path here instead of assuming it is set in the runtime args by whatever
-    //       is running this program. Requires some way of setting runtime args in this method (or some other method)
-    filesetLocation = sink.getBaseLocation();
-    LOG.error("ashau - sink base location = {}.", filesetLocation.toURI().toString());
-    jobOutputLocation = sink.getOutputLocation();
-    LOG.error("ashau - sink output location = {}.", jobOutputLocation.toURI().toString());
     context.setOutput(sinkName, sink);
+    //outputPath = FileSetArguments.getOutputPath(sink.getUnderlyingFileSet().getRuntimeArguments());
   }
 
   // strip timestamp and headers from the full schema to get the schema of the stream body
@@ -171,26 +163,13 @@ public class StreamConversionMapReduce extends AbstractMapReduce {
 
   @Override
   public void onFinish(boolean succeeded, MapReduceContext context) throws Exception {
+    /*
     if (succeeded) {
-      LOG.error("ashau - cleaning up output.");
-      // this will change once there is support for partitions. For now, copy output files to the base
-      // path so they can all be queried by Impala and Hive.
-      for (Location loc : jobOutputLocation.list()) {
-        String locName = loc.getName();
-        // mapreduce also puts other stuff like a success file in the directory. we just want the output files.
-        if (isOutputFile(locName)) {
-          loc.renameTo(filesetLocation.append(jobTime + "." + locName));
-        }
-      }
-      // recursively delete the output directory now that we've moved all the files.
-      jobOutputLocation.delete(true);
-    }
-  }
+      TimePartitionedFileSet converted = context.getDataset(sinkName);
 
-  // mapreduce will put a _SUCCESS file in the directory, as well as hidden files.
-  private boolean isOutputFile(String fileName) {
-    char firstChar = fileName.charAt(0);
-    return !(firstChar == '.' || firstChar == '_');
+      LOG.info("Adding partition for time {} with path {} to dataset '{}'", partitionTime, outputPath, sinkName);
+      converted.addPartition(partitionTime, outputPath);
+    }*/
   }
 
   /**
