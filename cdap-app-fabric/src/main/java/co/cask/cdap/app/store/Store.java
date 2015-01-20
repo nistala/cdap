@@ -147,7 +147,7 @@ public interface Store {
    * @throws OperationException
    */
   @Nullable
-  ApplicationSpecification getApplication(Id.Application id) throws OperationException;
+  ApplicationSpecification getApplication(Id.Application id);
 
   /**
    * Returns a collection of all application specs.

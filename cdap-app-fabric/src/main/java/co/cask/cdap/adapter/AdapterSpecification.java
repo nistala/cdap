@@ -27,7 +27,7 @@ import java.util.Set;
 /**
  * Specification that is used to configure an adapter.
  */
-public final class  AdapterSpecification {
+public final class AdapterSpecification {
 
   private final String name;
   private final String type;
@@ -41,8 +41,8 @@ public final class  AdapterSpecification {
    * @param name  Name of the adapter.
    * @param type  Adapter type.
    * @param properties Properties for configuring the adapter.
-   * @param sources {@link List} of {@Source}s used by the adapter.
-   * @param sinks {@link List} of {Sink}s used by the adapter.
+   * @param sources {@link List} of {@link Source}s used by the adapter.
+   * @param sinks {@link List} of {@link Sink}s used by the adapter.
    */
   public AdapterSpecification(String name, String type, Map<String, String> properties, Set<Source> sources,
                               Set<Sink> sinks) {
@@ -70,9 +70,9 @@ public final class  AdapterSpecification {
   /**
    * @return type of Adapter.
    */
-   public String getType() {
+  public String getType() {
     return type;
-   }
+  }
 
   /**
    * @return name of the Adapter.
@@ -88,6 +88,21 @@ public final class  AdapterSpecification {
     return properties;
   }
 
+  /**
+   * @return name of the schedule for this Adapter.
+   */
+  public String getScheduleName() {
+    // For now, simply schedule the adapter's program with the name of the adapter.
+    return name;
+  }
+
+  /**
+   * @return description of the schedule for this Adapter.
+   */
+  public String getScheduleDescription() {
+    return String.format("Schedule for adapter: %s", name);
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -99,11 +114,8 @@ public final class  AdapterSpecification {
 
     AdapterSpecification that = (AdapterSpecification) o;
 
-    if (name.equals(that.name) &&
-        properties.equals(that.properties) &&
-        sinks.equals(that.sinks) &&
-        sources.equals(that.sources) &&
-        type.equals(that.type)) {
+    if (name.equals(that.name) && properties.equals(that.properties) && sinks.equals(that.sinks) &&
+      sources.equals(that.sources) && type.equals(that.type)) {
       return true;
     } else {
       return false;
