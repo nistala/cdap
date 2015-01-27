@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package co.cask.cdap.metrics.api.store2;
+package co.cask.cdap.metrics.store;
 
 import co.cask.cdap.api.common.Bytes;
 import co.cask.cdap.data2.dataset2.lib.table.MetricsTable;
@@ -22,6 +22,8 @@ import co.cask.cdap.metrics.transport.MetricType;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.NavigableMap;
@@ -44,16 +46,16 @@ import java.util.NavigableMap;
  */
 // todo: not thread-safe!
 public final class MetricTimeSeriesTable {
-
+  private static final Logger LOG = LoggerFactory.getLogger(MetricTimeSeriesTable.class);
   private static final int MAX_ROLL_TIME = 0xfffe;
-  private static final byte[] FOUR_ZERO_BYTES = {0, 0, 0, 0};
-  private static final byte[] FOUR_ONE_BYTES = {1, 1, 1, 1};
+
   private static final Function<byte[], Long> BYTES_TO_LONG = new Function<byte[], Long>() {
     @Override
     public Long apply(byte[] input) {
       return Bytes.toLong(input);
     }
   };
+
   private static final Function<NavigableMap<byte[], byte[]>, NavigableMap<byte[], Long>>
     TRANSFORM_MAP_BYTE_ARRAY_TO_LONG = new Function<NavigableMap<byte[], byte[]>, NavigableMap<byte[], Long>>() {
     @Override
@@ -90,10 +92,8 @@ public final class MetricTimeSeriesTable {
     NavigableMap<byte[], NavigableMap<byte[], byte[]>> gaugesTable = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
     NavigableMap<byte[], NavigableMap<byte[], byte[]>> incrementsTable = Maps.newTreeMap(Bytes.BYTES_COMPARATOR);
     for (Aggregation agg : aggregations) {
-      byte[] rowKey = codec.getRowKey(agg.getTagValues(), agg.getMetricName(), agg.getTimeValue().getTimestamp());
-
-      // delta is guaranteed to be 2 bytes.
-      byte[] column = codec.getColumn(agg.getTimeValue().getTimestamp());
+      byte[] rowKey = codec.createRowKey(agg.getTagValues(), agg.getMetricName(), agg.getTimeValue().getTimestamp());
+      byte[] column = codec.createColumn(agg.getTimeValue().getTimestamp());
 
       if (MetricType.COUNTER == agg.getMetricType()) {
         inc(incrementsTable, rowKey, column, agg.getTimeValue().getValue());
@@ -113,8 +113,9 @@ public final class MetricTimeSeriesTable {
   }
 
   public MetricScanner scan(MetricScan scan) throws Exception {
-    byte[] startRow = codec.getRowKey(scan.getTagValues(), scan.getMetricName(), scan.getStartTs());
-    byte[] endRow = codec.getRowKey(scan.getTagValues(), scan.getMetricName(), scan.getEndTs());
+    byte[] startRow = codec.createRowKey(scan.getTagValues(), scan.getMetricName(), scan.getStartTs());
+    byte[] endRow = codec.createRowKey(scan.getTagValues(), scan.getMetricName(), scan.getEndTs());
+    endRow = Bytes.stopKeyForPrefix(endRow);
 
     // todo: if searching within same row, we can also provide start and end columns or list of columns
     // todo: set fuzzy filter for "any value" parts in the row key
@@ -124,7 +125,7 @@ public final class MetricTimeSeriesTable {
   }
 
   /**
-   * Clears the data. Note: keeps entities encoding state.
+   * Clears the data. Note: keeps entities encodings.
    */
   public void deleteAllData() throws Exception {
     timeSeriesTable.deleteAll(new byte[]{});

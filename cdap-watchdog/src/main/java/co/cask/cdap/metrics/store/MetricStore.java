@@ -14,27 +14,18 @@
  * the License.
  */
 
-package co.cask.cdap.metrics.api.store2;
+package co.cask.cdap.metrics.store;
+
+import co.cask.cdap.metrics.transport.MetricType;
 
 import java.util.List;
 
 /**
  *
  */
-public class MetricSlice {
-  private final String metricName;
-  private final List<TagValue> tagValues;
+public interface MetricStore {
+  // todo: better signature needed
+  void add(MetricType metricType, MetricSlice metricSlice, TimeValue timeValue);
 
-  public MetricSlice(String metricName, List<TagValue> tagValues) {
-    this.metricName = metricName;
-    this.tagValues = tagValues;
-  }
-
-  public String getMetricName() {
-    return metricName;
-  }
-
-  public List<TagValue> getTagValues() {
-    return tagValues;
-  }
+  List<TimeSeries> query(MetricQuery query);
 }

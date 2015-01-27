@@ -14,7 +14,7 @@
  * the License.
  */
 
-package co.cask.cdap.metrics.api.store2;
+package co.cask.cdap.metrics.store;
 
 import co.cask.cdap.api.common.Bytes;
 import co.cask.cdap.api.dataset.table.Row;
@@ -36,7 +36,6 @@ public final class MetricScanner implements Iterator<MetricScanResult> {
   private final Scanner scanner;
   private final long startTs;
   private final long endTs;
-
 
   // Track the number of row scanned through the iterator. It's for reporting and debugging purpose.
   private int rowScanned;
@@ -114,6 +113,7 @@ public final class MetricScanner implements Iterator<MetricScanResult> {
             break;
           }
 
+          // todo: can return empty list, if all data is < startTs or > endTs
           return new MetricScanResult(metricName, tagValues, timeValues);
         }
 

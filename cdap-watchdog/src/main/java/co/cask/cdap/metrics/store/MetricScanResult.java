@@ -14,7 +14,9 @@
  * the License.
  */
 
-package co.cask.cdap.metrics.api.store2;
+package co.cask.cdap.metrics.store;
+
+import com.google.common.base.Objects;
 
 import java.util.Iterator;
 import java.util.List;
@@ -44,5 +46,27 @@ public final class MetricScanResult implements Iterable<TimeValue> {
   @Override
   public Iterator<TimeValue> iterator() {
     return timeValues.iterator();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    MetricScanResult other = (MetricScanResult) o;
+
+    return metricName.equals(other.metricName) &&
+      tagValues.equals(other.tagValues) &&
+      timeValues.equals(other.timeValues);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(metricName, tagValues, timeValues);
   }
 }

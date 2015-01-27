@@ -14,16 +14,20 @@
  * the License.
  */
 
-package co.cask.cdap.metrics.api.store2;
+package co.cask.cdap.metrics.store;
+
+import com.google.common.base.Objects;
+
+import javax.annotation.Nullable;
 
 /**
  *
  */
-public class TagValue {
+public final class TagValue {
   private final String tagName;
   private final String value;
 
-  public TagValue(String tagName, String value) {
+  public TagValue(String tagName, @Nullable String value) {
     this.tagName = tagName;
     this.value = value;
   }
@@ -32,7 +36,28 @@ public class TagValue {
     return tagName;
   }
 
+  @Nullable
   public String getValue() {
     return value;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    TagValue tagValue = (TagValue) o;
+
+    return tagName.equals(tagValue.tagName) &&  Objects.equal(value, tagValue.value);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(tagName, value);
   }
 }

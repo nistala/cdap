@@ -14,7 +14,7 @@
  * the License.
  */
 
-package co.cask.cdap.metrics.api.store2;
+package co.cask.cdap.metrics.store;
 
 import co.cask.cdap.metrics.data.AggregatesTable;
 import co.cask.cdap.metrics.data.MetricsTableFactory;

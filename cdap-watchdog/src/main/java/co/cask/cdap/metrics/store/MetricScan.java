@@ -14,7 +14,7 @@
  * the License.
  */
 
-package co.cask.cdap.metrics.api.store2;
+package co.cask.cdap.metrics.store;
 
 import co.cask.cdap.metrics.transport.MetricType;
 
@@ -23,14 +23,14 @@ import java.util.List;
 /**
  *
  */
-public class MetricScan {
+public final class MetricScan {
   private final List<TagValue> tagValues;
   private final MetricType metricType;
   private final String metricName;
   private final long startTs;
   private final long endTs;
 
-  public MetricScan(long endTs, long startTs, String metricName, MetricType metricType, List<TagValue> tagValues) {
+  public MetricScan(long startTs, long endTs, String metricName, MetricType metricType, List<TagValue> tagValues) {
     this.endTs = endTs;
     this.startTs = startTs;
     this.metricName = metricName;

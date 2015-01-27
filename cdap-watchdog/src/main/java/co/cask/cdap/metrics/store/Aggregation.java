@@ -14,7 +14,7 @@
  * the License.
  */
 
-package co.cask.cdap.metrics.api.store2;
+package co.cask.cdap.metrics.store;
 
 import co.cask.cdap.metrics.transport.MetricType;
 
@@ -24,7 +24,7 @@ import java.util.List;
  *
  */
 // todo: better name needed
-public class Aggregation {
+public final class Aggregation {
   private final List<TagValue> tagValues;
   private final MetricType metricType;
   private final String metricName;

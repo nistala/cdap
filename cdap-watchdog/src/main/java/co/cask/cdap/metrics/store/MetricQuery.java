@@ -14,14 +14,14 @@
  * the License.
  */
 
-package co.cask.cdap.metrics.api.store2;
+package co.cask.cdap.metrics.store;
 
 import java.util.List;
 
 /**
  *
  */
-public class MetricQuery {
+public final class MetricQuery {
   private final long startTs;
   private final long endTs;
   private final String metric;

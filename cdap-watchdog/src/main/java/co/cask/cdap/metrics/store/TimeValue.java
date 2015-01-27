@@ -14,12 +14,14 @@
  * the License.
  */
 
-package co.cask.cdap.metrics.api.store2;
+package co.cask.cdap.metrics.store;
+
+import com.google.common.base.Objects;
 
 /**
  *
  */
-public class TimeValue {
+public final class TimeValue {
   private final long timestamp;
   private final long value;
 
@@ -34,5 +36,25 @@ public class TimeValue {
 
   public long getValue() {
     return value;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(timestamp, value);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+
+    TimeValue other = (TimeValue) obj;
+
+    return timestamp == other.timestamp && value == other.value;
   }
 }
