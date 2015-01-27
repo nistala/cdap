@@ -57,4 +57,9 @@ public final class TimeValue {
 
     return timestamp == other.timestamp && value == other.value;
   }
+
+  @Override
+  public String toString() {
+    return Objects.toStringHelper(this).add("ts", timestamp).add("value", value).toString();
+  }
 }

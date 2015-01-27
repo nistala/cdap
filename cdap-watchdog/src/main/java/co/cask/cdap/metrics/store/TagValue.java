@@ -60,4 +60,9 @@ public final class TagValue {
   public int hashCode() {
     return Objects.hashCode(tagName, value);
   }
+
+  @Override
+  public String toString() {
+    return Objects.toStringHelper(this).add("tagName", tagName).add("value", value).toString();
+  }
 }

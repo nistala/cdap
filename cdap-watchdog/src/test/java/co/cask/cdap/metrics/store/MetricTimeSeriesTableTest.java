@@ -44,21 +44,53 @@ public class MetricTimeSeriesTableTest {
                                                             new EntityTable(new InMemoryMetricsTable("EntityTable")),
                                                             resolution, rollTimebaseInterval);
 
-    long ts = 1422312915;
+    // aligned to start of resolution bucket
+    // "/1000" because time is expected to be in seconds
+    long ts = ((System.currentTimeMillis() / 1000) / resolution) * resolution;
 
     // testing encoding with multiple tags
     List<TagValue> tagValues = ImmutableList.of(new TagValue("tag1", "value1"),
                                                 new TagValue("tag2", "value2"),
                                                 new TagValue("tag3", "value3"));
 
-    Aggregation agg = new Aggregation(tagValues, MetricType.COUNTER, "metric1", new TimeValue(ts, 1));
-    table.add(ImmutableList.of(agg));
 
-    // note: due to rounding up to resolution we want to specify at least +/- resolution to be sure to fetch the data
-    MetricScan scan = new MetricScan(ts - resolution, ts + resolution, "metric1", MetricType.COUNTER, tagValues);
+    // trying adding one by one, in same (first) time resolution bucket
+    for (int i = 0; i < 5; i++) {
+      table.add(ImmutableList.of(new Aggregation(tagValues, MetricType.COUNTER, "metric1",
+                                                 new TimeValue(ts, 1))));
+    }
+
+    // trying adding one by one, in different time resolution buckets
+    for (int i = 0; i < 3; i++) {
+      table.add(ImmutableList.of(new Aggregation(tagValues, MetricType.COUNTER, "metric1",
+                                                 new TimeValue(ts + resolution * i, 2))));
+    }
+
+    // trying adding as list
+    // first incs in same (second) time resolution bucket
+    List<Aggregation> aggs = Lists.newArrayList();
+    for (int i = 0; i < 7; i++) {
+      aggs.add(new Aggregation(tagValues, MetricType.COUNTER, "metric1", new TimeValue(ts + resolution, 3)));
+    }
+    // then incs in different time resolution buckets
+    for (int i = 0; i < 3; i++) {
+      aggs.add(new Aggregation(tagValues, MetricType.COUNTER, "metric1", new TimeValue(ts + resolution * i, 4)));
+    }
+
+    table.add(aggs);
+
+    MetricScan scan = new MetricScan(ts - 2 * resolution, ts + 3 * resolution,
+                                     "metric1", MetricType.COUNTER, tagValues);
     Table<String, List<TagValue>, List<TimeValue>> expected = HashBasedTable.create();
-    expected.put("metric1", tagValues, ImmutableList.of(new TimeValue((ts / resolution) * resolution, 1)));
+    expected.put("metric1", tagValues, ImmutableList.of(new TimeValue(ts, 11),
+                                                        new TimeValue(ts + resolution, 27),
+                                                        new TimeValue(ts + 2 * resolution, 6)));
 
+    assertScan(table, expected, scan);
+  }
+
+  private void assertScan(MetricTimeSeriesTable table,
+                          Table<String, List<TagValue>, List<TimeValue>> expected, MetricScan scan) throws Exception {
     Table<String, List<TagValue>, List<TimeValue>> resultTable = HashBasedTable.create();
     MetricScanner scanner = table.scan(scan);
     try {
