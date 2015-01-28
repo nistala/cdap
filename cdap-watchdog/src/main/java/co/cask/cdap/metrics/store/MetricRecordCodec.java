@@ -79,6 +79,31 @@ public class MetricRecordCodec {
     return rowKey;
   }
 
+  public byte[] createFuzzyRowMask(List<TagValue> tagValues, String metricName) {
+    // See createRowKey for row format info
+    byte[] mask = new byte[(tagValues.size() + 2) * entityTable.getIdSize() + Bytes.SIZEOF_INT];
+
+    // agg group encoded is always provided for fuzzy row filter
+    int offset = writeEncodedFixedMask(mask, 0);
+    // time is defined by start/stop keys when scanning - we never include it in fuzzy filter
+    offset = writeFuzzyMask(mask, offset, Bytes.SIZEOF_INT);
+
+    for (TagValue tagValue : tagValues) {
+      if (tagValue.getValue() != null) {
+        offset = writeEncodedFixedMask(mask, offset);
+      } else {
+        offset = writeEncodedFuzzyMask(mask, offset);
+      }
+    }
+
+    if (metricName != null) {
+      writeEncodedFixedMask(mask, offset);
+    } else {
+      writeEncodedFuzzyMask(mask, offset);
+    }
+    return mask;
+  }
+
   public byte[] createColumn(long ts) {
     long timestamp = ts / resolution * resolution;
     int timeBase = getTimeBase(timestamp);
@@ -136,7 +161,6 @@ public class MetricRecordCodec {
   }
 
   /**
-   * Save a long id into the given byte array, assuming the given array is always big enough.
    * @return incremented offset
    */
   private int writeEncoded(String type, String entity, byte[] destination, int offset) {
@@ -152,7 +176,6 @@ public class MetricRecordCodec {
   }
 
   /**
-   * Save a long id into the given byte array, assuming the given array is always big enough.
    * @return incremented offset
    */
   private int writeAnyEncoded(byte[] destination, int offset) {
@@ -162,6 +185,36 @@ public class MetricRecordCodec {
     while (idSize != 0) {
       idSize--;
       destination[offset + idSize] = 0;
+    }
+
+    return offset + entityTable.getIdSize();
+  }
+
+  private int writeFuzzyMask(byte[] destination, int offset, int length) {
+    int count = length;
+    while (count != 0) {
+      count--;
+      destination[offset + count] = 1;
+    }
+
+    return offset + length;
+  }
+
+  private int writeEncodedFixedMask(byte[] destination, int offset) {
+    int idSize = entityTable.getIdSize();
+    while (idSize != 0) {
+      idSize--;
+      destination[offset + idSize] = 0;
+    }
+
+    return offset + entityTable.getIdSize();
+  }
+
+  private int writeEncodedFuzzyMask(byte[] destination, int offset) {
+    int idSize = entityTable.getIdSize();
+    while (idSize != 0) {
+      idSize--;
+      destination[offset + idSize] = 1;
     }
 
     return offset + entityTable.getIdSize();

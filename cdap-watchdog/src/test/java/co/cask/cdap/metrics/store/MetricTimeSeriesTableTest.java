@@ -56,37 +56,63 @@ public class MetricTimeSeriesTableTest {
 
     // trying adding one by one, in same (first) time resolution bucket
     for (int i = 0; i < 5; i++) {
-      table.add(ImmutableList.of(new Aggregation(tagValues, MetricType.COUNTER, "metric1",
-                                                 new TimeValue(ts, 1))));
+      for (int k = 1; k < 4; k++) {
+        table.add(ImmutableList.of(new Aggregation(tagValues, MetricType.COUNTER, "metric" + k,
+                                                   new TimeValue(ts, k))));
+      }
     }
 
     // trying adding one by one, in different time resolution buckets
     for (int i = 0; i < 3; i++) {
-      table.add(ImmutableList.of(new Aggregation(tagValues, MetricType.COUNTER, "metric1",
-                                                 new TimeValue(ts + resolution * i, 2))));
+      for (int k = 1; k < 4; k++) {
+        table.add(ImmutableList.of(new Aggregation(tagValues, MetricType.COUNTER, "metric" + k,
+                                                   new TimeValue(ts + resolution * i, 2 * k))));
+      }
     }
 
     // trying adding as list
     // first incs in same (second) time resolution bucket
     List<Aggregation> aggs = Lists.newArrayList();
     for (int i = 0; i < 7; i++) {
-      aggs.add(new Aggregation(tagValues, MetricType.COUNTER, "metric1", new TimeValue(ts + resolution, 3)));
+      for (int k = 1; k < 4; k++) {
+        aggs.add(new Aggregation(tagValues, MetricType.COUNTER, "metric" + k,
+                                 new TimeValue(ts + resolution, 3 * k)));
+      }
     }
     // then incs in different time resolution buckets
     for (int i = 0; i < 3; i++) {
-      aggs.add(new Aggregation(tagValues, MetricType.COUNTER, "metric1", new TimeValue(ts + resolution * i, 4)));
+      for (int k = 1; k < 4; k++) {
+        aggs.add(new Aggregation(tagValues, MetricType.COUNTER, "metric" + k,
+                                 new TimeValue(ts + resolution * i, 4 * k)));
+      }
     }
 
     table.add(aggs);
 
-    MetricScan scan = new MetricScan(ts - 2 * resolution, ts + 3 * resolution,
-                                     "metric1", MetricType.COUNTER, tagValues);
-    Table<String, List<TagValue>, List<TimeValue>> expected = HashBasedTable.create();
-    expected.put("metric1", tagValues, ImmutableList.of(new TimeValue(ts, 11),
-                                                        new TimeValue(ts + resolution, 27),
-                                                        new TimeValue(ts + 2 * resolution, 6)));
+    // verify each metric
+    for (int k = 1; k < 4; k++) {
+      MetricScan scan = new MetricScan(ts - 2 * resolution, ts + 3 * resolution,
+                                       "metric" + k, MetricType.COUNTER, tagValues);
+      Table<String, List<TagValue>, List<TimeValue>> expected = HashBasedTable.create();
+      expected.put("metric" + k, tagValues, ImmutableList.of(new TimeValue(ts, 11 * k),
+                                                             new TimeValue(ts + resolution, 27 * k),
+                                                             new TimeValue(ts + 2 * resolution, 6 * k)));
+      assertScan(table, expected, scan);
+    }
 
+    // verify all metrics with fuzzy metric in scan
+    Table<String, List<TagValue>, List<TimeValue>> expected = HashBasedTable.create();
+    for (int k = 1; k < 4; k++) {
+      expected.put("metric" + k, tagValues, ImmutableList.of(new TimeValue(ts, 11 * k),
+                                                             new TimeValue(ts + resolution, 27 * k),
+                                                             new TimeValue(ts + 2 * resolution, 6 * k)));
+    }
+    MetricScan scan = new MetricScan(ts - 2 * resolution, ts + 3 * resolution,
+                                     // metric = null means "all"
+                                     null, MetricType.COUNTER, tagValues);
     assertScan(table, expected, scan);
+
+    // todo: scan fuzzy tag values
   }
 
   private void assertScan(MetricTimeSeriesTable table,

@@ -16,33 +16,24 @@
 package co.cask.cdap.metrics.store;
 
 import co.cask.cdap.api.common.Bytes;
+import co.cask.cdap.common.utils.ImmutablePair;
+import co.cask.cdap.data2.dataset2.lib.table.FuzzyRowFilter;
 import co.cask.cdap.data2.dataset2.lib.table.MetricsTable;
 import co.cask.cdap.metrics.data.EntityTable;
 import co.cask.cdap.metrics.transport.MetricType;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.NavigableMap;
+import javax.annotation.Nullable;
 
 /**
  * Table for storing time series metrics.
- * <p>
- * Row key:
- * {@code context|metricName|tags|timebase|runId}
- * </p>
- * <p>
- * Columns: offset to timebase of the row.
- * </p>
- * <p>
- * Cell: Value for the metrics specified by the row with at the timestamp of (timbase + offset) * resolution.
- * </p>
- * <p>
- * TODO: More doc.
- * </p>
  */
 // todo: not thread-safe!
 public final class MetricTimeSeriesTable {
@@ -118,10 +109,33 @@ public final class MetricTimeSeriesTable {
     endRow = Bytes.stopKeyForPrefix(endRow);
 
     // todo: if searching within same row, we can also provide start and end columns or list of columns
-    // todo: set fuzzy filter for "any value" parts in the row key
 
-    return new MetricScanner(timeSeriesTable.scan(startRow, endRow, null, null), codec,
+    FuzzyRowFilter fuzzyRowFilter = createFuzzyRowFilter(scan, startRow);
+
+    return new MetricScanner(timeSeriesTable.scan(startRow, endRow, null, fuzzyRowFilter), codec,
                              scan.getStartTs(), scan.getEndTs());
+  }
+
+  @Nullable
+  private FuzzyRowFilter createFuzzyRowFilter(MetricScan scan, byte[] startRow) {
+    // if any of metric name or tag values are not provided, we do need fuzzy row filter, otherwise don't:
+    // the scan is well defined by start & stop keys
+    if (scan.getMetricName() != null) {
+      boolean needFilter = false;
+      for (TagValue tagValue : scan.getTagValues()) {
+        if (tagValue.getValue() != null) {
+          needFilter = true;
+          break;
+        }
+      }
+      if (!needFilter) {
+        return null;
+      }
+    }
+
+    byte[] fuzzyRowMask = codec.createFuzzyRowMask(scan.getTagValues(), scan.getMetricName());
+    // note: we can use startRow, as it will contain all "fixed" parts of the key needed
+    return new FuzzyRowFilter(ImmutableList.of(new ImmutablePair<byte[], byte[]>(startRow, fuzzyRowMask)));
   }
 
   /**
