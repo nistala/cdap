@@ -20,10 +20,17 @@ angular.module(PKG.name + '.commons')
       restrict: 'E',
       scope: {
         model: '=ngModel',
+        config: '=',
         datasetType: '@'
       },
       templateUrl: 'widget-container/widget-dataset-selector/widget-dataset-selector.html',
       controller: function ($scope, myDatasetApi, myStreamApi, $state, EventPipe) {
+
+
+        console.log('this is the config', $scope.config);
+
+
+
         var resource;
         $scope.list = [];
 
